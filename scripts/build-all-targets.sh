@@ -4,8 +4,7 @@
 #
 # WHY THIS SCRIPT EXISTS: "does it still build?" spans two toolchains. The eight
 # S3/PIO boards come from platformio.ini, but the Tanmatsu and the T-Display P4
-# are standalone ESP-IDF apps with their own build.sh wrappers, and release.sh
-# says so in a comment while building only the PlatformIO half. So a change that
+# are standalone ESP-IDF apps with their own build.sh wrappers. A change that
 # broke an IDF-only board was invisible until someone cut a release by hand. This
 # builds all ten, keeps going after a failure, and prints one table at the end.
 #

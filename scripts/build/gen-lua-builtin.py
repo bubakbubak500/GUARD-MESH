@@ -11,18 +11,15 @@ This generates src/ui-touch/lua_builtin.h from deploy/apps/, i.e. exactly the
 sources the Store serves, so a board that cannot reach the Store still ships
 with the apps rather than an empty drawer.
 
-It used to read out/firmware/apps/ instead. Nothing writes that directory --
-deploy-apps.sh rsyncs deploy/apps/ straight to the VPS -- so it was a stale
-mirror, and the "same sources the Store serves" guarantee was false: a bumped
-app shipped to the Store while the baked-in copy stayed on whatever version was
-mirrored last (#257).
+The canonical inputs live directly in deploy/apps/, not an output-directory
+mirror. This keeps local builds in sync with the checked-in app catalog.
 
 Run from the repo root:  python3 scripts/build/gen-lua-builtin.py
 """
 import json, os, re, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-APPS = os.path.join(ROOT, 'deploy/apps')      # canonical; what deploy-apps.sh publishes
+APPS = os.path.join(ROOT, 'deploy/apps')      # canonical build inputs
 OUT = os.path.join(ROOT, 'src/ui-touch/lua_builtin.h')
 DELIM = 'WADALUA'          # raw-string delimiter: keeps Lua source verbatim
 

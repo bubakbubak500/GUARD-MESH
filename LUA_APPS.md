@@ -224,6 +224,6 @@ once files are field-proven.
   mapped to a glyph by NAME (`gps`, `radio`, `chart`, `game`, ...) — names,
   not codepoints, so a store submission stays reviewable and an app can never
   ship a missing-glyph box; anything unrecognised falls back to the generic
-  symbol. `deploy/site/sdk.html`'s manifest table was corrected at the same
+  symbol. `docs/UPSTREAM-LUA-SDK.md`'s manifest table was corrected at the same
   time: it documented `version` / `min_api` / `description` / `boards`, none
   of which the device has ever parsed.

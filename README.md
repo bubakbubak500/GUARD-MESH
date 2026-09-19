@@ -12,6 +12,21 @@ maintained by [@bubakbubak500](https://github.com/bubakbubak500).
 - The upstream firmware and build instructions below are retained as the starting
   point. Guardian-specific firmware changes have not yet been applied.
 
+## Local installation and documentation
+
+- **Windows:** double-click [Start-Flasher.cmd](Start-Flasher.cmd).
+- **Linux:** run `sh start-flasher.sh`.
+- Requires Python 3.9+ and desktop Chrome/Edge. The installer and its dependencies
+  are bundled locally; no website, CDN or upstream firmware download is needed.
+- Select your ESP32-S3 board and its locally built `firmware-merged.bin`.
+  This is a complete installation and can overwrite saved settings; back up first.
+- [Local flashing instructions](docs/LOCAL-FLASHER.md) · [Documentation](docs/README.md)
+  · [UI refactoring plan](docs/UI-REFACTOR.md)
+
+The public WadaMesh website and its publishing infrastructure have been removed.
+The manual GitHub build workflow creates temporary artifacts, without publishing
+releases. Firmware web control, Lua apps, translations and board support remain.
+
 ## Upstream project
 
 <p align="center">
@@ -112,7 +127,7 @@ automatically:
 ```bash
 pio run -e heltec_v4_tft_companion_radio_usb_tcp_touch   # Heltec V4 TFT
 pio run -e LilyGo_TDeck_companion_radio_touch            # LilyGo T-Deck
-# or just `pio run` to build both
+# or `pio run` to build all configured default environments
 ```
 
 Flash with the NVS-preserving 4-component chain (bootloader / partitions /
@@ -121,8 +136,8 @@ credentials survive — not a merged image, which 0xFF-pads and wipes NVS.
 
 ## Contributing
 
-Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). One topic per
-PR; inbound contributions are accepted under the project's GPL-3.0 license.
+Contributions are by invitation — see [CONTRIBUTING.md](CONTRIBUTING.md).
+One topic per PR; contributions retain GPL-3.0-or-later.
 
 ## License
 

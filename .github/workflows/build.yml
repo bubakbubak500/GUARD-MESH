@@ -1,0 +1,46 @@
+name: Build firmware (no publication)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version label embedded in local build artifacts
+        default: guardian-dev
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      BUILD_LABEL: ${{ inputs.version }}
+      ENVS: heltec_v4_tft_companion_radio_usb_tcp_touch LilyGo_TDeck_companion_radio_touch
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate label
+        run: '[[ "$BUILD_LABEL" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]'
+      - name: Install PlatformIO
+        run: pip install platformio
+      - name: Build complete images
+        run: |
+          unset WIFI_SSID WIFI_PWD
+          export PLATFORMIO_BUILD_FLAGS="-DFIRMWARE_RELEASE_TAG='\"${BUILD_LABEL}\"'"
+          for environment in $ENVS; do pio run -t mergebin -e "$environment"; done
+      - name: Collect images
+        run: |
+          mkdir -p dist
+          for environment in $ENVS; do
+            cp ".pio/build/$environment/firmware.bin" "dist/$environment.bin"
+            cp ".pio/build/$environment/firmware-merged.bin" "dist/$environment-merged.bin"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: guardian-firmware
+          path: dist/*.bin
+          retention-days: 7
+          if-no-files-found: error
