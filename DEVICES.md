@@ -1,10 +1,10 @@
 # Supported devices
 
 Current hardware support, install paths and maturity. "Stable" means the board
-ships on the stable release channel; "Beta" means it is new and lives on the
-test channel until the next stable promote. Install links:
-[flasher.wadamesh.com](https://flasher.wadamesh.com) (browser, Chrome/Edge over
-USB) and the [GitHub releases](https://github.com/ALLFATHER-BV/wadamesh/releases).
+ships on the upstream stable release channel; "Beta" describes upstream maturity.
+For GUARD-MESH ESP32-S3 builds, use the [local installer](docs/LOCAL-FLASHER.md)
+with your own merged binary. P4/Tanmatsu retain their separate build/install paths.
+The matrix below records upstream support status, not Guardian hardware validation.
 
 | Device | MCU / radio | Display and input | Install | Channel | Status |
 |---|---|---|---|---|---|

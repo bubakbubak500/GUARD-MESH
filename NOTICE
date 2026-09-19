@@ -93,3 +93,10 @@ LovyanGFX (RAK WisMesh Tap V2 display backend)
 
 This list is not exhaustive and is expanded as dependencies are vendored or
 added.
+
+GUARD-MESH local installer
+--------------------------------------------------------------------------------
+ESP Web Tools 10.4.0 — ESPHome / Open Home Foundation contributors
+    Apache License 2.0 — https://github.com/esphome/esp-web-tools
+    Browser distribution bundled in deploy/flasher/vendor/esp-web-tools/.
+    See its LICENSE, PROVENANCE.md and embedded third-party notices.
