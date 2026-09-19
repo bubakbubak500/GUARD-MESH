@@ -3,7 +3,7 @@
 // Touch-input API for the LVGL touch UI. The declarations are shared across
 // touch boards (Heltec V4 CHSC6x, LilyGo T-Deck GT911, …); each board links its
 // own implementation. Available for any touch-UI build.
-#if (defined(HAS_HELTEC_V4_CAP_TOUCH) || defined(HAS_TOUCH_UI)) && defined(ESP32)
+#if (defined(HAS_HELTEC_V4_CAP_TOUCH) || defined(HAS_TOUCH_UI)) && (defined(ESP32) || defined(GUARD_SIMULATOR))
 
 #include <stdint.h>
 

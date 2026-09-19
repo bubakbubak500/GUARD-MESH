@@ -1,5 +1,8 @@
 #pragma once
 
+#if defined(GUARD_SIMULATOR)
+#include "SimTypes.h"
+#else
 #include <MeshCore.h>
 #include <helpers/ui/DisplayDriver.h>
 #include <helpers/ui/UIScreen.h>
@@ -21,6 +24,7 @@
 
 #include "../AbstractUITask.h"
 #include "../NodePrefs.h"
+#endif
 
 struct ContactInfo;
 

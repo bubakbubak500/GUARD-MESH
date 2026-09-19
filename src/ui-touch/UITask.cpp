@@ -1,3 +1,6 @@
+#if defined(GUARD_SIMULATOR)
+#include "SimPlatform.h"
+#else
 #include "UITask.h"
 #include "TouchSleep.h"
 
@@ -259,11 +262,13 @@ static_assert(ChannelSenderSplit::kMaxWireName >= (size_t)UITask::MAX_SENDER_NAM
   #endif
 #endif
 
+#endif // GUARD_SIMULATOR platform boundary
+
 constexpr unsigned long UI_REFRESH_MS = 250;
 constexpr int UI_SORT_SCRATCH = UITask::MAX_UI_THREADS;
 UIEventType g_last_event = UIEventType::none;
 
-#if defined(ESP32)
+#if defined(ESP32) || defined(GUARD_SIMULATOR)
 namespace {
 constexpr const char* k_ui_history_path = "/ui_chat_history_v1.bin";
 constexpr uint32_t k_ui_history_magic = 0x55494348; // "UICH"
@@ -11668,7 +11673,13 @@ public:
 // Declared here, NOT among the keypad-nav forward declarations: that block is
 // inside #if CAP_KEYPAD_NAV, so the declaration disappeared on every board
 // without keypad navigation while the calls below stayed.
+#if defined(GUARD_SIMULATOR)
+static void rebootWithNotice(const char*) {
+  simRequestRestart();
+}
+#else
 static void rebootWithNotice(const char* msg);   // (defined far below) reboot, reason on screen first
+#endif
 static void openBackupPicker();
 static void buildBackupsSettings();   // Settings -> Backups detail page (list/delete + factory reset)
 static void doExportBackupFile(const char* fname);   // write a backup (SD if a card is present, else internal)
@@ -14221,7 +14232,7 @@ static void pagerKbBlCycleCb(lv_event_t* e) {
 #endif
 
 static void themeModeRestart(uint8_t mode) {
-#if defined(ESP32)
+#if defined(ESP32) || defined(GUARD_SIMULATOR)
   if (touchPrefsGetThemeMode() == mode) return;
   if (!touchPrefsSetThemeMode(mode)) {
     if (g_lv.task) g_lv.task->showAlert(TR("Theme save failed"), 1600);
@@ -50008,7 +50019,7 @@ static void updateGlobalStatusBar() {
 #endif
 
   // ---- Clock ----
-#if defined(ESP32)
+#if defined(ESP32) || defined(GUARD_SIMULATOR)
   static char s_last_clock[12] = {0};
   static int8_t s_last_clock_current = -1;
   time_t now_t = time(nullptr);
@@ -58541,6 +58552,10 @@ void UITask::begin(DisplayDriver* display, SensorManager* sensors, NodePrefs* no
     s_luascan_request = true;             // pre-warm the installed-apps cache off the UI thread
 #endif
 #endif
+#if defined(GUARD_SIMULATOR)
+    s_ui_rotation = LV_DISP_ROT_270; // T-Deck's physical 320x240 orientation.
+    i18nSetLang(touchPrefsGetUiLang());
+#endif
     const bool ui_landscape = (s_ui_rotation == LV_DISP_ROT_90 ||
                                s_ui_rotation == LV_DISP_ROT_270);
 
@@ -58755,7 +58770,7 @@ void UITask::begin(DisplayDriver* display, SensorManager* sensors, NodePrefs* no
     s_nav_keypad_drv.disp    = lv_disp_get_default();
     if (lv_indev_t* kp = lv_indev_drv_register(&s_nav_keypad_drv)) lv_indev_set_group(kp, s_nav_group);
     else pushDiagLine("LVGL nav keypad indev failed");
-#if defined(ESP32)
+#if defined(ESP32) || defined(GUARD_SIMULATOR)
 #if defined(HAS_TANMATSU) || defined(HAS_THINKNODE_M9)
     s_kbd_nav = true;   // keyboard-only device: nav is always on (no touch to fall back to)
 #elif defined(ATTAKY_MESH_SERIES)
@@ -59949,7 +59964,7 @@ uint16_t UITask::getScreenTimeoutSecs() const {
 }
 
 bool UITask::setScreenTimeoutSecs(uint16_t seconds) {
-#if defined(ESP32)
+#if defined(ESP32) || defined(GUARD_SIMULATOR)
   if (!touchPrefsSetScreenTimeoutSecs(seconds)) return false;
 #endif
   _screen_timeout_ms = static_cast<uint32_t>(seconds) * 1000u;

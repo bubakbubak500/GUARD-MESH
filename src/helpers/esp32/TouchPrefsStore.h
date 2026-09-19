@@ -4,7 +4,7 @@
  * NodePrefs (which is file-persisted and shared across firmware variants)
  * so we don't risk breaking on-disk layout. */
 
-#if defined(ESP32)
+#if defined(ESP32) || defined(GUARD_SIMULATOR)
 
 #include <stdint.h>
 #include <stddef.h>   // size_t (blob helpers below)

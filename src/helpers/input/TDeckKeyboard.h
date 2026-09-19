@@ -11,7 +11,7 @@
 // which is polled from a core-0 task. To avoid two cores hitting Wire at once,
 // tdeckKeyboardPoll() must be called from THAT task; the UI thread only drains
 // the critical-section-protected ring via tdeckKeyboardReadKey().
-#if defined(HAS_TDECK_KEYBOARD) && defined(ESP32)
+#if defined(HAS_TDECK_KEYBOARD) && (defined(ESP32) || defined(GUARD_SIMULATOR))
 
 #include <stdint.h>
 
