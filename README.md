@@ -1,3 +1,19 @@
+# GUARD-MESH
+
+Guardian-focused fork of [ALLFATHER-BV/wadamesh](https://github.com/ALLFATHER-BV/wadamesh),
+maintained by [@bubakbubak500](https://github.com/bubakbubak500).
+
+- Initial upstream baseline: `main` at `6fe6b9f06332708b6ed0cc78958017d0dcc9e35d`
+  (`beta_83`), imported on 2026-09-19 with its Git history.
+- License: **GPL-3.0-or-later**. Original copyright notices and third-party
+  licenses are preserved in [LICENSE](LICENSE), [NOTICE](NOTICE), and the sources.
+- Development is directed by Guardian's needs. Contributions are by invitation;
+  see [CONTRIBUTING.md](CONTRIBUTING.md) for the single-owner review policy.
+- The upstream firmware and build instructions below are retained as the starting
+  point. Guardian-specific firmware changes have not yet been applied.
+
+## Upstream project
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/wadamesh-readme-dark.svg">
