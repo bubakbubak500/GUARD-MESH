@@ -7,7 +7,7 @@
 //
 // The UI layer (UITask) owns the on-screen cursor and turns the centre click
 // into a touch event; this driver only reports oriented motion deltas.
-#if defined(HAS_TDECK_TRACKBALL) && defined(ESP32)
+#if defined(HAS_TDECK_TRACKBALL) && (defined(ESP32) || defined(GUARD_SIMULATOR))
 
 #include <stdint.h>
 

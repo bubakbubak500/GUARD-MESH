@@ -1,6 +1,7 @@
 # GUARD-MESH dokumentace
 
 - [Lokální instalátor pro Windows a Linux](LOCAL-FLASHER.md)
+- [T-Deck simulátor pro Windows](SIMULATOR.md)
 - [Plán oddělení UI a desktopového simulátoru](UI-REFACTOR.md)
 - [Původní uživatelský návod](UPSTREAM-USER-GUIDE.md)
 - [Původní Lua SDK](UPSTREAM-LUA-SDK.md)

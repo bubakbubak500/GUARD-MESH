@@ -12,8 +12,10 @@ Navržené hranice:
 - `platform/esp32`: skutečné služby a vstupy zařízení.
 - `platform/desktop`: falešná data a vstupy pro stejné UI na Windows/Linuxu.
 
-Postup: nejprve ověřit sestavení cílové desky, oddělit jednu obrazovku a její
-data, spustit ji na desktopu, pak přesouvat další části po funkčních celcích.
+Windows [simulátor T-Decku](SIMULATOR.md) nyní překládá celé sdílené UI přes
+platformní adaptéry. To dovoluje při další práci ověřovat proklik bez desky.
+Další postup: ověřit sestavení cílové desky, oddělit jednu obrazovku a její
+data, pak přesouvat další části po funkčních celcích.
 LVGL zůstane na jednom UI vlákně, pomalé operace budou předávat výsledky přes
 události. Vlastnictví objektů, rušení callbacků a životnost dialogů musí být
 součástí rozhraní. Samotné rozdělení souboru při zachování globálních vazeb nestačí.

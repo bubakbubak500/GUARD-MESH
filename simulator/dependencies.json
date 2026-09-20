@@ -1,0 +1,17 @@
+{
+  "ziglang": "0.14.1",
+  "repositories": [
+    {
+      "directory": "lvgl",
+      "url": "https://github.com/lvgl/lvgl.git",
+      "tag": "v8.4.0",
+      "commit": "4495f428630cc1741bd8bfd977f080e8460e8e8d"
+    },
+    {
+      "directory": "meshcore",
+      "url": "https://github.com/ALLFATHER-BV/meshcomod.git",
+      "tag": "core-v1.17.4",
+      "commit": "edd7ed47f42acf6c64c9fcac551050fdbd531a09"
+    }
+  ]
+}

@@ -14,6 +14,8 @@ maintained by [@bubakbubak500](https://github.com/bubakbubak500).
 
 ## Local installation and documentation
 
+- **T-Deck UI simulator (Windows x64):** double-click [Start-Simulator.cmd](Start-Simulator.cmd).
+  Runs the shared firmware UI without a board. [Controls and limits](docs/SIMULATOR.md).
 - **Windows:** double-click [Start-Flasher.cmd](Start-Flasher.cmd).
 - **Linux:** run `sh start-flasher.sh`.
 - Requires Python 3.9+ and desktop Chrome/Edge. The installer and its dependencies

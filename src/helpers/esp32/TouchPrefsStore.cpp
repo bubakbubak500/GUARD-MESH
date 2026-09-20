@@ -1,14 +1,19 @@
 #include "TouchPrefsStore.h"
 #include "TouchPrefsSchema.h"
 
-#if defined(ESP32)
+#if defined(ESP32) || defined(GUARD_SIMULATOR)
 
+#if defined(GUARD_SIMULATOR)
+#include "SimHardware.h"
+#include "SimPrefs.h"
+#else
 #include "WifiRuntimeStore.h"
 
 #include "SdNvsPrefs.h"   // NVS, or SD /meshcomod fallback when NVS is unusable (Launcher)
 
 #include <Preferences.h>
 #include <SPIFFS.h>
+#endif
 #include <stddef.h>   // offsetof
 #include <string.h>   // memcpy
 
