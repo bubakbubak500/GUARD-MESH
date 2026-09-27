@@ -50,6 +50,9 @@ public:
   int threadAtOrdinal(int ordinal) const;
   int historyAt(const char *name, int back) const;
   bool lastThreadMessage(int index, UIMessage &out) const;
+  // Arrival order, newest first; several rows may belong to the same thread.
+  int newestUnread(int slots[], int threads[], int capacity) const;
+  bool isUnreadMessage(int slot) const;
   bool removeThread(int index, DirtyRecord dirty, int *purged = nullptr);
   bool discardEmptyDirectThreads(int keep);
   void clearContactIndexes();

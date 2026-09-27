@@ -3056,8 +3056,13 @@ static void navMaybeRebuild() {
   context.extraTargets[0]=g_statusbar.inbox_add;
   context.extraTargets[1]=g_statusbar.inbox_mark;
   context.extraTargets[2]=g_statusbar.inbox_qr;
+#if defined(HAS_TDECK_GT911)
+  context.extraTargets[3]=g_statusbar.chat_back;
+  context.extraTargets[4]=(s_settings_open_cat>=0 || uiApplication.pageTitle())?g_statusbar.left_label:g_statusbar.chan_gear;
+#else
   context.extraTargets[3]=g_statusbar.chan_gear;
   context.extraTargets[4]=(s_settings_open_cat>=0 || uiApplication.pageTitle())?g_statusbar.left_label:nullptr;
+#endif
   s_nav_tabbar=nullptr;s_nav_want_tabbar=false;
   if(ui::focus::rebuild(context) && s_nav_debug)
     printf("[NAV] rebuilt count=%d %s tab=%d\n",navTargets.count(),selection.topLayer?"top":selection.mode==ui::focus::ContextMode::Chat?"chat":"tab",snapshot.activeTab);
@@ -13374,7 +13379,10 @@ static ui::screens::HomeScreen guardianHome({
     uint16_t unread=0;
     uint32_t timestamp=0;
     char name[33]{};
-    return g_lv.task->getThreadInfo(preview.index,channel,unread,timestamp,name,sizeof name) &&
+    UITask::UIMessage message{};
+    return g_lv.task->getMessageByIndex(preview.messageSlot,message) &&
+           message.seq==preview.messageSequence && g_lv.task->isUnreadMessage(preview.messageSlot) &&
+           g_lv.task->getThreadInfo(preview.index,channel,unread,timestamp,name,sizeof name) &&
            channel==preview.channel && unread>0 && !strcmp(name,preview.name);
   },
   selectThreadFromList,
@@ -13383,8 +13391,8 @@ static ui::screens::HomeScreen guardianHome({
 
 static void refreshGuardianHome() {
   if (!guardianHome.active() || !g_lv.task) return;
-  int indexes[ui::MessageTypes::MAX_UI_THREADS];
-  const int count=g_lv.task->getCombinedInboxCount(indexes,ui::MessageTypes::MAX_UI_THREADS);
+  int slots[3],indexes[3];
+  const int count=g_lv.task->getNewestUnread(slots,indexes,3);
   ui::screens::HomeScreen::Preview rows[3]{};
   int used=0;
   for (int i=0;i<count && used<3;++i) {
@@ -13392,12 +13400,11 @@ static void refreshGuardianHome() {
     uint32_t timestamp=0;
     if (!g_lv.task->getThreadInfo(indexes[i],row.channel,row.unread,timestamp,row.name,sizeof row.name) || !row.unread) continue;
     row.index=indexes[i];
-    char sender[ui::MessageTypes::MAX_SENDER_NAME+1]{}, text[96]{};
-    bool outgoing=false;
-    if (g_lv.task->getThreadLastMessage(row.index,sender,sizeof sender,text,sizeof text,&outgoing)) {
-      if (row.channel && sender[0] && !outgoing) snprintf(row.text,sizeof row.text,"%s: %s",sender,text);
-      else snprintf(row.text,sizeof row.text,"%s",text);
-    }
+    UITask::UIMessage message{};
+    if (!g_lv.task->getMessageByIndex(slots[i],message)) continue;
+    row.messageSlot=slots[i]; row.messageSequence=message.seq;
+    if (row.channel && message.sender[0]) snprintf(row.text,sizeof row.text,"%s: %s",message.sender,message.text);
+    else snprintf(row.text,sizeof row.text,"%s",message.text);
     for (char* p=row.text;*p;++p) if (*p=='\n' || *p=='\r') *p=' ';
     ++used;
   }
@@ -13422,12 +13429,18 @@ static void updateCompactStatusBar(uint32_t now) {
   for (auto* label : {g_statusbar.left_label, g_statusbar.clock, g_statusbar.batt_pct,
                      g_statusbar.batt_icon, g_statusbar.chat_back, g_statusbar.chan_gear})
     lv_obj_set_style_text_font(label, &font12(), LV_PART_MAIN);
-  lv_obj_set_width(g_statusbar.left_label, chat ? 78 : 118);
+  lv_obj_set_width(g_statusbar.left_label, chat ? 56 : 118);
   lv_label_set_long_mode(g_statusbar.left_label, LV_LABEL_LONG_DOT);
-  align(g_statusbar.left_label, LV_ALIGN_LEFT_MID, chat ? 42 : 6);
-  align(g_statusbar.chat_back, LV_ALIGN_LEFT_MID, 6);
-  align(g_statusbar.chan_gear, LV_ALIGN_LEFT_MID, 23);
-  lv_obj_set_ext_click_area(g_statusbar.chan_gear, 3);
+  align(g_statusbar.left_label, LV_ALIGN_LEFT_MID, chat ? 68 : 6);
+  align(g_statusbar.chat_back, LV_ALIGN_LEFT_MID, 4);
+  align(g_statusbar.chan_gear, LV_ALIGN_LEFT_MID, 35);
+  lv_obj_set_ext_click_area(g_statusbar.chan_gear, 0);
+  if (chat) {
+    // The two explicit buttons own navigation; the remaining space names the chat.
+    lv_label_set_recolor(g_statusbar.left_label,false);
+    setLabelIfChanged(g_statusbar.left_label,s_chat_title);
+    lv_obj_clear_flag(g_statusbar.left_label,LV_OBJ_FLAG_CLICKABLE);
+  }
   align(g_statusbar.clock, LV_ALIGN_CENTER, 0);
   align(g_statusbar.batt_icon, LV_ALIGN_RIGHT_MID, -4);
   align(g_statusbar.batt_pct, LV_ALIGN_RIGHT_MID, -26);
@@ -13440,9 +13453,9 @@ static void updateCompactStatusBar(uint32_t now) {
   align(g_statusbar.layout_label, LV_ALIGN_LEFT_MID, 91);
   // Retain room for transient activity/layout indicators without covering text.
   if (!lv_obj_has_flag(g_statusbar.layout_label, LV_OBJ_FLAG_HIDDEN))
-    lv_obj_set_width(g_statusbar.left_label, chat ? 45 : 81);
+    lv_obj_set_width(g_statusbar.left_label, chat ? 20 : 81);
   else if (!lv_obj_has_flag(g_statusbar.async_icon, LV_OBJ_FLAG_HIDDEN))
-    lv_obj_set_width(g_statusbar.left_label, chat ? 64 : 100);
+    lv_obj_set_width(g_statusbar.left_label, chat ? 40 : 100);
   lv_obj_set_ext_click_area(g_statusbar.batt_icon, 3);
   lv_obj_set_ext_click_area(g_statusbar.batt_pct, 3);
   int slot=0;
@@ -23445,7 +23458,9 @@ static void buildGlobalStatusBar() {
     g_statusbar.inbox_qr   = mk(2);   // rightmost — share QR
     lv_obj_add_event_cb(g_statusbar.inbox_qr, shareMyContactBtnCb, LV_EVENT_CLICKED, nullptr);
     { lv_obj_t* qimg = lv_img_create(g_statusbar.inbox_qr); lv_img_set_src(qimg, &qr_icon_dsc);
-#if defined(TLORA_PAGER)
+#if defined(HAS_TDECK_GT911)
+      lv_img_set_zoom(qimg, 171);   // 18 px source -> 12 px, matching the other header glyphs
+#elif defined(TLORA_PAGER)
       lv_img_set_zoom(qimg, 228);   // baked 18 px glyph -> 16 px, matching uiChromeFont()
 #endif
       lv_obj_set_style_img_recolor(qimg, lv_color_hex(colors().COLOR_TEXT), LV_PART_MAIN);
@@ -23471,10 +23486,31 @@ static void buildGlobalStatusBar() {
   lv_obj_set_ext_click_area(g_statusbar.left_label, 8);
   lv_obj_add_event_cb(g_statusbar.left_label, statusBarUnreadCb, LV_EVENT_CLICKED, nullptr);
 
-  // Back chevron shown while in a chat (far left). It's a non-clickable affordance —
-  // the bar's own tap handler (statusBarTapCb) closes the chat, like the settings page.
+  // T-Deck uses explicit chat buttons; other boards retain the bar's Back affordance.
+#if defined(HAS_TDECK_GT911)
+  auto chatButton=[](const char* symbol) {
+    auto* button=lv_btn_create(g_statusbar.root);
+    lv_obj_set_size(button,28,18);
+    styleButton(button);
+    lv_obj_set_style_radius(button,9,LV_PART_MAIN);
+    lv_obj_set_style_border_opa(button,LV_OPA_20,LV_PART_MAIN);
+    lv_obj_set_style_pad_all(button,0,LV_PART_MAIN);
+    auto* label=lv_label_create(button);
+    lv_label_set_text(label,symbol);
+    lv_obj_set_style_text_font(label,&font12(),LV_PART_MAIN);
+    lv_obj_center(label);
+    return button;
+  };
+  g_statusbar.chat_back=chatButton(LV_SYMBOL_LEFT);
+  lv_obj_add_event_cb(g_statusbar.chat_back,[](lv_event_t* e) {
+    if (lv_event_get_code(e)!=LV_EVENT_CLICKED) return;
+    if (g_lv.dm.detail_open) closeChatPanel(&g_lv.dm);
+    else if (g_lv.ch.detail_open) closeChatPanel(&g_lv.ch);
+  },LV_EVENT_CLICKED,nullptr);
+#else
   g_statusbar.chat_back = lv_label_create(g_statusbar.root);
   lv_label_set_text(g_statusbar.chat_back, LV_SYMBOL_LEFT);
+#endif
   lv_obj_set_style_text_color(g_statusbar.chat_back, lv_color_hex(colors().COLOR_ACCENT), LV_PART_MAIN);
 #if defined(TLORA_PAGER)
   lv_obj_set_style_text_font(g_statusbar.chat_back, uiChromeFont(), LV_PART_MAIN);
@@ -23486,10 +23522,14 @@ static void buildGlobalStatusBar() {
   lv_obj_add_flag(g_statusbar.chat_back, LV_OBJ_FLAG_HIDDEN);
 
   // Channel-settings gear — RIGHT of the back chevron, shown only inside a chat
-  // (updateGlobalStatusBar toggles it). Opens the per-channel region-scope modal.
+  // (updateGlobalStatusBar toggles it). Opens the unified thread settings menu.
   // Clickable child intercepts the tap, so it doesn't trigger the bar's close-tap.
+#if defined(HAS_TDECK_GT911)
+  g_statusbar.chan_gear=chatButton(LV_SYMBOL_SETTINGS);
+#else
   g_statusbar.chan_gear = lv_label_create(g_statusbar.root);
   lv_label_set_text(g_statusbar.chan_gear, LV_SYMBOL_SETTINGS);
+#endif
   lv_obj_set_style_text_color(g_statusbar.chan_gear, lv_color_hex(colors().COLOR_TEXT), LV_PART_MAIN);
 #if defined(TLORA_PAGER)
   lv_obj_set_style_text_font(g_statusbar.chan_gear, uiChromeFont(), LV_PART_MAIN);
@@ -23927,7 +23967,7 @@ static void updateGlobalStatusBar() {
   const bool in_chan_chat = chat_open;   // already excludes an open app/tool page (see above)
   // Back chevron + settings cog on the far left while in a chat; both centred in the
   // tall bar (see the shift loop above). The cog is clickable (channel settings); the
-  // back chevron is just an affordance — the bar's tap closes the chat.
+  // T-Deck chevron is a button; other boards also use the bar's close-tap.
   if (g_statusbar.chat_back) {
     // Re-apply the accent each tick so the chevron tracks the live theme colour (it was
     // set once at boot to the default accent and never updated on an accent change).
@@ -30247,6 +30287,97 @@ static void atGlanceShow(const char* title, const char* body, bool fade_in) {
 }
 
 #if defined(GUARD_SIMULATOR)
+bool guardSimHomeMessagesRegression(void (*tap)(int,int), void (*pump)(unsigned), void (*capture)(const char*)) {
+  auto check=[](bool ok,const char* reason) {
+    if (!ok) printf("Home messages regression: %s\n",reason);
+    return ok;
+  };
+  auto shot=[&](const char* name) { pump(1700); lv_refr_now(nullptr); capture(name); };
+  auto arrive=[&](const char* text) {
+    UIMessageEvent event(UIEventType::channelMessage,0,nullptr,"#guardian-sim",text,g_lv.task->getMsgCount()+1);
+    g_lv.task->receiveMessage(event); pump(300); refreshGuardianHome();
+  };
+  auto rows=[&](std::initializer_list<const char*> texts) {
+    auto* card=guardianHome.actionTarget(ui::screens::HomeScreen::Action::Inbox);
+    int count=0;
+    for (unsigned i=0;i<lv_obj_get_child_cnt(card);++i) {
+      auto* row=lv_obj_get_child(card,i);
+      if (lv_obj_get_child_cnt(row)!=2 || !lv_obj_is_visible(row)) continue;
+      if (count>=int(texts.size())) return check(false,"extra unread row");
+      const char* text=lv_label_get_text(lv_obj_get_child(row,1));
+      if (!check(strstr(text,*(texts.begin()+count))!=nullptr,"wrong message/order in visible row")) return false;
+      ++count;
+    }
+    return check(count==int(texts.size()),"missing visible unread rows");
+  };
+  goToTab(HOME_TAB_INDEX); pump(300); g_lv.task->markAllThreadsRead(); refreshGuardianHome();
+  if (!rows({})) return false;
+  arrive("A: first"); if (!rows({"first"})) return false;
+  arrive("B: second"); arrive("C: third");
+  if (!rows({"third","second","first"})) return false;
+  shot("home-one-channel.png");
+  arrive("D: fourth"); if (!rows({"fourth","third","second"})) return false;
+  shot("home-fourth-arrival.png");
+  // Open the middle preview using the actual input driver, not a direct callback.
+  auto* card=guardianHome.actionTarget(ui::screens::HomeScreen::Action::Inbox);
+  lv_area_t area; lv_obj_get_coords(card,&area);
+  tap(area.x1+30,area.y1+65); pump(400); updateGlobalStatusBar();
+  if (!check(g_lv.ch.detail_open,"preview did not open its channel")) return false;
+  for (auto* button : {g_statusbar.chat_back,g_statusbar.chan_gear}) {
+    if (!check(lv_obj_get_width(button)==28 && lv_obj_get_height(button)==18 &&
+               lv_obj_get_height(g_statusbar.root)==20,"chat button/header dimensions differ from Inbox")) return false;
+  }
+  lv_area_t back,gear,title; lv_obj_get_coords(g_statusbar.chat_back,&back);
+  lv_obj_get_coords(g_statusbar.chan_gear,&gear); lv_obj_get_coords(g_statusbar.left_label,&title);
+  if (!check(back.x2<gear.x1 && gear.x2<title.x1,"chat hit areas overlap")) return false;
+  if (!check(lv_obj_get_style_text_font(g_statusbar.left_label,LV_PART_MAIN)==&font12(),"chat title font differs")) return false;
+  shot("channel-header-buttons.png");
+  // Both edges of the gear must open settings while retaining the chat below it.
+  for (int x : {gear.x1+2,gear.x2-2}) {
+    tap(x,(gear.y1+gear.y2)/2); pump(220);
+    if (!check(ui::screens::threadMenu::isOpen() && g_lv.ch.detail_open,"gear edge tap failed")) return false;
+    shot("channel-settings.png"); tap(255,48); pump(220);
+    if (!check(!ui::screens::threadMenu::isOpen() && g_lv.ch.detail_open,"menu close lost the chat")) return false;
+  }
+  arrive("E: read in chat");
+  tap(back.x2-2,(back.y1+back.y2)/2); pump(350);
+  if (!check(!g_lv.ch.detail_open && !s_cc_root,"Back edge did not close chat")) return false;
+  goToTab(HOME_TAB_INDEX); pump(350); refreshGuardianHome();
+  if (!rows({})) return false;
+  arrive("F: new unread"); if (!rows({"new unread"})) return false;
+  int slots[3],threads[3];
+  if (!check(g_lv.task->getNewestUnread(slots,threads,3)==1,"model differs from visible unread row")) return false;
+  // The visible row can briefly outlive a deleted record: its callback must reject it.
+  card=guardianHome.actionTarget(ui::screens::HomeScreen::Action::Inbox);
+  auto* staleRow=lv_obj_get_child(card,1);
+  g_lv.task->deleteMessageBySlot(slots[0]);
+  lv_event_send(staleRow,LV_EVENT_CLICKED,nullptr);
+  if (!check(!g_lv.ch.detail_open,"deleted preview opened a chat")) return false;
+  refreshThreadLists(); refreshGuardianHome();
+  if (!rows({})) return false;
+  goToTab(CHAT_INBOX_TAB_INDEX); pump(350); updateGlobalStatusBar();
+  auto* qr=lv_obj_get_child(g_statusbar.inbox_qr,0);
+  if (!check(lv_img_get_zoom(qr)==171,"QR pictogram is not compact")) return false;
+  shot("inbox-compact-qr.png");
+  int dm=-1,indexes[UITask::MAX_UI_THREADS];
+  const int count=g_lv.task->getThreadCount(false,indexes,UITask::MAX_UI_THREADS);
+  for (int i=0;i<count;++i) {
+    bool channel; uint16_t unread; uint32_t timestamp; char name[UITask::MAX_THREAD_NAME+1];
+    if (g_lv.task->getThreadInfo(indexes[i],channel,unread,timestamp,name,sizeof name) && !strcmp(name,"SIM Alpha")) dm=indexes[i];
+  }
+  if (!check(dm>=0,"DM fixture missing")) return false;
+  selectThreadFromList(dm,false); pump(350); updateGlobalStatusBar();
+  tap(37,10); pump(200);
+  if (!check(ui::screens::threadMenu::isOpen() && g_lv.dm.detail_open,"DM gear edge tap failed")) return false;
+  ui::screens::threadMenu::close(); pump(200);
+  shot("direct-header-buttons.png");
+  tap(6,10); pump(300);
+  if (!check(!g_lv.dm.detail_open && !s_cc_root,"DM Back edge failed")) return false;
+  goToTab(HOME_TAB_INDEX); pump(300);
+  puts("Home messages: real same-channel arrivals, three visible rows, read/delete and chat button edge taps PASS.");
+  return true;
+}
+
 bool guardSimHomeChromeRegression(void (*tap)(int,int), void (*pump)(unsigned), void (*capture)(const char*)) {
   auto shot=[&](const char* name) { lv_refr_now(nullptr); capture(name); };
   auto check=[](bool ok,const char* reason) {
@@ -32685,6 +32816,8 @@ bool UITask::getThreadInfo(int idx, bool& channel, uint16_t& unread, uint32_t& t
                            char* name, size_t name_len) const { return _messages.getThreadInfo(idx, channel, unread, ts, name, name_len); }
 
 bool UITask::getMessageByIndex(int msg_idx, UIMessage& out) const { return _messages.getMessageByIndex(msg_idx, out); }
+int UITask::getNewestUnread(int slots[], int threads[], int capacity) const { return _messages.newestUnread(slots,threads,capacity); }
+bool UITask::isUnreadMessage(int slot) const { return _messages.isUnreadMessage(slot); }
 
 int UITask::getUnreadMentionCount() const { return _messages.getUnreadMentionCount(); }
 
@@ -32698,7 +32831,7 @@ bool UITask::threadHasMessageHistory(int thread_idx) const { return _messages.th
 
 bool UITask::deleteMessageBySlot(int slot) {
   const bool changed = _messages.deleteMessageBySlot(slot, segMarkSeqDirty);
-  if (changed) markMsgsDirty();
+  if (changed) { markMsgsDirty(); markThreadsDirty(); }
   return changed;
 }
 

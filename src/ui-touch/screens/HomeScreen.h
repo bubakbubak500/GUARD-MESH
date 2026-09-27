@@ -15,6 +15,8 @@ public:
     int index = -1;
     bool channel = false;
     uint16_t unread = 0;
+    int messageSlot = -1;
+    uint32_t messageSequence = 0;
     char name[33] = {};
     char text[96] = {};
   };

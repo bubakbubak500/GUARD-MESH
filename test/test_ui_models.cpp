@@ -90,6 +90,69 @@ static void messageLifecycle() {
   assert(store.clearThreadHistory(dm, dirty) == 0);
   assert(!dirty_records.empty());
 }
+static void unreadMessagePreviews() {
+  Store store;
+  int slots[4], threads[4];
+  assert(store.newestUnread(slots, threads, 3) == 0 && !store.isUnreadMessage(0));
+  assert(store.allocate(8, allocate, std::free));
+  int channel = store.findOrCreateThread("same", true, 1);
+  int dm = store.findOrCreateThread("same", false, 1);
+  auto add = [&](int thread, int timestamp, const char* text, bool outgoing = false) {
+    auto m = message(timestamp, text); m.outgoing = outgoing;
+    assert(store.append(thread, m, !outgoing, false, 0, nullptr, nullptr));
+  };
+  auto expect = [&](std::initializer_list<const char*> texts) {
+    assert(store.newestUnread(slots, threads, 3) == int(texts.size()));
+    int i = 0;
+    for (auto text : texts) {
+      Store::UIMessage m{};
+      assert(store.getMessageByIndex(slots[i], m) && !strcmp(m.text, text));
+      assert(threads[i] == (m.channel ? channel : dm) && store.isUnreadMessage(slots[i]));
+      ++i;
+    }
+  };
+  add(channel, 100, "read history"); store.markAllThreadsRead();
+  add(channel, 90, "one"); expect({"one"});
+  add(channel, 80, "two"); add(channel, 80, "three");
+  expect({"three", "two", "one"});
+  add(channel, 70, "four"); expect({"four", "three", "two"});
+  add(dm, 60, "direct"); add(channel, 50, "outgoing", true);
+  expect({"direct", "four", "three"});
+  assert(!store.isUnreadMessage(0) && !store.isUnreadMessage(6));
+  store.markThreadRead(dm); expect({"four", "three", "two"});
+  assert(store.deleteMessageBySlot(slots[0], nullptr));
+  assert(store.thread(channel).unread == 3); expect({"three", "two", "one"});
+  assert(store.deleteMessageBySlot(0, nullptr)); // deleting read history cannot consume unread
+  assert(store.thread(channel).unread == 3);
+  store.markAllThreadsRead(); expect({});
+  for (int i = 0; i < 15; ++i) add(channel, i, "rollover");
+  expect({"rollover", "rollover", "rollover"});
+  Store::UIMessage latest{}; store.getMessageByIndex(slots[0], latest);
+  for (int i = 0; i < 3; ++i) {
+    Store::UIMessage m{}; store.getMessageByIndex(slots[i], m);
+    assert(m.seq == latest.seq - i);
+  }
+  assert(store.enforceHistoryCap(channel, 2, nullptr) == 6);
+  assert(store.thread(channel).unread == 2); expect({"rollover", "rollover"});
+  store.markAllThreadsRead(); add(channel, 0, "only unread"); expect({"only unread"});
+  assert(store.deleteMessageBySlot(slots[0], nullptr)); expect({});
+  assert(!store.newestUnread(nullptr, threads, 3) && !store.newestUnread(slots, nullptr, 3));
+  assert(!store.newestUnread(slots, threads, 0) && !store.isUnreadMessage(-1));
+  Store restored; assert(restored.allocate(3, allocate, std::free));
+  auto thread = store.thread(channel); thread.unread = 2;
+  assert(restored.restoreThread(channel, thread));
+  for (int i = 0; i < 3; ++i) {
+    auto m = message(i); strcpy(m.thread, "same"); m.channel = true; m.seq = i + 1;
+    assert(restored.restoreMessage(i, m));
+  }
+  assert(restored.restoreRingState(3, 0, 4));
+  assert(restored.newestUnread(slots, threads, 3) == 2 && slots[0] == 2 && slots[1] == 1);
+  assert(!restored.isUnreadMessage(0));
+  for (int i = 0; i < 4; ++i)
+    assert(restored.append(channel, message(i), true, false, 2, nullptr, nullptr));
+  assert(restored.thread(channel).unread == 2 && restored.newestUnread(slots, threads, 3) == 2);
+  std::puts("Unread previews: same-channel messages, arrival order, read/delete, cap, rollover and restore passed.");
+}
 static void ringOrderAndCapacity() {
   Store store;
   assert(store.allocate(3, allocate, std::free));
@@ -541,6 +604,7 @@ int main() {
   appStoreJobsRegression();
   mapProjection();
   messageOwnershipBoundary();
+  unreadMessagePreviews();
   messageLifecycle(); ringOrderAndCapacity(); historyCompatibility(); contactOrdering();
   sensorPolicies(); applicationPolicies(); configurationPolicies();
   radioPolicies(); historyFileFailures(); historyWorkerOwnership();

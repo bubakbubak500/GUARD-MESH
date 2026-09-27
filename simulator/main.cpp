@@ -14,6 +14,7 @@
 void runScreenPolicyIntegration(UITask &task, void (*pump)(unsigned));
 bool guardSimGlanceFontRegression(void (*capture)(const char*));
 bool guardSimHomeChromeRegression(void (*tap)(int,int), void (*pump)(unsigned), void (*capture)(const char*));
+bool guardSimHomeMessagesRegression(void (*tap)(int,int), void (*pump)(unsigned), void (*capture)(const char*));
 void runChatSessionIntegration(UITask &task);
 void runMessageIngressIntegration(SimReceiveTask &task);
 void runThreadRefreshRegression(UITask &task, void (*pump)(unsigned));
@@ -515,6 +516,8 @@ int appMain(int argc, char **argv) {
     saveFrame("home.png");
     if (!guardSimHomeChromeRegression(click, pump, saveFrame))
       throw std::runtime_error("Home status bar geometry or return navigation failed");
+    if (!guardSimHomeMessagesRegression(click, pump, saveFrame))
+      throw std::runtime_error("Home unread messages or chat button touch regression");
     if (!guardSimGlanceFontRegression(saveFrame))
       throw std::runtime_error("Fullscreen preview lost Czech glyphs or kept missing-glyph rectangles");
     click(32, 225);

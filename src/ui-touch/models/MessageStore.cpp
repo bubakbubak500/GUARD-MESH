@@ -218,6 +218,10 @@ bool MessageStore::deleteMessageBySlot(int msg_idx, DirtyRecord dirty) {
   UIMessage &m = _ui_msgs[msg_idx];
   if (!m.thread[0])
     return false; // free or already tombstoned
+  if (isUnreadMessage(msg_idx)) {
+    const int thread = findThreadByName(m.thread, m.channel);
+    if (--_ui_threads[thread].unread == 0) _ui_threads[thread].has_mention = false;
+  }
   m.thread[0] = '\0';
   m.text[0] = '\0';
   m.sender[0] = '\0';
@@ -279,6 +283,15 @@ int MessageStore::enforceHistoryCap(int thread_idx, uint16_t cap, DirtyRecord di
       dirty(m.seq);
     --_thread_msgs[thread_idx];
     ++trimmed;
+  }
+  if (trimmed) {
+    unsigned incoming = 0;
+    for (int i = 0; i < _ui_msg_count; ++i) {
+      const auto& m = _ui_msgs[(_ui_msg_head - 1 - i + _ui_msg_cap) % _ui_msg_cap];
+      if (!m.outgoing && m.channel == ch && !strncmp(m.thread, nm, MAX_THREAD_NAME)) ++incoming;
+    }
+    if (_ui_threads[thread_idx].unread > incoming) _ui_threads[thread_idx].unread = incoming;
+    if (!_ui_threads[thread_idx].unread) _ui_threads[thread_idx].has_mention = false;
   }
   return trimmed;
 }
@@ -382,11 +395,11 @@ bool MessageStore::append(int thread, UIMessage message, bool unread, bool menti
     ++_ui_msg_count;
   _ui_msg_head = (_ui_msg_head + 1) % _ui_msg_cap;
   _ui_threads[thread].last_ts = message.ts;
-  enforceHistoryCap(thread, per_chat_cap, dirty);
   if (unread && _ui_threads[thread].unread < 0xFFFF)
     ++_ui_threads[thread].unread;
   if (mention)
     _ui_threads[thread].has_mention = true;
+  enforceHistoryCap(thread, per_chat_cap, dirty);
   return true;
 }
 bool MessageStore::acknowledge(uint32_t ack, DirtyRecord dirty) {
@@ -444,6 +457,42 @@ bool MessageStore::lastThreadMessage(int index, UIMessage &out) const {
       out = message;
       return true;
     }
+  }
+  return false;
+}
+int MessageStore::newestUnread(int slots[], int threads[], int capacity) const {
+  if (!ready() || !slots || !threads || capacity <= 0) return 0;
+  uint16_t remaining[MAX_UI_THREADS]{};
+  unsigned total = 0;
+  for (int i=0; i<MAX_UI_THREADS; ++i) {
+    remaining[i] = _ui_threads[i].used ? _ui_threads[i].unread : 0;
+    total += remaining[i];
+  }
+  int count = 0;
+  for (int i=0; total && i<_ui_msg_count && count<capacity; ++i) {
+    const int slot = (_ui_msg_head-1-i+_ui_msg_cap)%_ui_msg_cap;
+    const auto& m = _ui_msgs[slot];
+    if (!m.thread[0] || m.outgoing) continue;
+    const int thread = findThreadByName(m.thread,m.channel);
+    if (thread<0 || !remaining[thread]) continue;
+    --remaining[thread]; --total;
+    slots[count] = slot; threads[count++] = thread;
+  }
+  return count;
+}
+bool MessageStore::isUnreadMessage(int slot) const {
+  if (!ready() || !containsSlot(slot)) return false;
+  const auto& target = _ui_msgs[slot];
+  if (!target.thread[0] || target.outgoing) return false;
+  const int thread = findThreadByName(target.thread,target.channel);
+  if (thread<0) return false;
+  unsigned remaining = _ui_threads[thread].unread;
+  for (int i=0; remaining && i<_ui_msg_count; ++i) {
+    const int current = (_ui_msg_head-1-i+_ui_msg_cap)%_ui_msg_cap;
+    const auto& m = _ui_msgs[current];
+    if (m.outgoing || m.channel!=target.channel || strncmp(m.thread,target.thread,MAX_THREAD_NAME)) continue;
+    if (current==slot) return true;
+    --remaining;
   }
   return false;
 }
