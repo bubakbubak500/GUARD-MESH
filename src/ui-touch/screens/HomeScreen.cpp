@@ -151,7 +151,9 @@ bool HomeScreen::create(lv_obj_t *parent, int width, int height) {
     lv_obj_set_size(button, 100, buttonH);
     auto *title = lv_label_create(button);
     char caption[64];
-    snprintf(caption,sizeof caption,"%s  %s",icons[i],TR(names[i]));
+    const char* captionText = kinds[i] == Action::Discover && i18nGetLang() == LANG_CS
+                                ? TR("Search") : TR(names[i]);
+    snprintf(caption,sizeof caption,"%s  %s",icons[i],captionText);
     lv_label_set_text(title, caption);
     labelStyle(title, &theme::font12(), apps ? 0x1B1B1B : theme::colors().COLOR_TEXT);
     lv_obj_set_width(title, 92);

@@ -292,6 +292,16 @@ static void applicationPolicies() {
   assert(!app.endPage(closeDrawer) && app.pageTitle());
   assert(app.collapsePage(closePopup) && app.pageSlim() && !*app.pageTitle());
   assert(app.endPage(closePopup) && !app.pageTitle());
+  const App::Popup pageEntries[] = {
+    {[]{ return drawer; }, closeDrawer, App::Count | App::StatusPage},
+    {[]{ return popup; }, closePopup, App::Count}
+  };
+  app.configurePopups(pageEntries, 2);
+  drawer = true;
+  assert(app.anyPopup() && !app.anyPopup(false, App::StatusPage));
+  popup = true;
+  assert(app.anyPopup(false, App::StatusPage)); // real dialog above a page still blocks Back
+  drawer = popup = false;
   std::thread first([&]{ for (int i=0; i<10000; ++i) app.post(App::ContactsChanged); });
   std::thread second([&]{ for (int i=0; i<10000; ++i) app.post(App::WebMessagesChanged); });
   first.join(); second.join();

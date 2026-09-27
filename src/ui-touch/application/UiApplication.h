@@ -10,13 +10,15 @@ namespace ui {
 class UiApplication {
 public:
   using Close = void (*)();
-  enum PopupFlags : uint8_t { Count = 1, BlockSwipe = 2, BasePage = 4, Drawer = 8 };
+  enum PopupFlags : uint8_t { Count = 1, BlockSwipe = 2, BasePage = 4, Drawer = 8, StatusPage = 16 };
   struct Popup { bool (*is_open)(); Close close; uint8_t flags; };
   enum class Dismiss { None = 0, Closed = 1, Blocked = -1 };
   enum Event : uint32_t { ContactsChanged = 1, WebMessagesChanged = 2 };
 
   void configurePopups(const Popup* entries, size_t count);
-  bool anyPopup(bool above_base = false) const;
+  // StatusPage entries remain dismissable/popups but do not shield their own
+  // shared Back control. Callers can ignore that flag when computing the scrim.
+  bool anyPopup(bool above_base = false, uint8_t ignore_flags = 0) const;
   bool blocksSwipe() const;
   Dismiss dismissTop(bool above_drawer = false);
 

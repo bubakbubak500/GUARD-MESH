@@ -253,7 +253,8 @@ struct GlobalStatusBar {
                             //   the rest of the screen (the popup's own backdrop starts below it)
 };
 static GlobalStatusBar g_statusbar = {};
-static void updateGuardianHomeBar();
+static void updateCompactStatusBar(uint32_t now);
+static bool popupRegistryDimsStatusBar();
 static inline void setLabelIfChanged(lv_obj_t* lbl, const char* txt);
 static void updateGlobalStatusBar();   // fwd decl, called from refresh tick
 
@@ -269,7 +270,7 @@ static bool s_statusbar_tall = false;
 // Slim variant: the page keeps the "‹ title" + tap-to-close bar behavior but the
 // bar stays ONE line — no double-height glass row (the Lua Store's tab bar sits
 // right at the top of its content, which the glass row used to sit over).
-#if CAP_ROUND_CORNERS
+#if CAP_ROUND_CORNERS || defined(HAS_TDECK_GT911)
 // The round-panel bar is already two rows tall in every state — the tall personalities
 // (settings title, inbox actions, open chat) reuse the two rows rather than doubling it.
 static inline lv_coord_t statusBarCurH() { return STATUSBAR_H; }
@@ -277,6 +278,9 @@ static inline lv_coord_t statusBarCurH() { return STATUSBAR_H; }
 static inline lv_coord_t statusBarCurH() { return s_statusbar_tall ? (lv_coord_t)(STATUSBAR_H * 2) : STATUSBAR_H; }
 #endif
 static void statusBarSetTall(bool tall) {
+#if defined(HAS_TDECK_GT911)
+  tall = false; // Every T-Deck page shares the same single-row system chrome.
+#endif
   s_statusbar_tall = tall;
   if (g_statusbar.root) lv_obj_set_height(g_statusbar.root, statusBarCurH());
   // (updateGlobalStatusBar drives this every tick + refreshes the left zone; it must
@@ -457,7 +461,7 @@ static inline lv_coord_t chatScreenW()   { return lv_disp_get_hor_res(nullptr); 
 // row + a centred cog). The round panel already has two physical rows, while the
 // short Pager keeps its back/cog/title in the regular single row. chatBarH() is
 // the full visual height used by channel/blocked sheets.
-#if CAP_ROUND_CORNERS || defined(TLORA_PAGER)
+#if CAP_ROUND_CORNERS || defined(TLORA_PAGER) || defined(HAS_TDECK_GT911)
 static inline lv_coord_t chatBarH()      { return STATUSBAR_H; }
 #else
 static inline lv_coord_t chatBarH()      { return (lv_coord_t)(STATUSBAR_H * 2); }
@@ -13400,69 +13404,72 @@ static void refreshGuardianHome() {
   guardianHome.refresh(g_lv.task->getUnreadTotal(),rows,used);
 }
 
-// Home borrows a compact opaque strip; normal status widgets continue to
-// update underneath and become visible unchanged when another page opens.
-static void updateGuardianHomeBar() {
+// Reuse the system widgets on every T-Deck screen: one height, font and
+// baseline. Home only changes the left label, never overlays the system bar.
+static void updateCompactStatusBar(uint32_t now) {
 #if defined(HAS_TDECK_GT911)
-  static ui::widgets::ObjectRef strip;
-  static lv_obj_t *name=nullptr,*packets=nullptr,*clock=nullptr,*battery=nullptr,*indicators=nullptr;
-  const bool visible=guardianHome.active() && g_lv.tabview &&
-    lv_tabview_get_tab_act(g_lv.tabview)==HOME_TAB_INDEX && !s_chat_title[0] &&
-    !uiApplication.pageClose() && !s_settings_sheet && !s_appdrawer_root;
-  if (!g_statusbar.root) return;
-  if (!strip.get()) {
-    auto* root=lv_obj_create(g_statusbar.root);
-    if (!strip.set(root)) { lv_obj_del(root); return; }
-    lv_obj_remove_style_all(root);
-    lv_obj_set_size(root,lv_pct(100),STATUSBAR_H);
-    lv_obj_set_style_bg_opa(root,LV_OPA_COVER,LV_PART_MAIN);
-    lv_obj_clear_flag(root,LV_OBJ_FLAG_CLICKABLE|LV_OBJ_FLAG_SCROLLABLE);
-    auto label=[&]() {
-      auto* object=lv_label_create(root);
-      lv_obj_set_style_text_font(object,&font12(),LV_PART_MAIN);
-      lv_obj_clear_flag(object,LV_OBJ_FLAG_CLICKABLE);
-      return object;
-    };
-    name=label(); packets=label(); clock=label(); battery=label(); indicators=label();
-    lv_obj_set_width(name,60);
-    lv_label_set_long_mode(name,LV_LABEL_LONG_DOT);
-    lv_obj_align(name,LV_ALIGN_LEFT_MID,6,0);
-    lv_obj_align(indicators,LV_ALIGN_LEFT_MID,68,0);
-    lv_obj_align(packets,LV_ALIGN_CENTER,0,0);
-    lv_obj_align(clock,LV_ALIGN_RIGHT_MID,-48,0);
-    lv_obj_align(battery,LV_ALIGN_RIGHT_MID,-3,0);
-  }
-  if (!visible) { lv_obj_add_flag(strip.get(),LV_OBJ_FLAG_HIDDEN); return; }
-  lv_obj_clear_flag(strip.get(),LV_OBJ_FLAG_HIDDEN);
-  lv_obj_move_foreground(strip.get());
-  if (g_statusbar.dim) lv_obj_move_foreground(g_statusbar.dim);
-  lv_obj_set_style_bg_color(strip.get(),lv_color_hex(colors().COLOR_BG),LV_PART_MAIN);
-  for (auto* label:{name,packets,clock,indicators})
-    lv_obj_set_style_text_color(label,lv_color_hex(label==name?colors().COLOR_TEXT:colors().COLOR_SUB),LV_PART_MAIN);
-  char node[64]{};
-  copyUtf8ReplacingMissingGlyphs(&font12(),node,sizeof node,
-    touchPrefsGetHideNodeName()?"":g_lv.task->getNodeNameCstr());
-  setLabelIfChanged(name,node);
-  char rx[12],tx[12],counts[32];
-  auto compact=[](char* out,size_t capacity,uint32_t value) {
-    if (value<1000) snprintf(out,capacity,"%u",(unsigned)value);
-    else if (value<1000000) snprintf(out,capacity,"%uk",(unsigned)(value/1000));
-    else snprintf(out,capacity,"%uM",(unsigned)(value/1000000));
+  if (!g_statusbar.root || !g_lv.task) return;
+  const bool home = guardianHome.active() && getActiveTab() == HOME_TAB_INDEX &&
+    !s_chat_title[0] && !uiApplication.pageClose() && !s_settings_sheet &&
+    !s_appdrawer_root && !toolView.root();
+  const bool chat = s_chat_title[0] && !uiApplication.pageTitle() && s_settings_open_cat < 0;
+  auto align = [](lv_obj_t* object, lv_align_t position, int x) {
+    if (object) {
+      lv_obj_set_style_translate_y(object, 0, LV_PART_MAIN);
+      lv_obj_align(object, position, x, 0);
+    }
   };
-  compact(rx,sizeof rx,the_mesh.getNumRecvFlood()+the_mesh.getNumRecvDirect());
-  compact(tx,sizeof tx,the_mesh.getNumSentFlood()+the_mesh.getNumSentDirect());
-  snprintf(counts,sizeof counts,LV_SYMBOL_DOWN "%s " LV_SYMBOL_UP "%s",rx,tx);
-  setLabelIfChanged(packets,counts);
-  setLabelIfChanged(clock,lv_label_get_text(g_statusbar.clock));
-  char batt[24];
-  snprintf(batt,sizeof batt,"%s%s",lv_label_get_text(g_statusbar.batt_pct),lv_label_get_text(g_statusbar.batt_icon));
-  setLabelIfChanged(battery,batt);
-  lv_obj_set_style_text_color(battery,lv_obj_get_style_text_color(g_statusbar.batt_icon,LV_PART_MAIN),LV_PART_MAIN);
-  char icons[24]{};
-  for (auto* source:{g_statusbar.dnd_icon,g_statusbar.conn_icon,g_statusbar.ble_icon})
-    if (source && !lv_obj_has_flag(source,LV_OBJ_FLAG_HIDDEN))
-      strncat(icons,lv_label_get_text(source),sizeof icons-strlen(icons)-1);
-  setLabelIfChanged(indicators,icons);
+  for (auto* label : {g_statusbar.left_label, g_statusbar.clock, g_statusbar.batt_pct,
+                     g_statusbar.batt_icon, g_statusbar.chat_back, g_statusbar.chan_gear})
+    lv_obj_set_style_text_font(label, &font12(), LV_PART_MAIN);
+  lv_obj_set_width(g_statusbar.left_label, chat ? 78 : 118);
+  lv_label_set_long_mode(g_statusbar.left_label, LV_LABEL_LONG_DOT);
+  align(g_statusbar.left_label, LV_ALIGN_LEFT_MID, chat ? 42 : 6);
+  align(g_statusbar.chat_back, LV_ALIGN_LEFT_MID, 6);
+  align(g_statusbar.chan_gear, LV_ALIGN_LEFT_MID, 23);
+  lv_obj_set_ext_click_area(g_statusbar.chan_gear, 3);
+  align(g_statusbar.clock, LV_ALIGN_CENTER, 0);
+  align(g_statusbar.batt_icon, LV_ALIGN_RIGHT_MID, -4);
+  align(g_statusbar.batt_pct, LV_ALIGN_RIGHT_MID, -26);
+  align(g_statusbar.sig_box, LV_ALIGN_RIGHT_MID, -64);
+  align(g_statusbar.sd_icon, LV_ALIGN_RIGHT_MID, -83);
+  align(g_statusbar.conn_icon, LV_ALIGN_RIGHT_MID, -94);
+  align(g_statusbar.ble_icon, LV_ALIGN_RIGHT_MID, -108);
+  align(g_statusbar.dnd_icon, LV_ALIGN_RIGHT_MID, -121);
+  align(g_statusbar.async_icon, LV_ALIGN_LEFT_MID, 112);
+  align(g_statusbar.layout_label, LV_ALIGN_LEFT_MID, 91);
+  // Retain room for transient activity/layout indicators without covering text.
+  if (!lv_obj_has_flag(g_statusbar.layout_label, LV_OBJ_FLAG_HIDDEN))
+    lv_obj_set_width(g_statusbar.left_label, chat ? 45 : 81);
+  else if (!lv_obj_has_flag(g_statusbar.async_icon, LV_OBJ_FLAG_HIDDEN))
+    lv_obj_set_width(g_statusbar.left_label, chat ? 64 : 100);
+  lv_obj_set_ext_click_area(g_statusbar.batt_icon, 3);
+  lv_obj_set_ext_click_area(g_statusbar.batt_pct, 3);
+  int slot=0;
+  for (auto* button : {g_statusbar.inbox_add, g_statusbar.inbox_mark, g_statusbar.inbox_qr}) {
+    lv_obj_set_size(button, 28, 18);
+    lv_obj_set_pos(button, 4 + slot++ * 31, 1);
+    for (uint32_t i=0; i<lv_obj_get_child_cnt(button); ++i)
+      lv_obj_set_style_text_font(lv_obj_get_child(button,i), &font12(), LV_PART_MAIN);
+  }
+  if (home) {
+    char value[64]{};
+    if ((now / 3000u) % 2u) {
+      char rx[12],tx[12];
+      auto compact=[](char* out,size_t capacity,uint32_t count) {
+        if (count<1000) snprintf(out,capacity,"%u",(unsigned)count);
+        else if (count<1000000) snprintf(out,capacity,"%uk",(unsigned)(count/1000));
+        else snprintf(out,capacity,"%uM",(unsigned)(count/1000000));
+      };
+      compact(rx,sizeof rx,the_mesh.getNumRecvFlood()+the_mesh.getNumRecvDirect());
+      compact(tx,sizeof tx,the_mesh.getNumSentFlood()+the_mesh.getNumSentDirect());
+      snprintf(value,sizeof value,LV_SYMBOL_DOWN "%s " LV_SYMBOL_UP "%s",rx,tx);
+    } else if (!touchPrefsGetHideNodeName()) {
+      copyUtf8ReplacingMissingGlyphs(&font12(),value,sizeof value,g_lv.task->getNodeNameCstr());
+    }
+    lv_label_set_recolor(g_statusbar.left_label,false);
+    setLabelIfChanged(g_statusbar.left_label,value);
+  }
 #endif
 }
 
@@ -23817,7 +23824,7 @@ static void updateGlobalStatusBar() {
   // (closed via the bar's back chevron).
   if (g_statusbar.dim) {
     static bool s_bar_dim = false;
-    const bool want_dim = anyPopupOpen() && !s_cc_root && !s_settings_sheet &&
+    const bool want_dim = popupRegistryDimsStatusBar() && !s_cc_root && !s_settings_sheet &&
                           !s_appdrawer_root && !chanScopeIsOpen() && !blockedModalIsOpen() &&
 #if CAP_LUA_APPS
                           !ui::screens::store::root() &&   // same: the Store page's ‹ back lives in the bar
@@ -23849,7 +23856,9 @@ static void updateGlobalStatusBar() {
                               (s_settings_open_cat < 0);
   const bool inbox_overview = (getActiveTab() == CHAT_INBOX_TAB_INDEX) && !chat_open && (s_settings_open_cat < 0) && !uiApplication.pageTitle();
   {
-#if defined(TLORA_PAGER)
+#if defined(HAS_TDECK_GT911)
+    const bool want_tall = false;
+#elif defined(TLORA_PAGER)
     const bool want_tall = (s_settings_open_cat >= 0) || (uiApplication.pageTitle() && !uiApplication.pageSlim());
 #else
     const bool want_tall = (s_settings_open_cat >= 0) || (uiApplication.pageTitle() && !uiApplication.pageSlim()) || inbox_overview || chat_open;
@@ -24445,7 +24454,7 @@ static void updateGlobalStatusBar() {
       lv_obj_add_flag(g_statusbar.layout_label, LV_OBJ_FLAG_HIDDEN);
     }
   }
-  updateGuardianHomeBar();
+  updateCompactStatusBar(millis());
 }
 
 // Set a label's text only when it actually changed. lv_label_set_text always
@@ -30238,6 +30247,96 @@ static void atGlanceShow(const char* title, const char* body, bool fade_in) {
 }
 
 #if defined(GUARD_SIMULATOR)
+bool guardSimHomeChromeRegression(void (*tap)(int,int), void (*pump)(unsigned), void (*capture)(const char*)) {
+  auto shot=[&](const char* name) { lv_refr_now(nullptr); capture(name); };
+  auto check=[](bool ok,const char* reason) {
+    if (!ok) printf("Home chrome regression: %s\n",reason);
+    return ok;
+  };
+  auto geometry=[&]() {
+    lv_obj_update_layout(g_statusbar.root);
+    lv_area_t clock,battery,percent,signal,left;
+    lv_obj_get_coords(g_statusbar.clock,&clock);
+    lv_obj_get_coords(g_statusbar.batt_icon,&battery);
+    lv_obj_get_coords(g_statusbar.batt_pct,&percent);
+    lv_obj_get_coords(g_statusbar.sig_box,&signal);
+    lv_obj_get_coords(g_statusbar.left_label,&left);
+    return check(lv_obj_get_height(g_statusbar.root)==20,"status height changed") &&
+      check(abs(clock.x1+clock.x2-(lv_disp_get_hor_res(nullptr)-1))<=1,"clock not centered") &&
+      check(percent.x2+4<battery.x1,"battery percentage lacks gap") &&
+      check(signal.x2<percent.x1 && left.x2<clock.x1,"header columns overlap") &&
+      check(clock.y1>=0 && clock.y2<20 && battery.y1>=0 && battery.y2<20,"header glyph clipped");
+  };
+  auto home=[&]() {
+    return getActiveTab()==HOME_TAB_INDEX && guardianHome.active() && !uiApplication.pageClose() &&
+           !s_cc_root && !s_appdrawer_root && !toolView.root();
+  };
+  auto launch=[&](ui::screens::HomeScreen::Action action) {
+    lv_area_t area;
+    lv_obj_get_coords(guardianHome.actionTarget(action),&area);
+    tap((area.x1+area.x2)/2,(area.y1+area.y2)/2);
+    pump(350);
+    updateGlobalStatusBar();
+  };
+  updateGlobalStatusBar();
+  updateCompactStatusBar(0);
+  if (!geometry()) return false;
+  char name[128]; snprintf(name,sizeof name,"%s",lv_label_get_text(g_statusbar.left_label));
+  updateCompactStatusBar(2999);
+  if (!check(!strcmp(name,lv_label_get_text(g_statusbar.left_label)),"name phase too short")) return false;
+  shot("home-name.png");
+  updateCompactStatusBar(3000);
+  if (!check(strstr(lv_label_get_text(g_statusbar.left_label),LV_SYMBOL_DOWN)!=nullptr,"RX/TX phase missing")) return false;
+  shot("home-rxtx.png");
+  updateCompactStatusBar(6000);
+  if (!check(!strcmp(name,lv_label_get_text(g_statusbar.left_label)),"name phase did not return")) return false;
+  // The worst-case battery width and a 12-hour clock must also fit.
+  char savedClock[32],savedPct[16];
+  snprintf(savedClock,sizeof savedClock,"%s",lv_label_get_text(g_statusbar.clock));
+  snprintf(savedPct,sizeof savedPct,"%s",lv_label_get_text(g_statusbar.batt_pct));
+  lv_label_set_text(g_statusbar.clock,"12:59 PM"); lv_label_set_text(g_statusbar.batt_pct,"100%");
+  updateCompactStatusBar(0);
+  if (!geometry()) return false;
+  shot("home-header-wide.png");
+  lv_label_set_text(g_statusbar.clock,savedClock); lv_label_set_text(g_statusbar.batt_pct,savedPct);
+  using Action=ui::screens::HomeScreen::Action;
+  for (auto action : {Action::Advert,Action::Discover}) {
+    for (int backX : {7,65}) {
+      launch(action);
+      if (!check(uiApplication.pageClose()!=nullptr,"Home action did not open page") || !geometry() ||
+          !check(lv_obj_has_flag(g_statusbar.dim,LV_OBJ_FLAG_HIDDEN),"page blocks its own Back")) return false;
+      shot(action==Action::Advert?"home-advert.png":"home-discover.png");
+      // Actual modal over the page must still shield its header from touch.
+      confirmDialog.show("Header test","OK",[]{},false);
+      updateGlobalStatusBar();
+      if (!check(!lv_obj_has_flag(g_statusbar.dim,LV_OBJ_FLAG_HIDDEN),"modal above page does not shield header")) return false;
+      confirmDialog.dismiss(); pump(80); updateGlobalStatusBar();
+      tap(backX,10); pump(250);
+      if (!check(home(),"Back did not return Home, or opened Control Center")) return false;
+    }
+  }
+  launch(Action::Terminal);
+  if (!check(toolView.root()!=nullptr,"Terminal missing") || !geometry()) return false;
+  tap(lv_disp_get_hor_res(nullptr)-25,STATUSBAR_H+17); pump(250);
+  if (!check(home(),"Terminal Home button failed")) return false;
+  launch(Action::Apps);
+  if (!check(s_appdrawer_root!=nullptr,"App drawer missing")) return false;
+  tap(40,65); pump(350); // first drawer tile is Cmdr/Home
+  if (!check(home(),"App drawer Home tile failed")) return false;
+  launch(Action::Control);
+  if (!check(s_cc_root!=nullptr,"Control Center missing")) return false;
+  // Use the top bar after the page-back suppression interval expires.
+  pump(1600); tap(120,10); pump(250);
+  if (!check(home(),"Control Center did not return Home")) return false;
+  for (int tab : {CHAT_INBOX_TAB_INDEX,CONTACTS_TAB_INDEX,MAP_TAB_INDEX,SETTINGS_TAB_INDEX,HOME_TAB_INDEX}) {
+    goToTab(tab); pump(650); updateGlobalStatusBar();
+    if (!geometry()) return false;
+  }
+  updateCompactStatusBar(0); shot("home.png");
+  puts("Home chrome: 3s name/RX-TX, shared geometry, real touch Back, modal shielding and Home routes PASS.");
+  return true;
+}
+
 bool guardSimGlanceFontRegression(void (*capture)(const char*)) {
   atGlanceEnsureFont();
   const char* sample="Příliš žluťoučký kůň — … 漢";
@@ -32388,14 +32487,15 @@ using PopupEnt = ui::UiApplication::Popup;
 static constexpr uint8_t PF_COUNT = 1;
 static constexpr uint8_t PF_SWIPE = 2;
 static constexpr uint8_t PF_BASE  = 4;
+static constexpr uint8_t PF_STATUS = ui::UiApplication::StatusPage; // uses the bar for Back
 #define P_OPEN(root) []{ return (root) != nullptr; }
 static const PopupEnt k_popup_registry[] = {
   { ui::screens::releasePicker::isOpen, ui::screens::releasePicker::close, PF_COUNT },
   { []{return ui::screens::timeline::urlQrOpen();},            []{ closeUrlQr(); },                 PF_COUNT },   // chat URL -> QR
   { []{return ui::screens::timeline::urlMenuOpen();},          []{ closeUrlMenu(); },               PF_COUNT },   // chat URL -> action menu
-  { P_OPEN(s_discover_root),         []{ closeDiscoverPage(); },          PF_COUNT },
-  { P_OPEN(s_spec_root),             []{ closeSpectrumPage(); },          PF_COUNT },
-  { P_OPEN(s_advert_root),           []{ closeAdvertPage(); },            PF_COUNT },   // was dismissable but never counted
+  { P_OPEN(s_discover_root),         []{ closeDiscoverPage(); },          PF_COUNT | PF_STATUS },
+  { P_OPEN(s_spec_root),             []{ closeSpectrumPage(); },          PF_COUNT | PF_STATUS },
+  { P_OPEN(s_advert_root),           []{ closeAdvertPage(); },            PF_COUNT | PF_STATUS },   // was dismissable but never counted
 #if defined(HAS_EXPANSION_KIT)
   { P_OPEN(s_expansion_root),        []{ closeExpansionCard(); },         PF_COUNT },   // was in no registry at all
   { P_OPEN(s_local_sensors_root),    []{ closeLocalSensorsPage(); },      PF_COUNT },   // was in no registry at all
@@ -32426,14 +32526,14 @@ static const PopupEnt k_popup_registry[] = {
   { []{ return clockScreen.pickerOpen(); }, []{ clockScreen.closePicker(); }, PF_COUNT },
   { P_OPEN(s_chanscope_modal),       []{ chanScopeClose(); },             PF_COUNT | PF_SWIPE },
   { []{ return s_blocked_users.isOpen(); }, []{ blockedModalClose(); }, PF_COUNT | PF_SWIPE },
-  { P_OPEN(s_regions_modal),         []{ regionsModalClose(); },          PF_COUNT },   // was in no registry at all (#449)
+  { P_OPEN(s_regions_modal),         []{ regionsModalClose(); },          PF_COUNT | PF_STATUS },   // was in no registry at all (#449)
 #if !defined(HAS_TANMATSU)
 #endif
 #if WADA_WEB_FILE_TRANSFER
-  { P_OPEN(s_file_transfer_root),     []{ closeFileTransferPage(); },       PF_COUNT },
+  { P_OPEN(s_file_transfer_root),     []{ closeFileTransferPage(); },       PF_COUNT | PF_STATUS },
 #endif
 #if defined(ESP32) && defined(MULTI_TRANSPORT_COMPANION)
-  { []{ return s_wifi_forms.sheetOpen(); }, []{ s_wifi_forms.closeSheet(); }, PF_COUNT },
+  { []{ return s_wifi_forms.sheetOpen(); }, []{ s_wifi_forms.closeSheet(); }, PF_COUNT | PF_STATUS },
 #endif
 #if defined(HAS_TDECK_GT911)
   { []{ return soundScreen.menuOpen(); }, []{ soundScreen.closeMenu(); }, PF_COUNT },
@@ -32491,6 +32591,7 @@ static ui::UiApplication& navigation() {
   uiApplication.configurePopups(k_popup_registry, sizeof(k_popup_registry) / sizeof(k_popup_registry[0]));
   return uiApplication;
 }
+static bool popupRegistryDimsStatusBar() { return navigation().anyPopup(false, ui::UiApplication::StatusPage); }
 static bool popupRegistryAny() { return navigation().anyPopup(); }
 static bool popupRegistryAnyOver() { return navigation().anyPopup(true); }
 static bool popupRegistryDismissTop() { return navigation().dismissTop() == ui::UiApplication::Dismiss::Closed; }

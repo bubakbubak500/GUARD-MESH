@@ -7,10 +7,11 @@ void UiApplication::configurePopups(const Popup* entries, size_t count) {
   _popups = entries;
   _popup_count = entries ? count : 0;
 }
-bool UiApplication::anyPopup(bool above_base) const {
+bool UiApplication::anyPopup(bool above_base, uint8_t ignore_flags) const {
   for (size_t i = 0; i < _popup_count; ++i) {
     const auto& popup = _popups[i];
-    if ((popup.flags & Count) && (!above_base || !(popup.flags & BasePage)) && popup.is_open()) return true;
+    if ((popup.flags & Count) && !(popup.flags & ignore_flags) &&
+        (!above_base || !(popup.flags & BasePage)) && popup.is_open()) return true;
   }
   return false;
 }

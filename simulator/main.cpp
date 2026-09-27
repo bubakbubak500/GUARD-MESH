@@ -13,6 +13,7 @@
 #include <filesystem>
 void runScreenPolicyIntegration(UITask &task, void (*pump)(unsigned));
 bool guardSimGlanceFontRegression(void (*capture)(const char*));
+bool guardSimHomeChromeRegression(void (*tap)(int,int), void (*pump)(unsigned), void (*capture)(const char*));
 void runChatSessionIntegration(UITask &task);
 void runMessageIngressIntegration(SimReceiveTask &task);
 void runThreadRefreshRegression(UITask &task, void (*pump)(unsigned));
@@ -512,6 +513,8 @@ int appMain(int argc, char **argv) {
         throw std::runtime_error("Firmware directional key did not move navigation focus");
     }
     saveFrame("home.png");
+    if (!guardSimHomeChromeRegression(click, pump, saveFrame))
+      throw std::runtime_error("Home status bar geometry or return navigation failed");
     if (!guardSimGlanceFontRegression(saveFrame))
       throw std::runtime_error("Fullscreen preview lost Czech glyphs or kept missing-glyph rectangles");
     click(32, 225);
@@ -544,7 +547,7 @@ int appMain(int argc, char **argv) {
     if (!delivered)
       throw std::runtime_error("Simulated ACK did not mark the firmware message delivered");
     saveFrame("sent.png");
-    click(16, 22);
+    click(8, 10);
     pump(300);
     click(96, 225);
     auto* visibleContact = findLabel(lv_scr_act(), "SIM Alpha");
@@ -574,7 +577,7 @@ int appMain(int argc, char **argv) {
     saveFrame("profile-edited.png");
     click(70, 145);
     pump(200);
-    click(12, 22);
+    click(8, 10);
     pump(1200);
     if (strcmp(prefs.node_name, "SIM edited"))
       throw std::runtime_error(std::string("Profile edit did not update firmware preferences: ") +
