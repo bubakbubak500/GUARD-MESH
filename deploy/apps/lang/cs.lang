@@ -18,19 +18,19 @@
 0123456789abcdef…	0123456789abcdef…
 1 byte (legacy)\n2 bytes\n3 bytes	1 bajt (legacy)\n2 bajty\n3 bajty
 100\n250\n500\n1000\n2000\nNo limit	100\n250\n500\n1000\n2000\nBez omezení
-12-hour clock	12hodinový čas
+12-hour clock	12-hod. čas
 32 hex characters	32 hex znaků
 32-hex secret. Anyone with this can read the channel.	Tajný klíč o 32 hex znacích. Kdo ho zná, může číst kanál.
 >_  Terminal	>_  Terminál
 @  Mentions	@  Zmínky
 @ mention sound	Zvuk @ zmínky
 AF	AF
-AUTOMATIC ADVERTS	AUTOMATICKÉ ODESÍLÁNÍ ADVERT
+AUTOMATIC ADVERTS	AUTOMATICKÉ ADVERTY
 About	O aplikaci
 About the map	O mapě
-Accent popups	Nabídka diakritiky
-Accent popups: off	Nabídka diakritiky: vypnuta
-Accent popups: on	Nabídka diakritiky: zapnuta
+Accent popups	Pop-up nabídka
+Accent popups: off	Pop-up nabídka: vypnuta
+Accent popups: on	Pop-up nabídka: zapnuta
 Accent colour	Barva zvýraznění
 Appearance	Vzhled
 Day	Den
