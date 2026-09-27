@@ -158,6 +158,7 @@ void runFocusNavigationRegression();
 void runSpatialNavigationRegression();
 void runLanguageFileRegression();
 void runThreadListRegression();
+void runHomeScreenRegression();
 void runThreadMenuRegression();
 void runGlyphPickerRegression();
 void runQuickReplyPickerRegression();
@@ -206,6 +207,7 @@ void runUiLifetimeRegression(void (*pump)(unsigned)) {
   runLanguageFileRegression();
   puts("Stage: threads"); fflush(stdout);
   runThreadListRegression();
+  runHomeScreenRegression();
   puts("Stage: map"); fflush(stdout);
   runMapRegression();
   puts("Stage: radio"); fflush(stdout);

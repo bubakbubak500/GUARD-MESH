@@ -67,6 +67,7 @@ def main():
     sources += [ROOT/'simulator/spatial_navigation_regression.cpp']
     sources += [ROOT/'simulator/language_file_regression.cpp']
     sources += [ROOT/'simulator/thread_list_regression.cpp']
+    sources += [ROOT/'simulator/home_screen_regression.cpp']
     sources += [ROOT/'simulator/thread_menu_regression.cpp']
     sources += [ROOT/'simulator/glyph_picker_regression.cpp']
     sources += [ROOT/'simulator/quick_reply_picker_regression.cpp']

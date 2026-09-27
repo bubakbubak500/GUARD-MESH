@@ -12,6 +12,7 @@
 #include <deque>
 #include <filesystem>
 void runScreenPolicyIntegration(UITask &task, void (*pump)(unsigned));
+bool guardSimGlanceFontRegression(void (*capture)(const char*));
 void runChatSessionIntegration(UITask &task);
 void runMessageIngressIntegration(SimReceiveTask &task);
 void runThreadRefreshRegression(UITask &task, void (*pump)(unsigned));
@@ -482,6 +483,12 @@ int appMain(int argc, char **argv) {
   channelEvent.snrQ4 = 20;
   channelEvent.rssi = -80;
   uiTask.receiveMessage(channelEvent);
+  if (smoke && the_mesh.contacts.size()>1) {
+    const auto& contact=the_mesh.contacts[1];
+    UIMessageEvent third(UIEventType::contactMessage,0,contact.id.pub_key,contact.name,
+                         "Třetí nepřečtená zpráva. V pořádku.",uiTask.getMsgCount()+1);
+    uiTask.receiveMessage(third);
+  }
   ShowWindow(window, smoke ? SW_HIDE : SW_SHOW);
   pump(2600);
   if (czech && (strcmp(TR("Settings"), "Nastavení") || strcmp(TR("Advert"), "Advert")))
@@ -505,6 +512,8 @@ int appMain(int argc, char **argv) {
         throw std::runtime_error("Firmware directional key did not move navigation focus");
     }
     saveFrame("home.png");
+    if (!guardSimGlanceFontRegression(saveFrame))
+      throw std::runtime_error("Fullscreen preview lost Czech glyphs or kept missing-glyph rectangles");
     click(32, 225);
     saveFrame("chats.png");
     clickLabel("SIM Alpha");

@@ -26,6 +26,7 @@
 #include "screens/GlyphPicker.h"
 #include "screens/ThreadActionMenu.h"
 #include "screens/ThreadListScreen.h"
+#include "screens/HomeScreen.h"
 #include "services/LanguageFile.h"
 #include "application/SpatialNavigation.h"
 #include "application/FocusNavigation.h"
@@ -252,6 +253,8 @@ struct GlobalStatusBar {
                             //   the rest of the screen (the popup's own backdrop starts below it)
 };
 static GlobalStatusBar g_statusbar = {};
+static void updateGuardianHomeBar();
+static inline void setLabelIfChanged(lv_obj_t* lbl, const char* txt);
 static void updateGlobalStatusBar();   // fwd decl, called from refresh tick
 
 // Settings detail pages render the global status bar at DOUBLE height: the bar's
@@ -1059,7 +1062,7 @@ static bool uiFontHasGlyph(const lv_font_t* font, uint32_t cp) {
   if (cp == '\n' || cp == '\r' || cp == '\t') return true;
   if (cp < 0x20u) return true;
   lv_font_glyph_dsc_t dsc{};
-  return lv_font_get_glyph_dsc(font, &dsc, cp, 0);
+  return lv_font_get_glyph_dsc(font, &dsc, cp, 0) && !dsc.is_placeholder;
 }
 
 /**
@@ -13346,7 +13349,151 @@ static void homeControlPanelCb(lv_event_t* e) {   // "Control panel" launcher ->
   if (lv_event_get_code(e) == LV_EVENT_CLICKED) toggleControlCenter();
 }
 
+static void selectThreadFromList(int index, bool channel);
+static ui::screens::HomeScreen guardianHome({
+  [](ui::screens::HomeScreen::Action action) {
+    using Home = ui::screens::HomeScreen;
+    lv_event_t event{};
+    event.code = LV_EVENT_CLICKED;
+    switch (action) {
+      case Home::Action::Inbox: goToTab(CHAT_INBOX_TAB_INDEX); break;
+      case Home::Action::Advert: openAdvertModalCb(&event); break;
+      case Home::Action::Terminal: homeTerminalCb(&event); break;
+      case Home::Action::Discover: openDiscoverPage(); break;
+      case Home::Action::Apps: setHomeDrawer(true); break;
+      case Home::Action::Control: toggleControlCenter(); break;
+    }
+  },
+  [](const ui::screens::HomeScreen::Preview& preview) {
+    if (!g_lv.task) return false;
+    bool channel=false;
+    uint16_t unread=0;
+    uint32_t timestamp=0;
+    char name[33]{};
+    return g_lv.task->getThreadInfo(preview.index,channel,unread,timestamp,name,sizeof name) &&
+           channel==preview.channel && unread>0 && !strcmp(name,preview.name);
+  },
+  selectThreadFromList,
+  copyUtf8ReplacingMissingGlyphs
+});
+
+static void refreshGuardianHome() {
+  if (!guardianHome.active() || !g_lv.task) return;
+  int indexes[ui::MessageTypes::MAX_UI_THREADS];
+  const int count=g_lv.task->getCombinedInboxCount(indexes,ui::MessageTypes::MAX_UI_THREADS);
+  ui::screens::HomeScreen::Preview rows[3]{};
+  int used=0;
+  for (int i=0;i<count && used<3;++i) {
+    auto& row=rows[used];
+    uint32_t timestamp=0;
+    if (!g_lv.task->getThreadInfo(indexes[i],row.channel,row.unread,timestamp,row.name,sizeof row.name) || !row.unread) continue;
+    row.index=indexes[i];
+    char sender[ui::MessageTypes::MAX_SENDER_NAME+1]{}, text[96]{};
+    bool outgoing=false;
+    if (g_lv.task->getThreadLastMessage(row.index,sender,sizeof sender,text,sizeof text,&outgoing)) {
+      if (row.channel && sender[0] && !outgoing) snprintf(row.text,sizeof row.text,"%s: %s",sender,text);
+      else snprintf(row.text,sizeof row.text,"%s",text);
+    }
+    for (char* p=row.text;*p;++p) if (*p=='\n' || *p=='\r') *p=' ';
+    ++used;
+  }
+  guardianHome.refresh(g_lv.task->getUnreadTotal(),rows,used);
+}
+
+// Home borrows a compact opaque strip; normal status widgets continue to
+// update underneath and become visible unchanged when another page opens.
+static void updateGuardianHomeBar() {
+#if defined(HAS_TDECK_GT911)
+  static ui::widgets::ObjectRef strip;
+  static lv_obj_t *name=nullptr,*packets=nullptr,*clock=nullptr,*battery=nullptr,*indicators=nullptr;
+  const bool visible=guardianHome.active() && g_lv.tabview &&
+    lv_tabview_get_tab_act(g_lv.tabview)==HOME_TAB_INDEX && !s_chat_title[0] &&
+    !uiApplication.pageClose() && !s_settings_sheet && !s_appdrawer_root;
+  if (!g_statusbar.root) return;
+  if (!strip.get()) {
+    auto* root=lv_obj_create(g_statusbar.root);
+    if (!strip.set(root)) { lv_obj_del(root); return; }
+    lv_obj_remove_style_all(root);
+    lv_obj_set_size(root,lv_pct(100),STATUSBAR_H);
+    lv_obj_set_style_bg_opa(root,LV_OPA_COVER,LV_PART_MAIN);
+    lv_obj_clear_flag(root,LV_OBJ_FLAG_CLICKABLE|LV_OBJ_FLAG_SCROLLABLE);
+    auto label=[&]() {
+      auto* object=lv_label_create(root);
+      lv_obj_set_style_text_font(object,&font12(),LV_PART_MAIN);
+      lv_obj_clear_flag(object,LV_OBJ_FLAG_CLICKABLE);
+      return object;
+    };
+    name=label(); packets=label(); clock=label(); battery=label(); indicators=label();
+    lv_obj_set_width(name,60);
+    lv_label_set_long_mode(name,LV_LABEL_LONG_DOT);
+    lv_obj_align(name,LV_ALIGN_LEFT_MID,6,0);
+    lv_obj_align(indicators,LV_ALIGN_LEFT_MID,68,0);
+    lv_obj_align(packets,LV_ALIGN_CENTER,0,0);
+    lv_obj_align(clock,LV_ALIGN_RIGHT_MID,-48,0);
+    lv_obj_align(battery,LV_ALIGN_RIGHT_MID,-3,0);
+  }
+  if (!visible) { lv_obj_add_flag(strip.get(),LV_OBJ_FLAG_HIDDEN); return; }
+  lv_obj_clear_flag(strip.get(),LV_OBJ_FLAG_HIDDEN);
+  lv_obj_move_foreground(strip.get());
+  if (g_statusbar.dim) lv_obj_move_foreground(g_statusbar.dim);
+  lv_obj_set_style_bg_color(strip.get(),lv_color_hex(colors().COLOR_BG),LV_PART_MAIN);
+  for (auto* label:{name,packets,clock,indicators})
+    lv_obj_set_style_text_color(label,lv_color_hex(label==name?colors().COLOR_TEXT:colors().COLOR_SUB),LV_PART_MAIN);
+  char node[64]{};
+  copyUtf8ReplacingMissingGlyphs(&font12(),node,sizeof node,
+    touchPrefsGetHideNodeName()?"":g_lv.task->getNodeNameCstr());
+  setLabelIfChanged(name,node);
+  char rx[12],tx[12],counts[32];
+  auto compact=[](char* out,size_t capacity,uint32_t value) {
+    if (value<1000) snprintf(out,capacity,"%u",(unsigned)value);
+    else if (value<1000000) snprintf(out,capacity,"%uk",(unsigned)(value/1000));
+    else snprintf(out,capacity,"%uM",(unsigned)(value/1000000));
+  };
+  compact(rx,sizeof rx,the_mesh.getNumRecvFlood()+the_mesh.getNumRecvDirect());
+  compact(tx,sizeof tx,the_mesh.getNumSentFlood()+the_mesh.getNumSentDirect());
+  snprintf(counts,sizeof counts,LV_SYMBOL_DOWN "%s " LV_SYMBOL_UP "%s",rx,tx);
+  setLabelIfChanged(packets,counts);
+  setLabelIfChanged(clock,lv_label_get_text(g_statusbar.clock));
+  char batt[24];
+  snprintf(batt,sizeof batt,"%s%s",lv_label_get_text(g_statusbar.batt_pct),lv_label_get_text(g_statusbar.batt_icon));
+  setLabelIfChanged(battery,batt);
+  lv_obj_set_style_text_color(battery,lv_obj_get_style_text_color(g_statusbar.batt_icon,LV_PART_MAIN),LV_PART_MAIN);
+  char icons[24]{};
+  for (auto* source:{g_statusbar.dnd_icon,g_statusbar.conn_icon,g_statusbar.ble_icon})
+    if (source && !lv_obj_has_flag(source,LV_OBJ_FLAG_HIDDEN))
+      strncat(icons,lv_label_get_text(source),sizeof icons-strlen(icons)-1);
+  setLabelIfChanged(indicators,icons);
+#endif
+}
+
 static void makeHome(lv_obj_t* tab) {
+  guardianHome.reset();
+#if defined(HAS_TDECK_GT911)
+  if (chatLandscape()) {
+    styleSurface(tab,colors().COLOR_BG);
+    lv_obj_set_style_pad_all(tab,0,LV_PART_MAIN);
+    lv_obj_clear_flag(tab,LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_scrollbar_mode(tab,LV_SCROLLBAR_MODE_OFF);
+    s_home_nav_root=tab;
+    s_home_nav_split=true;
+    guardianHome.create(tab,tabContentW(),tabContentH());
+    using Home=ui::screens::HomeScreen::Action;
+    g_lv.home_state=nullptr;
+    g_lv.home_stats=nullptr;
+    g_lv.home_unread=guardianHome.actionTarget(Home::Inbox);
+    g_lv.home_apps=guardianHome.actionTarget(Home::Apps);
+    s_home_nav_right[HOME_NAV_ADVERT]=guardianHome.actionTarget(Home::Advert);
+    s_home_nav_right[HOME_NAV_TERMINAL]=guardianHome.actionTarget(Home::Terminal);
+    s_home_nav_right[HOME_NAV_FILES]=guardianHome.actionTarget(Home::Discover);
+    s_home_nav_right[HOME_NAV_APPS]=g_lv.home_apps;
+    s_home_nav_right[HOME_NAV_CONTROL]=guardianHome.actionTarget(Home::Control);
+    s_home_chart=nullptr;
+    s_home_chart_legend=nullptr;
+    s_home_chart_sig=nullptr;
+    refreshGuardianHome();
+    return;
+  }
+#endif
   // Layout (240 wide × 282 tall): title + heartbeat + battery at top, status
   // lines, TX/RX chart in the middle, Send Advert button at the bottom.
   // No tile grid — bottom tab bar already gives quick access to Chats /
@@ -24298,6 +24445,7 @@ static void updateGlobalStatusBar() {
       lv_obj_add_flag(g_statusbar.layout_label, LV_OBJ_FLAG_HIDDEN);
     }
   }
+  updateGuardianHomeBar();
 }
 
 // Set a label's text only when it actually changed. lv_label_set_text always
@@ -24590,7 +24738,8 @@ static void refreshStatusLabels() {
   }
 #endif
   // Unread line (its own tappable row): mail icon + translated count.
-  if (g_lv.home_unread && home_active) {
+  if (home_active && guardianHome.active()) refreshGuardianHome();
+  if (g_lv.home_unread && home_active && !guardianHome.active()) {
     char ubuf[24], uline[40];
     snprintf(ubuf, sizeof ubuf, TR("Unread %d"), g_lv.task->getUnreadTotal());
     snprintf(uline, sizeof uline, LV_SYMBOL_ENVELOPE "  %s", ubuf);
@@ -28478,7 +28627,11 @@ void UITask::begin(DisplayDriver* display, SensorManager* sensors, NodePrefs* no
 #if CAP_ROUND_CORNERS
     STATUSBAR_H = SB_TOP_PAD + SB_ROW * 2;   // top safe-area + two rows (round phone panel)
 #else
+#if defined(HAS_TDECK_GT911)
+    STATUSBAR_H = SC(20);
+#else
     STATUSBAR_H = SC(22);   // grow the status bar to fit bigger text at Large/Huge (no-op at 100%)
+#endif
 #endif
     // Allocate the draw buffer in PSRAM so the ~12 KB it costs comes out of
     // the 8 MB external RAM instead of the 320 KB internal DRAM that WiFi
@@ -30040,8 +30193,17 @@ static void atGlanceShow(const char* title, const char* body, bool fade_in) {
   const lv_coord_t sh = lv_disp_get_ver_res(nullptr);
   lv_obj_set_size(s_glance_root, sw, sh);
   lv_obj_set_pos(s_glance_root, 0, 0);
-  lv_label_set_text(s_glance_title, title ? title : "");
-  lv_label_set_text(s_glance_body,  body  ? body  : "");
+  // Resolve percentage widths before LONG_DOT sees the text for the first
+  // time; a just-created root still has its default narrow geometry.
+  lv_obj_update_layout(s_glance_root);
+  // Resolve against the exact fonts used by the fullscreen preview. Preserve
+  // supported accents/emoji and replace unsupported codepoints in this view
+  // only; the stored message stays byte-for-byte unchanged.
+  char visible_title[96], visible_body[ui::MessageTypes::MAX_MSG_TEXT+1];
+  copyUtf8ReplacingMissingGlyphs(&font16(),visible_title,sizeof visible_title,title);
+  copyUtf8ReplacingMissingGlyphs(&s_glance_body_font,visible_body,sizeof visible_body,body);
+  lv_label_set_text(s_glance_title,visible_title);
+  lv_label_set_text(s_glance_body,visible_body);
   // Cancel any fade-out already begun (by an earlier message in this burst) on
   // either label.
   lv_anim_del(s_glance_title, atGlanceOpaCb);
@@ -30074,6 +30236,41 @@ static void atGlanceShow(const char* title, const char* body, bool fade_in) {
     lv_obj_set_style_opa(s_glance_body,  LV_OPA_COVER, LV_PART_MAIN);
   }
 }
+
+#if defined(GUARD_SIMULATOR)
+bool guardSimGlanceFontRegression(void (*capture)(const char*)) {
+  atGlanceEnsureFont();
+  const char* sample="Příliš žluťoučký kůň — … 漢";
+  char expected[160];
+  copyUtf8ReplacingMissingGlyphs(&s_glance_body_font,expected,sizeof expected,sample);
+  if (strcmp(expected,"Příliš žluťoučký kůň — … *")) {
+    printf("Glance font coverage mismatch: %s\n",expected); return false;
+  }
+  char invalid[12];
+  copyUtf8ReplacingMissingGlyphs(&s_glance_body_font,invalid,sizeof invalid,"a\xC3");
+  if (strcmp(invalid,"a*")) return false;
+  // A custom fallback may return true for its placeholder: it still must not
+  // be mistaken for a supported glyph by the shared sanitizer.
+  lv_font_t placeholder=lv_font_montserrat_12;
+  placeholder.fallback=nullptr;
+  placeholder.get_glyph_dsc=[](const lv_font_t*,lv_font_glyph_dsc_t* d,uint32_t,uint32_t) {
+    d->is_placeholder=true; return true;
+  };
+  if (uiFontHasGlyph(&placeholder,'A')) return false;
+  atGlanceShow("Žluťoučký 漢",sample,false);
+  lv_refr_now(nullptr);
+  const bool correct=s_glance_title && s_glance_body &&
+    !strcmp(lv_label_get_text(s_glance_title),"Žluťoučký *") &&
+    !strcmp(lv_label_get_text(s_glance_body),expected);
+  if (!correct) printf("Glance label mismatch: title=%s body=%s\n",lv_label_get_text(s_glance_title),lv_label_get_text(s_glance_body));
+  lv_refr_now(nullptr);
+  if (capture) capture("glance.png");
+  atGlanceHide();
+  lv_refr_now(nullptr);
+  if (correct) puts("Fullscreen preview: Czech, punctuation, unsupported and invalid UTF-8 glyphs passed.");
+  return correct;
+}
+#endif
 
 // Legacy adapters carry only the metadata their caller actually supplied.
 void UITask::newMsgImpl(uint8_t path_len, const char* from_name, const char* text, int msgcount,
