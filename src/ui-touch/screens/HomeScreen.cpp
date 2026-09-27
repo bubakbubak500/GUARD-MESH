@@ -77,7 +77,8 @@ bool HomeScreen::create(lv_obj_t *parent, int width, int height) {
   lv_obj_set_pos(_messageCard, 8, 8);
   lv_obj_set_size(_messageCard, leftW, messageH);
   lv_obj_add_flag(_messageCard, LV_OBJ_FLAG_CLICKABLE);
-  _actionBindings[0] = {this, Action::Inbox};
+  _actionBindings[0].owner = this;
+  _actionBindings[0].action = Action::Inbox;
   lv_obj_add_event_cb(_messageCard, actionEvent, LV_EVENT_CLICKED, &_actionBindings[0]);
 
   _unread = lv_label_create(_messageCard);
@@ -104,7 +105,8 @@ bool HomeScreen::create(lv_obj_t *parent, int width, int height) {
     labelStyle(row.text, &theme::font12(), theme::colors().COLOR_SUB);
     lv_obj_set_pos(row.text, 2, 15);
     lv_obj_set_size(row.text, leftW - 14, 14);
-    _rowBindings[i] = {this, i};
+    _rowBindings[i].owner = this;
+    _rowBindings[i].slot = i;
     lv_obj_add_event_cb(row.root, rowEvent, LV_EVENT_CLICKED, &_rowBindings[i]);
   }
   _empty = lv_label_create(_messageCard);
@@ -155,7 +157,8 @@ bool HomeScreen::create(lv_obj_t *parent, int width, int height) {
     lv_obj_set_width(title, 92);
     lv_obj_set_style_text_align(title,LV_TEXT_ALIGN_CENTER,LV_PART_MAIN);
     lv_obj_center(title);
-    _actionBindings[i + 1] = {this, kinds[i]};
+    _actionBindings[i + 1].owner = this;
+    _actionBindings[i + 1].action = kinds[i];
     lv_obj_add_event_cb(button, actionEvent, LV_EVENT_CLICKED, &_actionBindings[i + 1]);
   }
   // Resolve the new parent's geometry before a first refresh writes LONG_DOT
