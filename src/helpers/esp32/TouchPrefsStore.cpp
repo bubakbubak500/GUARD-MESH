@@ -819,8 +819,7 @@ bool touchPrefsSetAccentPopups(bool on) {
 
 // Web control panel: mirror the live UI to a phone browser (Settings > Wi-Fi).
 bool touchPrefsGetWebMirror() {
-  if (!s_begun) touchPrefsBegin();
-  return s_cfg.web_mirror != 0;
+  return false;  // Removed Guardian app; ignore legacy saved enable flags.
 }
 bool touchPrefsSetWebMirror(bool on) {
   if (!s_begun) touchPrefsBegin();
@@ -830,8 +829,7 @@ bool touchPrefsSetWebMirror(bool on) {
 
 // Remote mode: render the UI off-screen at a web resolution (boot mode; REMOTE app).
 bool touchPrefsGetRemoteMode() {
-  if (!s_begun) touchPrefsBegin();
-  return s_cfg.remote_mode != 0;
+  return false;  // Removed Guardian app; ignore legacy saved enable flags.
 }
 bool touchPrefsSetRemoteMode(bool on) {
   if (!s_begun) touchPrefsBegin();
@@ -850,8 +848,7 @@ bool touchPrefsSetRemoteLandscape(bool on) {
 }
 
 bool touchPrefsGetWebTerminal() {
-  if (!s_begun) touchPrefsBegin();
-  return s_cfg.web_terminal != 0;
+  return false;  // Removed Guardian app; ignore legacy saved enable flags.
 }
 bool touchPrefsSetWebTerminal(bool on) {
   if (!s_begun) touchPrefsBegin();

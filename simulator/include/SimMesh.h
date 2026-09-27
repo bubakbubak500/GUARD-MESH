@@ -60,6 +60,10 @@ public:
   ChannelDetails channels[MAX_GROUP_CHANNELS]{};
   uint32_t sent = 0, received = 0, lastFingerprint = 0, pendingAck = 0;
   unsigned long ackDue = 0;
+  // Desktop regression seam: observe the actual transport recipient and allow
+  // synchronous delivery callbacks while a send is in progress.
+  uint8_t lastRecipient[32]{};
+  void (*onDirectSend)() = nullptr;
   mesh::Identity self_id;
   RegionRegistry regions;
   NodePrefs *getNodePrefs() { return &prefs; }
@@ -147,10 +151,6 @@ public:
   template <class... A> int getTotalAirTime(A &&...) { return 0; }
   template <class... A> int hasPendingWork(A &&...) { return 0; }
   template <class... A> int isRadioReceiving(A &&...) { return 0; }
-  template <class... A> int lastRxPath(A &&...) { return 0; }
-  template <class... A> int lastRxScope(A &&...) { return 0; }
-  template <class... A> int lastRxScopeIsHome(A &&...) { return 0; }
-  template <class... A> int lastRxScopeSlot(A &&...) { return 0; }
   ContactInfo *lookupContactByPubKey(const uint8_t *pub, size_t n = PUB_KEY_SIZE) {
     for (auto &c : contacts)
       if (memcmp(c.id.pub_key, pub, n) == 0)
@@ -174,7 +174,7 @@ public:
     lastFingerprint = sent;
     return true;
   }
-  int sendMessage(const ContactInfo &, uint32_t, uint8_t, const char *, uint32_t &ack,
+  int sendMessage(const ContactInfo &recipient, uint32_t, uint8_t, const char *, uint32_t &ack,
                   uint32_t &timeout, uint32_t *hash = nullptr) {
     ++sent;
     lastFingerprint = sent;
@@ -184,6 +184,8 @@ public:
       *hash = sent;
     pendingAck = ack;
     ackDue = millis() + 700;
+    memcpy(lastRecipient, recipient.id.pub_key, sizeof(lastRecipient));
+    if (onDirectSend) onDirectSend();
     return MSG_SEND_SENT_DIRECT;
   }
   template <class... A> int sendTelemetryRequestWithGuestLoginForUI(A &&...) { return 0; }
@@ -213,7 +215,6 @@ public:
     memcpy(c.channel.secret, secret, 16);
     return true;
   }
-  template <class... A> int uiConsumeLastSenderTs(A &&...) { return 0; }
   int uiContactIdxByPubKey(const uint8_t *pub) {
     for (size_t i = 0; i < contacts.size(); i++)
       if (!memcmp(pub, contacts[i].id.pub_key, PUB_KEY_SIZE))

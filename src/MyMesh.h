@@ -556,14 +556,12 @@ public:
    *  reaches sendMessage directly and skipped this until now. */
   void uiRegisterExpectedAck(uint32_t expected_ack, const uint8_t pub_key[32]);
 
-  // ---- "Repeats heard" for sent floods + route of the last received flood ----
+  // ---- "Repeats heard" for sent floods ----
   // When we originate a flood TXT, repeaters re-broadcast it and our own radio
   // hears the echoes (same payload, longer path). We fingerprint the payload at
   // send time (sendFloodScoped) and match echoes in logRxRaw, counting repeats
   // per recent send. The touch UI stamps its outgoing bubble with the
   // fingerprint (uiLastSentFp) and later reads the count (uiRepeatsForFp).
-  // _last_rx_path holds the path hashes of the just-received flood so the UI's
-  // newMsg* handler (called synchronously next) can stash the inbound route.
   static const int UI_ECHO_SLOTS = 12;
   uint32_t _echo_fp[UI_ECHO_SLOTS]  = {0};
   uint8_t  _echo_rep[UI_ECHO_SLOTS] = {0};
@@ -573,17 +571,7 @@ public:
   uint8_t  _echo_hop_n[UI_ECHO_SLOTS]  = {0};                 // count, 0..ECHO_MAX_HOPS
   uint8_t  _echo_idx = 0;
   uint32_t _last_sent_fp = 0;
-  uint8_t  _last_rx_path[32] = {0};
-  uint8_t  _last_rx_path_n  = 0;
-  uint16_t _last_rx_scope     = 0;     // transport_codes[0] of the last RX flood ("scope")
-  bool     _last_rx_scope_home = false; // that code verified against OUR region key (#259)
-  // Which REGISTERED region that code verified against (#271): a stable slot,
-  // REGION_SLOT_AMBIGUOUS when several matched, or REGION_SLOT_NONE. Widens the
-  // one-key _last_rx_scope_home check above to every region the user tracks.
-  uint8_t  _last_rx_scope_slot = REGION_SLOT_NONE;
   RegionRegistry _region_reg;
-  bool     _last_rx_has_scope = false; // false if the packet carried no transport codes
-  uint32_t _last_sender_ts    = 0;     // embedded send-time of the last inbound msg (UI bubble ts; 0 = use now)
   volatile bool _echo_dirty = false;   // a repeat was counted -> UI should refresh
 
   // ---- Live signal strength (top-bar icon) ----
@@ -706,40 +694,29 @@ public:
     return 0;
   }
 
-  /** Path (repeater hashes) of the most-recently received flood; copies up to
-   *  `max` bytes into buf, returns the count. Read synchronously from the
-   *  newMsg* handler that follows reception. */
-  uint8_t lastRxPath(uint8_t* buf, uint8_t max) const {
-    uint8_t n = _last_rx_path_n < max ? _last_rx_path_n : max;
-    if (buf && n) memcpy(buf, _last_rx_path, n);
-    return n;
-  }
-  /** Scope (transport_codes[0]) of the last received flood; *has = false when
-   *  the packet carried no transport codes. */
-  uint16_t lastRxScope(bool* has) const { if (has) *has = _last_rx_has_scope; return _last_rx_scope; }
-  /** Consume the embedded send-time stashed right before the last UI notify (room
-   *  history replay carries old send-times; without this the UI stamps "now").
-   *  Returns 0 when nothing was stashed -> the caller keeps the delivery time. */
-  uint32_t uiConsumeLastSenderTs() { uint32_t t = _last_sender_ts; _last_sender_ts = 0; return t; }
-  /** Capture route + scope of a just-received flood for the Info popup. Call
-   *  synchronously right before the newMsg* notification. */
-  void uiStashRxMeta(mesh::Packet* pkt) {
-    _last_rx_path_n = 0;
+  /** Capture packet metadata directly into this delivery, before calling any UI.
+   *  There is no shared last-message slot to leak across rejected/reentrant RX. */
+  void uiCaptureRxMeta(UIMessageEvent& event, mesh::Packet* pkt) {
+    event.hasRx = pkt != nullptr;
+    event.isFlood = pkt && pkt->isRouteFlood();
+    event.snrQ4 = pkt ? (int8_t)(pkt->getSNR() * 4) : 0;
+    event.rssi = pkt ? (int8_t)_radio->getLastRSSI() : 0;
+    event.pathBytes = 0;
     if (pkt && pkt->isRouteFlood()) {
       int nb = (int)pkt->getPathHashCount() * (int)pkt->getPathHashSize();
-      if (nb > (int)sizeof(_last_rx_path)) nb = (int)sizeof(_last_rx_path);
-      if (nb > 0) { memcpy(_last_rx_path, pkt->path, nb); _last_rx_path_n = (uint8_t)nb; }
+      if (nb > (int)sizeof(event.path)) nb = (int)sizeof(event.path);
+      if (nb > 0) { memcpy(event.path, pkt->path, nb); event.pathBytes = (uint8_t)nb; }
     }
     const uint8_t rt = pkt ? pkt->getRouteType() : 0xFF;
-    _last_rx_has_scope = (rt == ROUTE_TYPE_TRANSPORT_FLOOD || rt == ROUTE_TYPE_TRANSPORT_DIRECT);
+    event.hasScope = (rt == ROUTE_TYPE_TRANSPORT_FLOOD || rt == ROUTE_TYPE_TRANSPORT_DIRECT);
     // #157: some senders carry the region in transport_codes[1] (reply-region hint) with
     // codes[0] zero -- the Info popup then showed "Scope 0000" for a genuinely scoped message.
     // Show whichever code is set; [0] (the scope proper) wins when both are.
-    _last_rx_scope = 0;
-    _last_rx_scope_home = false;
-    _last_rx_scope_slot = REGION_SLOT_NONE;
-    if (_last_rx_has_scope && pkt) {
-      _last_rx_scope = pkt->transport_codes[0] ? pkt->transport_codes[0] : pkt->transport_codes[1];
+    event.scope = 0;
+    event.scopeHome = false;
+    event.scopeSlot = REGION_SLOT_NONE;
+    if (event.hasScope && pkt) {
+      event.scope = pkt->transport_codes[0] ? pkt->transport_codes[0] : pkt->transport_codes[1];
       // The code is HMAC(region key, payload) truncated to 16 bits — per-PACKET,
       // not a region id, which is why the same sender in the same region shows a
       // different value on every message (#259). It can still be VERIFIED: recompute
@@ -749,24 +726,19 @@ public:
       TransportKey home;
       memcpy(&home.key, _prefs.default_scope_key, sizeof(home.key));
       if (!home.isNull() && pkt->transport_codes[0])
-        _last_rx_scope_home = (home.calcTransportCode(pkt) == pkt->transport_codes[0]);
+        event.scopeHome = (home.calcTransportCode(pkt) == pkt->transport_codes[0]);
       // #271: same verification, widened to every region the user has registered,
       // so the Info popup can name WHICH one instead of only "mine / not mine".
       // Only codes[0] is the forwarding scope; codes[1] is a reply-region hint and
       // is reported separately, so match strictly against [0] and never against
-      // the [1] fallback that _last_rx_scope may be holding.
-      _last_rx_scope_slot = pkt->transport_codes[0]
+      // the [1] fallback that event.scope may be holding.
+      event.scopeSlot = pkt->transport_codes[0]
                               ? _region_reg.matchPacket(pkt, pkt->transport_codes[0])
                               : REGION_SLOT_NONE;
     }
   }
   /** Region registry backing the scope naming above (#271). */
   RegionRegistry& regionRegistry() { return _region_reg; }
-  /** Stable slot of the region the last RX scope verified against, or
-   *  REGION_SLOT_AMBIGUOUS / REGION_SLOT_NONE. */
-  uint8_t lastRxScopeSlot() const { return _last_rx_scope_slot; }
-  /** True when the last RX flood's scope verified against our own region key. */
-  bool lastRxScopeIsHome() const { return _last_rx_scope_home; }
 
   /** Track a freshly-sent flood TXT fingerprint (called from sendFloodScoped). */
   void uiTrackSentFp(uint32_t fp) {

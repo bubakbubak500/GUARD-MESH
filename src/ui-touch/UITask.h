@@ -1,4 +1,10 @@
 #pragma once
+#include "models/LocationModel.h"
+#include "models/MessageStore.h"
+#include "application/ChatSession.h"
+#include "application/MessageIngress.h"
+#include "application/ThreadRefreshPolicy.h"
+#include "application/ScreenPolicy.h"
 
 #if defined(GUARD_SIMULATOR)
 #include "SimTypes.h"
@@ -35,109 +41,7 @@ void sdMountDiagBegin();
 void sdMountDiagAttempt(uint32_t hz, bool begin_ok, bool card_ready);
 void sdMountDiagSetMounted(bool mounted, uint32_t hz);
 
-class UITask : public AbstractUITask {
-public:
-  static const int MAX_UI_MESSAGES = 500;
-  /** Deep ring for devices whose chat history lives on an SD card (T-Deck with a
-   *  card, Tanmatsu SD_MMC): 10x the internal-flash ring. Chosen at begin() into
-   *  _ui_msg_cap; PSRAM cost ~5000 * sizeof(UIMessage) ≈ 1.3 MB (of 8 MB). */
-  static const int MAX_UI_MESSAGES_SD = 5000;
-  static const int MAX_UI_THREADS = 48;
-  static const int MAX_THREAD_NAME = 32;
-  // Full MeshCore name width: ContactInfo::name / ChannelDetails::name / NodePrefs::
-  // node_name are all char[32], so 31 chars + NUL is exactly lossless. Was 24, which
-  // silently dropped every longer name. The PERSISTED width is frozen separately
-  // (k_ui_disk_sender_len in UITask.cpp) — raising this does not move any on-disk field.
-  static const int MAX_SENDER_NAME = 31;
-  static const int MAX_MSG_TEXT = 160;   // full LoRa text length (was 96 -> cut long msgs ~3 lines)
-  static const int MAX_UI_PATH = 32;  // inbound-route bytes/message for the Info popup (covers deep + multi-byte-hash routes)
-
-  // Outgoing-DM delivery state. None for incoming + channel messages.
-  enum : uint8_t {
-    DELIV_NONE      = 0,  // unknown (incoming msgs, channel posts, or pre-ACK history loaded from disk)
-    DELIV_SENT      = 1,  // sendMessage returned SENT_*, ack not yet received
-    DELIV_DELIVERED = 2,  // ack matched in MyMesh::processAck → onMessageAcked
-    DELIV_FAILED    = 3,  // sendMessage returned FAILED
-  };
-
-  // Per-message RX metadata. Populated from the LoRa packet at receive time
-  // (in MyMesh::queueMessage / onChannelMessageRecv) and surfaced via the
-  // bubble long-press "Info" sheet. Outgoing messages + history loaded from
-  // pre-v4 disk don't have these — meta_flags bit 0 distinguishes.
-  enum : uint8_t {
-    MSG_META_HAS_RX    = (1u << 0),  // snr_q4/rssi/path_len populated
-    MSG_META_IS_FLOOD  = (1u << 1),  // packet was flooded (path_len = hop count); else 0xFF / direct
-    MSG_META_HAS_SCOPE = (1u << 2),  // in_scope holds a valid transport scope (transport_codes[0])
-    // The scope code is an HMAC of THIS packet's payload under the sender's
-    // region key, so it differs for every message and cannot be read as a region
-    // id (#259). The only thing a receiver can say about it is whether it
-    // verifies against a key we hold — which we check at RX, while the packet is
-    // still around, and record here.
-    MSG_META_SCOPE_HOME = (1u << 3),  // in_scope verified against OUR region key
-    // Bits 4-7: which REGISTERED region in_scope verified against (#271), as a
-    // RegionRegistry slot, where 0 = none/unknown, 15 = several regions matched
-    // and 1..14 name one. Packed into the spare top nibble on purpose: meta_flags is
-    // already persisted at a fixed offset, so this costs no record growth and no
-    // history version bump, and messages written before a region was registered
-    // read back 0, which is exactly the honest "unknown" state. A slot is stable
-    // for the life of the history and is never a list index, so deleting or
-    // reordering regions cannot relabel old messages.
-    MSG_META_SCOPE_SLOT_SHIFT = 4,
-    MSG_META_SCOPE_SLOT_MASK  = 0xF0,
-  };
-  static uint8_t metaScopeSlot(uint8_t meta_flags) {
-    return (uint8_t)((meta_flags & MSG_META_SCOPE_SLOT_MASK) >> MSG_META_SCOPE_SLOT_SHIFT);
-  }
-  static uint8_t metaWithScopeSlot(uint8_t meta_flags, uint8_t slot) {
-    return (uint8_t)((meta_flags & ~MSG_META_SCOPE_SLOT_MASK)
-                     | ((slot & 0x0F) << MSG_META_SCOPE_SLOT_SHIFT));
-  }
-
-  struct UIMessage {
-    uint32_t ts;
-    // Monotonic per-record sequence number, assigned at append and persisted by
-    // the segmented store (its record-to-segment mapping keys on seq ranges).
-    // NEVER reset mid-session; the boot loader seeds the generator from
-    // max(loaded seq)+1. Distinct from _msgcount, which the companion protocol
-    // may overwrite (msgRead) and therefore cannot be a unique key.
-    uint32_t seq;
-    bool channel;
-    bool outgoing;
-    uint32_t ack_hash;       // expected-ack for outgoing DMs (0 if none / channel / incoming)
-    uint8_t  deliv_state;    // see DELIV_* above; defaults to DELIV_NONE
-    uint8_t  meta_flags;     // see MSG_META_* (0 = no RX metadata)
-    uint8_t  path_len;       // hop count for flood packets; 0xFF for direct/routed; 0 if unknown
-    int8_t   snr_q4;         // SNR × 4 (matches on-wire encoding); 0 if unknown
-    int8_t   rssi;           // dBm; 0 if unknown
-    // RAM-only (not persisted): route + repeats metadata, valid for the current
-    // session. sent_fp links an outgoing flood to MyMesh's "repeats heard" ring;
-    // in_path[] holds the repeater hashes an inbound flood traversed.
-    uint32_t sent_fp;
-    uint16_t in_scope;       // transport scope (transport_codes[0]); valid iff MSG_META_HAS_SCOPE
-    uint8_t  in_path_n;
-    uint8_t  in_path[MAX_UI_PATH];
-    char thread[MAX_THREAD_NAME + 1];
-    char sender[MAX_SENDER_NAME + 1];
-    char text[MAX_MSG_TEXT + 1];
-  };
-
-  struct UIThread {
-    bool used;
-    bool channel;
-    bool has_mention;   // an unread message in this thread @mentions me (RAM-only hint)
-    uint16_t unread;
-    uint32_t last_ts;
-    /** Mesh contact index for DM sends, or -1 if unknown / not mapped. */
-    int16_t mesh_contact_idx;
-    /** Full contact pubkey for stable DM mapping across refresh/reorders. */
-    uint8_t mesh_contact_pub[32];
-    /** First 6 bytes of contact pubkey for stable DM mapping across reorders. */
-    uint8_t mesh_contact_key6[6];
-    /** Channel slot index for group sends, or -1 if unknown. */
-    int16_t mesh_channel_slot;
-    char name[MAX_THREAD_NAME + 1];
-  };
-
+class UITask : public AbstractUITask, public ui::MessageTypes {
 private:
   DisplayDriver* _display;
   SensorManager* _sensors;
@@ -148,64 +52,24 @@ private:
   GenericVibration vibration;
 #endif
   unsigned long _next_refresh, _auto_off;
-  /* Screen timeout: track last input activity and turn off the TFT when
-   * idle for `_screen_timeout_ms` (0 = never sleep). Cached from NVS prefs;
-   * any touch / user-button press resets the deadline and rewakes the panel. */
-  unsigned long _last_input_ms;
-  uint32_t _screen_timeout_ms;
-  bool _screen_off;
-  /* True when the user explicitly locked via the BOOT button — touch can't
-   * unlock from this state, only another BOOT button press. False = the
-   * screen turned off from idle timeout, in which case touch wakes it. */
-  bool _manual_lock;
-  // Burn-in guard for the lit lock screen (#55): stamped when the lock screen goes from off->lit;
-  // the loop dims a hard-locked LIT panel a bounded time after this, independent of the screen-timeout
-  // setting and of held/ghost touches that keep re-revealing it. 0 = not currently lit-locked.
-  uint32_t _lock_lit_ms = 0;
+  // Owns lock, screen and deadline decisions; this task applies board effects.
+  ui::ScreenPolicy _screen;
   NodePrefs* _node_prefs;
   // GPS auto-location: once a fix is seen, keep the node location (node_lat/lon,
   // used by the profile + adverts) synced to GPS and persist it occasionally
   // (rate-limited) so it survives a reboot. Updated each loop via updateGpsLocation().
-  bool _gps_had_fix = false;
-  double _gps_saved_lat = 0.0, _gps_saved_lon = 0.0;
-  unsigned long _gps_next_persist_ms = 0;
+  ui::LocationModel _location;
   void updateGpsLocation(unsigned long now);
   char _alert[80];
   unsigned long _alert_expiry;
   int _msgcount;
-  /** Next UIMessage::seq to hand out. Seeded by the loader (max loaded seq + 1),
-   *  strictly monotonic for the session. See UIMessage::seq. */
-  uint32_t _ui_seq_next = 1;
-  int _ui_msg_count;
-  int _ui_msg_head;
-  /** Runtime ring capacity: MAX_UI_MESSAGES_SD when history lives on an SD card,
-   *  else MAX_UI_MESSAGES. Fixed for the whole boot (chosen before the PSRAM
-   *  alloc in begin()); the loader linearizes files written under another cap. */
-  int _ui_msg_cap = MAX_UI_MESSAGES;
-  /** "Does this thread have any stored message?", answered in O(1).
-   *
-   *  threadHasMessageHistory() used to answer it by walking the message ring looking for a
-   *  match, and the inbox/unread paths call it once PER THREAD. A thread that HAS recent
-   *  messages exits that scan early; a thread with none scans every record in the ring doing
-   *  a strncmp each — and "no history" is exactly what those callers are testing for. With a
-   *  busy public channel filling the ring (a field report: 3800 messages) each inbox refresh
-   *  became tens of thousands of string compares, which is the reported "interface slows down
-   *  drastically", and why it was still felt at only ~300 messages.
-   *
-   *  Appends set the owning thread's flag directly, so the common path never scans. Anything
-   *  that REMOVES messages (ring eviction, delete, clear, a fresh load) can only invalidate
-   *  the flags, so it just marks them dirty and the next reader rebuilds all threads in ONE
-   *  ring pass instead of one pass per thread. */
-  mutable uint16_t _thread_msgs[MAX_UI_THREADS] = { 0 };
-  mutable bool     _thread_hist_dirty = true;
-  void rebuildThreadHistoryFlags() const;
-  /** Drop this thread's oldest stored messages until it is back within the per-chat cap
-   *  (touchPrefsGetHistPerChat; 0 = uncapped). Called after an append. */
-  void enforceHistoryCap(int thread_idx);
+  ui::MessageStore _messages;
+  ui::ChatSession _chat;
+  // Compatibility for old notify()+newMsg* callers. Mesh reception uses an
+  // explicit UIMessageEvent and never derives its kind from this state.
+  UIEventType _legacy_message_kind = UIEventType::contactMessage;
   unsigned long _next_thread_seed;
-  UIMessage* _ui_msgs   = nullptr;   // ring of recent messages — PSRAM-allocated in begin()
-  UIThread*  _ui_threads = nullptr;  // thread table — PSRAM-allocated in begin()
-  void allocMessageStore();          // ring + thread table; also used by console mode
+  bool allocMessageStore();
   unsigned long ui_started_at, next_batt_chck;
   int next_backlight_btn_check = 0;
 #ifdef PIN_STATUS_LED
@@ -226,21 +90,13 @@ private:
   UIScreen* network;
   UIScreen* settings;
   UIScreen* curr;
-  int _active_thread_idx;
-  bool _active_thread_is_channel;
   int _thread_scroll;
   bool _composer_mode;
   int _composer_char_idx;
   int _composer_action_idx;
   char _compose_buf[MAX_MSG_TEXT + 1];   // full LoRa text length; was 128 -> silently chopped sends at 127 bytes (GH #119)
-  unsigned long _next_mesh_thread_refresh;
+  ui::ThreadRefreshPolicy _mesh_refresh;
   TouchUiScreen _touch_screen;
-  bool _active_dm_contact_set;
-  uint8_t _active_dm_contact_pub[32];
-  bool _threads_dirty;
-  unsigned long _next_threads_flush_ms;
-  bool _msgs_dirty;
-  unsigned long _next_msgs_flush_ms;
 
   void userLedHandler();
 
@@ -252,7 +108,8 @@ private:
   int findOrCreateThread(const char* name, bool channel);
   bool looksLikeKnownChannel(const char* name) const;
 public:
-  void refreshThreadsFromMesh();
+  bool refreshThreadsFromMesh();
+  uint32_t meshDirectoryRefreshCount() const { return _mesh_refresh.passes(); }
   /** Drop UI thread `idx` and any cached messages tied to it. Returns false
    *  if the index is out of range or the slot wasn't in use. Used by the
    *  long-press → Delete chat action; for channel threads, the caller is
@@ -266,15 +123,15 @@ public:
 private:
   void syncThreadMeshSlots(const char* thread_name, bool channel);
   int findThreadByName(const char* name, bool channel) const;
-  void sortThreadsByRecent(bool channel_mode, int out_indexes[], int& out_count) const;
   int appendMessage(const char* thread, const char* sender, const char* text, bool channel, bool outgoing, bool mark_unread, uint32_t ack_hash = 0, uint8_t deliv_state = DELIV_NONE,
                     uint8_t meta_flags = 0, uint8_t path_len = 0, int8_t snr_q4 = 0, int8_t rssi = 0,
                     const uint8_t* in_path = nullptr, uint8_t in_path_n = 0, uint32_t sent_fp = 0,
                     uint16_t in_scope = 0);
-  // Shared core for newMsg / newMsgFromPubWithMeta — see UITask.cpp.
+  void handleIncomingMessage(const UIMessageEvent& input, bool notifyAccepted);
+  // Adapter for old callers without packet-scoped metadata.
   void newMsgImpl(uint8_t path_len, const char* from_name, const char* text, int msgcount,
                   uint8_t meta_flags, int8_t snr_q4, int8_t rssi,
-                  const char* sender_override = nullptr);
+                  const char* sender_override = nullptr, const uint8_t* from_pub = nullptr);
 public:
   /** Match an arriving ACK (4-byte hash) against the last few outgoing DMs
    *  and flip their delivery state to DELIV_DELIVERED so the chat detail
@@ -296,11 +153,6 @@ private:
   void markMsgsDirty(unsigned long delay_ms = 2000);
   void flushHistoryIfDue(unsigned long now);
   bool loadHistoryFromStorage();
-  bool loadThreadsFromStorage();
-  bool loadMsgsFromStorage();
-  bool loadLegacyHistoryFromStorage();
-  bool loadMsgsFromSegments();     // segmented store (generation 3) loader
-  bool migrateRingToSegments();    // one-time old-format -> segments migration (verify-then-delete)
   bool saveThreadsToStorage();
   bool saveMsgsToStorage();
 
@@ -313,17 +165,6 @@ public:
     next_batt_chck = _next_refresh = 0;
     ui_started_at = 0;
     curr = NULL;
-    _next_mesh_thread_refresh = 0;
-    _active_dm_contact_set = false;
-    memset(_active_dm_contact_pub, 0, sizeof(_active_dm_contact_pub));
-    _threads_dirty = false;
-    _next_threads_flush_ms = 0;
-    _msgs_dirty = false;
-    _next_msgs_flush_ms = 0;
-    _last_input_ms = 0;
-    _screen_timeout_ms = 20000;  // overridden by NVS in begin()
-    _screen_off = false;
-    _manual_lock = false;
   }
   void begin(DisplayDriver* display, SensorManager* sensors, NodePrefs* node_prefs);
 
@@ -389,66 +230,38 @@ public:
    *  (DM = the thread's contact; channel = sender-name → contact lookup) and add
    *  it to the persisted ignore list. False if no pubkey could be resolved. */
   bool ignoreSenderInActiveThread(const char* sender_name);
-  bool hasActiveThread() const { return _active_thread_idx >= 0; }
-  bool activeThreadIsChannel() const { return _active_thread_is_channel; }
+  bool hasActiveThread() const { return _chat.activeIndex() >= 0; }
+  bool activeThreadIsChannel() const { return _chat.activeChannel(); }
   // Active channel's mesh slot (-1 when the open thread isn't a channel). For the
   // status-bar channel-settings gear (per-channel region scope).
   int16_t activeChannelSlot() const {
-    // _ui_threads is null in console mode (allocated later in begin()).
-    if (!_ui_threads) return -1;
-    if (!_active_thread_is_channel || _active_thread_idx < 0 || _active_thread_idx >= MAX_UI_THREADS) return -1;
-    return _ui_threads[_active_thread_idx].mesh_channel_slot;
+    return _chat.activeChannel() ? threadMeshChannelSlot(_chat.activeIndex()) : -1;
   }
-  int  activeThreadIdx() const { return _active_thread_idx; }
+  int  activeThreadIdx() const { return _chat.activeIndex(); }
   /** Any thread's pinned mesh-channel slot (-1 when not a channel / out of range).
    *  chatDeleteApply prefers this (name-validated) over a pure name scan so
    *  deleting a channel actually drops its mesh-table entry — otherwise
    *  refreshThreadsFromMesh() recreates the thread from the surviving channel. */
   int16_t threadMeshChannelSlot(int idx) const {
-    if (!_ui_threads) return -1;                       // console mode: no table
-    if (idx < 0 || idx >= MAX_UI_THREADS || !_ui_threads[idx].used || !_ui_threads[idx].channel) return -1;
-    return _ui_threads[idx].mesh_channel_slot;
+    const auto& thread = _messages.thread(idx);
+    return thread.used && thread.channel ? thread.mesh_channel_slot : -1;
   }
-  /** Message-ring capacity this boot (500, or 5000 with SD-backed history). */
-  int  msgCap() const { return _ui_msg_cap; }
-  /** DM thread's full contact pubkey (32 B) — for the chat sheet's "Reset path".
-   *  False for channels, unused slots, or a thread with no pubkey mapping yet. */
+  int msgCap() const { return _messages.capacity(); }
   bool getThreadContactPub(int idx, uint8_t out[32]) const {
-    if (idx < 0 || idx >= MAX_UI_THREADS) return false;
-    if (!_ui_threads[idx].used || _ui_threads[idx].channel) return false;
-    const uint8_t* p = _ui_threads[idx].mesh_contact_pub;
+    const auto& thread = _messages.thread(idx);
+    if (!out || !thread.used || thread.channel) return false;
     uint8_t any = 0;
-    for (int i = 0; i < 32; i++) { out[i] = p[i]; any |= p[i]; }
+    for (int i = 0; i < 32; ++i) { out[i] = thread.mesh_contact_pub[i]; any |= out[i]; }
     return any != 0;
   }
-  /** Newest message of a thread (chat-list preview): scans the ring by the
-   *  thread's name + kind and returns the latest by timestamp. False when the
-   *  thread has no messages in the ring. */
   bool getThreadLastMessage(int idx, char* sender, size_t sender_cap,
                             char* text, size_t text_cap, bool* outgoing) const {
-    if (idx < 0 || idx >= MAX_UI_THREADS || !_ui_threads[idx].used || !_ui_msgs) return false;
-    const bool ch  = _ui_threads[idx].channel;
-    const char* nm = _ui_threads[idx].name;
-    // Newest by RING ORDER, not by timestamp. m.ts is taken from the ESP32 system clock,
-    // which is not monotonic across reboots: it restarts from ESP32RTCClock::begin()'s
-    // power-on seed every boot and only climbs with uptime until a real time source lands.
-    // Picking max(ts) therefore let a message received hours into an EARLIER boot outrank
-    // every message from this one, so the chat-list preview stuck on an old message and
-    // never updated (reported on the T-Display P4, whose system clock stayed on that seed
-    // because it has an RTC chip — see the mirror in ClockFloorRTC). Ring order is the
-    // actual arrival order and cannot be wrong, so walk back from the head and take the
-    // first match; that also exits immediately instead of scanning the whole ring.
-    for (int i = 0; i < _ui_msg_count; ++i) {
-      const int slot = (_ui_msg_head - 1 - i + _ui_msg_cap) % _ui_msg_cap;
-      const UIMessage& m = _ui_msgs[slot];
-      if (!m.text[0] || m.channel != ch) continue;
-      if (strncmp(m.thread, nm, MAX_THREAD_NAME) != 0) continue;
-      if (sender && sender_cap) { strncpy(sender, m.sender, sender_cap - 1); sender[sender_cap - 1] = '\0'; }
-      if (text && text_cap)     { strncpy(text,   m.text,   text_cap - 1);   text[text_cap - 1] = '\0'; }
-      if (outgoing) *outgoing = m.outgoing;
-      return true;
-    }
-    return false;
+    UIMessage message{};
+    if (!_messages.lastThreadMessage(idx, message)) return false;
+    if (sender && sender_cap) { strncpy(sender, message.sender, sender_cap - 1); sender[sender_cap - 1] = 0; }
+    if (text && text_cap) { strncpy(text, message.text, text_cap - 1); text[text_cap - 1] = 0; }
+    if (outgoing) *outgoing = message.outgoing;
+    return true;
   }
   int  threadScroll() const { return _thread_scroll; }
   void setThreadScroll(int v) { _thread_scroll = v; }
@@ -512,7 +325,7 @@ public:
   /** Altitude in metres from the last fix (0 when there is no fix). */
   int  getGpsAltitude();
   /** True once a valid fix has been seen this session. */
-  bool getGpsHadFix() const { return _gps_had_fix; }
+  bool getGpsHadFix() const { return _location.hadFix(); }
   double getNodeLat() const { return _sensors ? _sensors->node_lat : 0.0; }
   double getNodeLon() const { return _sensors ? _sensors->node_lon : 0.0; }
   const char* getNodeNameCstr() const { return (_node_prefs && _node_prefs->node_name[0]) ? _node_prefs->node_name : ""; }
@@ -552,7 +365,7 @@ public:
   /** Get / set the screen-off-after-idle timeout (0 = never). Persists in NVS. */
   uint16_t getScreenTimeoutSecs() const;
   bool setScreenTimeoutSecs(uint16_t seconds);
-  /** Force the panel back on (clears _screen_off and updates last-input). */
+  /** Force the panel back on and update the activity deadline. */
   void wakeScreen();
   /** Turn the panel off and manually lock it (touch ignored until a deliberate
    *  unlock — a trackball/BOOT-button press). Same state the V4 lock button sets. */
@@ -563,12 +376,12 @@ public:
   /** Release a manual lock: hide the lock screen and turn the panel back on. */
   void unlockScreen();
   /** True while the panel backlight is off (idle-dimmed or manually locked). */
-  bool isScreenOff() const { return _screen_off; }
-  bool isManualLocked() const { return _manual_lock; }   // hard screen lock engaged
+  bool isScreenOff() const { return _screen.screenOff(); }
+  bool isManualLocked() const { return _screen.manualLocked(); }   // hard screen lock engaged
   void toggleScreenLock();                                // Tanmatsu Vol- long-press: lock <-> unlock
   void sleepScreen();                                     // soft screen sleep (backlight off, not locked)
   /** True while hard-locked (manual lock engaged), whether lit or dark. */
-  bool isManualLock() const { return _manual_lock; }
+  bool isManualLock() const { return _screen.manualLocked(); }
   bool sendAdvertNow();         // legacy: zero-hop
   bool sendAdvertFlood();       // multi-hop flood
   bool sendAdvertZeroHop();     // explicit zero-hop (same as sendAdvertNow)
@@ -585,10 +398,9 @@ public:
   void msgRead(int msgcount) override;
   void newMsgFromPub(uint8_t path_len, const uint8_t* from_pub, const char* from_name, const char* text, int msgcount) override;
   void newMsg(uint8_t path_len, const char* from_name, const char* text, int msgcount) override;
-  // Meta-aware variant — MyMesh calls this from the packet receive path so the
-  // chat bubble can persist hops/SNR/RSSI for the per-message Info popup.
-  // The base newMsgFromPub still works for callers that don't have metadata
-  // (history loads, etc).
+  // Mesh reception owns the complete event, including notification eligibility.
+  void receiveMessage(const UIMessageEvent& event) override;
+  // Compatibility adapters for callers supplying only hops/SNR/RSSI.
   void newMsgFromPubWithMeta(uint8_t path_len, bool is_flood,
                               const uint8_t* from_pub, const char* from_name,
                               const char* text, int msgcount,

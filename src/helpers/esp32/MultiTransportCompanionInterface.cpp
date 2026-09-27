@@ -10,9 +10,6 @@
 #include <string.h>
 #include "../../ui-touch/BleKeyboard.h"   // stackGoingDown() before NimBLE teardown
 
-// USB Files (ui-touch/UsbFilesSession.h) owns the USB serial port while its app is
-// open: the USB leg of the companion link neither reads nor writes meanwhile.
-extern volatile bool g_usb_files_owns_serial;
 
 // Companion push code for the per-packet RX log (matches MyMesh.cpp). It is kept OFF
 // the BLE transport in writeFrameToAll — see the note there (issues #46, #54) — EXCEPT
@@ -500,7 +497,7 @@ void MultiTransportCompanionInterface::restoreAfterHttpOta() {
 }
 
 bool MultiTransportCompanionInterface::isConnected() const {
-  if (!g_usb_files_owns_serial && _usb.isConnected()) return true;
+  if (_usb.isConnected()) return true;
 #ifdef BLE_PIN_CODE
   if (_ble_begun && _ble_enabled && _ble.isConnected()) return true;
 #endif
@@ -510,7 +507,7 @@ bool MultiTransportCompanionInterface::isConnected() const {
 }
 
 bool MultiTransportCompanionInterface::isWriteBusy() const {
-  if (!g_usb_files_owns_serial && _usb.isWriteBusy()) return true;
+  if (_usb.isWriteBusy()) return true;
 #ifdef BLE_PIN_CODE
   if (_ble_begun && _ble_enabled && _ble.isWriteBusy()) return true;
 #endif
@@ -528,7 +525,7 @@ size_t MultiTransportCompanionInterface::checkRecvFrame(uint8_t dest[]) {
 
   // Poll USB first (preserve Home Assistant / USB priority). Do not overwrite _last_reply_target
   // when caller is in the middle of a contact-list stream (handled by caller saving/restoring target).
-  size_t len = g_usb_files_owns_serial ? 0 : _usb.checkRecvFrame(dest);
+  size_t len = _usb.checkRecvFrame(dest);
   if (len > 0) {
     _last_reply_target = REPLY_TARGET_USB;
     return len;
@@ -571,7 +568,7 @@ size_t MultiTransportCompanionInterface::writeFrame(const uint8_t src[], size_t 
   if (len > MAX_FRAME_SIZE) return 0;
   // Single-target only (command responses, sync history). Never broadcast.
   if (_last_reply_target == REPLY_TARGET_USB)
-    return g_usb_files_owns_serial ? 0 : _usb.writeFrame(src, len);
+    return _usb.writeFrame(src, len);
 #ifdef BLE_PIN_CODE
   if (_last_reply_target == REPLY_TARGET_BLE && _ble_begun && _ble_enabled)
     return _ble.writeFrame(src, len);
@@ -588,7 +585,7 @@ size_t MultiTransportCompanionInterface::writeFrameToAll(const uint8_t src[], si
   if (!_broadcast)
     return writeFrame(src, len);
   bool all_ok = true;
-  if (!g_usb_files_owns_serial && _usb.isConnected() && _usb.writeFrame(src, len) != len)
+  if (_usb.isConnected() && _usb.writeFrame(src, len) != len)
     all_ok = false;
 #ifdef BLE_PIN_CODE
   // The per-packet RX log floods BLE's ~16 frames/sec budget on a busy mesh, starving

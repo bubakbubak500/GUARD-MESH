@@ -1,4 +1,6 @@
 #include "MyMesh.h"
+static_assert(MAX_FRAME_SIZE <= UIMessageEvent::MAX_TEXT, "UI receive event must hold a full frame");
+static_assert(MAX_TEXT_LEN <= UIMessageEvent::MAX_TEXT, "UI receive event must hold RF text");
 #include <esp_heap_caps.h>
 
 #include <Arduino.h> // needed for PlatformIO
@@ -37,9 +39,6 @@
 #endif
 #endif
 
-// True while the USB Files app owns the USB serial port (ui-touch/UsbFilesSession.h).
-// Defined in UITask.cpp, which every target builds.
-extern volatile bool g_usb_files_owns_serial;
 
 #if defined(ESP32) && defined(MULTI_TRANSPORT_COMPANION)
 /** While `ota url` runs, pin WS/TCP reply target so OTA progress survives yield() and checkRecvFrame. */
@@ -3076,28 +3075,14 @@ void MyMesh::queueMessage(const ContactInfo &from, uint8_t txt_type, mesh::Packe
   // we only want to show text messages on display, not cli data
   bool should_display = txt_type == TXT_TYPE_PLAIN || txt_type == TXT_TYPE_SIGNED_PLAIN;
   if (should_display && _ui) {
-    /* notify BEFORE newMsgFromPub: UITask::newMsg keys on g_last_event to
-     * decide channel-thread vs DM-thread. Previously this fired only when
-     * serial was disconnected, which meant after a channel message arrived
-     * over TCP/BLE g_last_event stayed at `channelMessage` and the next DM
-     * was routed into the channel thread (or vice versa). */
-    // A TXT_TYPE_SIGNED_PLAIN with a 4-byte sender_prefix is a room-server
-    // post: `from` is the room (the thread) and the author is identified only
-    // by the prefix — the text is the bare body. Plain DMs/channel msgs are
-    // unchanged.
+    // Signed room posts identify the room by full key and the author by prefix.
+    // Capture every message value before notify/Lua/UI can reenter reception.
     const bool is_room_post =
         (txt_type == TXT_TYPE_SIGNED_PLAIN) && extra && extra_len >= 4;
-    _ui->notify(is_room_post ? UIEventType::roomMessage
-                             : UIEventType::contactMessage);
-    // Pass RX metadata so the touch UI can surface it via the bubble's
-    // long-press Info sheet. SNR comes off the packet itself (most accurate
-    // per-message); RSSI is the radio's last-RSSI, which is current since
-    // the packet handler runs inline with reception.
-    const int8_t snr_q4 = (int8_t)(pkt->getSNR() * 4);
-    const int8_t rssi   = (int8_t)(_radio->getLastRSSI());
-    const bool   is_flood = pkt->isRouteFlood();
-    uiStashRxMeta(pkt);   // capture route + scope for the per-message Info popup
-    _last_sender_ts = sender_timestamp;   // embedded send-time -> UI bubble ts (room history replay)
+    UIMessageEvent event(is_room_post ? UIEventType::roomMessage : UIEventType::contactMessage,
+                         path_len, from.id.pub_key, from.name, text, history_count);
+    event.senderTimestamp = sender_timestamp;
+    uiCaptureRxMeta(event, pkt);
     if (is_room_post) {
       // Resolve the post's author from the signed message's sender_prefix.
       // Prefer a saved contact's name; fall back to our own node name for
@@ -3114,13 +3099,9 @@ void MyMesh::queueMessage(const ContactInfo &from, uint8_t txt_type, mesh::Packe
         mesh::Utils::toHex(author_buf, (uint8_t*)extra, 4);
         author_name = author_buf;
       }
-      _ui->newRoomMsgFromPubWithMeta(path_len, is_flood, from.id.pub_key,
-                                     from.name, author_name, text,
-                                     history_count, snr_q4, rssi);
-    } else {
-      _ui->newMsgFromPubWithMeta(path_len, is_flood, from.id.pub_key, from.name,
-                                 text, history_count, snr_q4, rssi);
+      strncpy(event.author, author_name, sizeof(event.author) - 1);
     }
+    _ui->receiveMessage(event);
   }
   // CLI command replies don't belong in the chat thread but the touch UI
   // *does* want them — they're the response to whatever was typed into the
@@ -3314,18 +3295,12 @@ void MyMesh::onChannelMessageRecv(const mesh::GroupChannel &channel, mesh::Packe
   if (resolved_idx >= 0 && getChannel(channel_idx, channel_details) && channel_details.name[0]) {
     channel_name = channel_details.name;
   }
-  /* notify BEFORE newMsgFromPub: UITask::newMsg keys on the last UIEventType
-   * to decide whether the message lands in a channel thread or a DM thread.
-   * Used to only fire when the serial client was disconnected, which meant
-   * channel messages got appended as DMs whenever TCP/BLE was up. */
-  if (_ui) _ui->notify(UIEventType::channelMessage);
   if (_ui) {
-    const int8_t snr_q4 = (int8_t)(pkt->getSNR() * 4);
-    const int8_t rssi   = (int8_t)(_radio->getLastRSSI());
-    const bool   is_flood = pkt->isRouteFlood();
-    uiStashRxMeta(pkt);   // capture route + scope for the per-message Info popup
-    _ui->newMsgFromPubWithMeta(path_len, is_flood, nullptr, channel_name,
-                               text, history_count, snr_q4, rssi);
+    UIMessageEvent event(UIEventType::channelMessage, path_len, nullptr,
+                         channel_name, text, history_count);
+    // Channels retain delivery-time timestamps; no prior DM's replay time can leak in.
+    uiCaptureRxMeta(event, pkt);
+    _ui->receiveMessage(event);
   }
 #endif
 }
@@ -5892,11 +5867,7 @@ void MyMesh::loop() {
   // transmits only when a connection is armed and due (see the room login branch).
   checkConnections();
 
-  if (g_usb_files_owns_serial) {
-    // USB Files owns the USB serial port (ui-touch/UsbFilesSession.h): no console
-    // on it, and the companion link skips its USB leg. BLE/TCP/WS still run.
-    checkSerialInterface();
-  } else if (_cli_rescue) {
+  if (_cli_rescue) {
     checkCLIRescueCmd();
   } else {
     // Prefer plain-text console commands (e.g. flasher Console) before binary

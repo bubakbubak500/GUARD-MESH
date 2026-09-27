@@ -1,0 +1,1327 @@
+# GUARD-MESH Czech translation
+# code: cs
+# ver: 1
+# name: Čeština
+# base: cs
+ (device behind)	 (zařízení má zpoždění)
+#7A7F87 Wardrive: %d coverage pts · %lu logged to SD#	#7A7F87 Wardrive: %d bodů pokrytí · %lu uloženo na SD#
+#7A7F87 Wardrive: waiting for GPS fix…#	#7A7F87 Wardrive: čekám na GPS fix…#
+#7A7F87 Wardrive: …#	#7A7F87 Wardrive: …#
+#region	#region
+%.3f MHz · SF%u · TX %+ddBm	%.3f MHz · SF%u · TX %+ddBm
+%d on map	%d na mapě
+%s · %d nearby (%d rpt, %d comp)	%s · %d poblíž (%d rpt, %d comp)
+%u types · hops %u · manual %s	%u typů · hops %u · ručně %s
+(RTC unset)	(RTC nenastaveno)
+(device behind)	(zařízení má zpoždění)
+(no default)	(bez výchozí hodnoty)
+0123456789abcdef…	0123456789abcdef…
+1 byte (legacy)\n2 bytes\n3 bytes	1 bajt (legacy)\n2 bajty\n3 bajty
+100\n250\n500\n1000\n2000\nNo limit	100\n250\n500\n1000\n2000\nBez omezení
+12-hour clock	12hodinový čas
+32 hex characters	32 hex znaků
+32-hex secret. Anyone with this can read the channel.	Tajný klíč o 32 hex znacích. Kdo ho zná, může číst kanál.
+>_  Terminal	>_  Terminál
+@  Mentions	@  Zmínky
+@ mention sound	Zvuk @ zmínky
+AF	AF
+AUTOMATIC ADVERTS	AUTOMATICKÉ ODESÍLÁNÍ ADVERT
+About	O aplikaci
+About the map	O mapě
+Accent popups	Nabídka diakritiky
+Accent popups: off	Nabídka diakritiky: vypnuta
+Accent popups: on	Nabídka diakritiky: zapnuta
+Accent colour	Barva zvýraznění
+Appearance	Vzhled
+Day	Den
+Night	Noc
+Theme save failed	Motiv se nepodařilo uložit
+Ack	Ack
+Active	Aktivní
+Add	Přidat
+Add channel	Přidat kanál
+Add contact	Přidat kontakt
+Added	Přidáno
+Added to contacts	Přidáno do kontaktů
+Added to favorites	Přidáno do oblíbených
+Admin	Admin
+Advert	Advert
+Advert failed	Advert selhal
+Advert location	Advert: poloha
+Advert policy saved	Pravidla pro Advert uložena
+Advert sent	Advert odeslán
+All marked read	Vše označeno jako přečtené
+Already exists	Již existuje
+Already exists or table full.	Již existuje nebo je tabulka plná.
+Already in contacts	Již je v kontaktech
+Always starts on the on-board antenna after a reboot. Only pick External with an antenna fitted to the external socket.	Po restartu se vždy použije vestavěná anténa. Externí zvol jen s anténou připojenou k externímu konektoru.
+Analyzing terrain…	Analyzuji terén…
+Analyzing terrain…\n(retry %d of 3)	Analyzuji terén…\n(pokus %d ze 3)
+Answer telemetry requests	Odpovídat na žádosti o telemetrii
+Anyone can join. Key is derived from the hashtag (lowercase).	Připojit se může kdokoli. Klíč se odvozuje z hashtagu (malými písmeny).
+App drawer as home	Nabídka aplikací jako úvodní obrazovka
+App icon size	Velikost ikon aplikací
+Applies after restart.	Projeví se po restartu.
+Apply	Použít
+Apply auto-poll	Použít automatické dotazování
+Apply radio params	Použít parametry rádia
+Apps	Aplikace
+Arrows + Enter always work. These letters are extra — tap a row, then press a key.	Šipky a Enter fungují vždy. Tato písmena jsou navíc — klepni na řádek a stiskni klávesu.
+Auto advert	Automatický Advert
+Auto chat	Automaticky chat
+Auto repeater	Automaticky repeater
+Auto room	Automaticky room
+Auto sensor	Automaticky senzor
+Auto-Join	Automaticky připojit
+Auto-add	Automaticky přidávat
+Auto-add contacts	Automaticky přidávat kontakty
+Auto-add saved	Automatické přidávání uloženo
+Auto-add settings	Nastavení automatického přidávání
+Auto-delete above hops	Mazat nad limit hops
+Auto-delete oldest	Automaticky mazat nejstarší
+Auto-delete oldest makes room when full. Hops: 0 = keep all; nodes heard via more hops are removed.	Mazání nejstarších uvolní místo při zaplnění. Hops: 0 = ponechat vše; uzly přijaté přes více hops se odstraní.
+Auto-discover	Automatické hledání
+Auto-discover off	Automatické hledání vypnuto
+Auto-discover on	Automatické hledání zapnuto
+Auto-poll every	Automatický dotaz každých
+Auto-poll list is full	Seznam automatických dotazů je plný
+Auto-poll pending (not saved to SD)	Změna automatických dotazů čeká (neuložena na SD)
+Auto-refresh off	Automatické obnovení vypnuto
+Auto-refresh on	Automatické obnovení zapnuto
+Available	Dostupné
+BLE off	BLE vypnuto
+BLE on	BLE zapnuto
+BT	BT
+Back	Zpět
+Backups	Zálohy
+Battery	Baterie
+Battery & power history	Historie baterie a napájení
+Battery (V)	Baterie (V)
+Battery calibration reset to default	Kalibrace baterie obnovena na výchozí
+Battery read too low — charge fully first	Napětí baterie je příliš nízké — nejdřív ji plně nabij
+Battery saver (experimental)	Úspora baterie (experimentální)
+Battery — last 24h	Baterie — posledních 24 h
+Battery:	Baterie:
+Block	Blokovat
+Block list full	Seznam blokovaných je plný
+Blocked list	Seznam blokovaných
+Blocked users	Blokovaní uživatelé
+Blocked — their messages are hidden	Blokováno — zprávy jsou skryté
+Blocking unsupported	Blokování není podporováno
+Blue battery  Last 6 min	Modrá: baterie  Posledních 6 min
+Blue battery  Orange temp  Cyan humidity	Modrá: baterie  Oranžová: teplota  Tyrkysová: vlhkost
+Bluetooth	Bluetooth
+Bluetooth already off	Bluetooth je již vypnuto
+Bluetooth already on	Bluetooth je již zapnuto
+Bluetooth deferred; retry from Settings	Bluetooth odloženo; zkus znovu v Nastavení
+Bluetooth off	Bluetooth vypnuto
+Bluetooth on	Bluetooth zapnuto
+Bluetooth pairing isn't available on this device.\n\nThe radio chip's factory firmware doesn't support it.\n\nPair the phone app over Wi-Fi instead: connect this device to your network, then add it in the app by its IP address (TCP, port 5000) — shown under Settings > Network. USB works too.	Párování přes Bluetooth není na tomto zařízení dostupné.\n\nTovární firmware rádiového čipu ho nepodporuje.\n\nAplikaci v telefonu připoj přes Wi-Fi: připoj toto zařízení do sítě a v aplikaci ho přidej podle IP adresy (TCP, port 5000) — najdeš ji v Nastavení > Síť. Funguje i USB.
+Bluetooth unavailable; retry from Settings	Bluetooth není dostupné; zkus znovu v Nastavení
+Bluetooth will start after Wi-Fi connects or times out.	Bluetooth se spustí po připojení Wi-Fi nebo vypršení časového limitu.
+Broker host / IP	Hostitel / IP brokeru
+Buffered receive (experimental)	Příjem s vyrovnávací pamětí (experimentální)
+Built-in	Vestavěné
+Built-in (default)	Vestavěné (výchozí)
+CR	CR
+Calibrate battery (full = 100%)	Kalibrovat baterii (plná = 100%)
+Calibrated: 100%% = %u.%02u V  (long-press to reset)	Kalibrace: 100%% = %u.%02u V  (podržením obnovíš výchozí)
+Can't block — not a contact	Nelze blokovat — není v kontaktech
+Can't display image\n(JPEG only, <= 1024 px)	Obrázek nelze zobrazit\n(pouze JPEG, <= 1024 px)
+Cancel	Zrušit
+Cancelled	Zrušeno
+Cannot open file	Soubor nelze otevřít
+Catalog unavailable	Katalog není dostupný
+Centered on %s	Vystředěno na %s
+Changing orientation - rebooting...	Měním orientaci — restartuji...
+Channel created	Kanál vytvořen
+Channel joined	Připojeno ke kanálu
+Channel name	Název kanálu
+Channel not found	Kanál nenalezen
+Channel removed	Kanál odstraněn
+Channel scope saved	Scope kanálu uložen
+Channel settings	Nastavení kanálu
+Channel table is full	Tabulka kanálů je plná
+Channel table is full.	Tabulka kanálů je plná.
+Channel-specific regions can be set in each channel's settings.	Regiony jednotlivých kanálů lze určit v nastavení každého kanálu.
+Channels:	Kanály:
+Chat bubbles	Bubliny chatu
+Chat bubbles: plain	Bubliny chatu: prosté
+Chat history is NOT saving	Historie chatu se NEUKLÁDÁ
+Chat history save FAILED	Uložení historie chatu SELHALO
+Chat icon	Ikona chatu
+Chat icon reset to letters	Ikona chatu obnovena na písmena
+Chat icon set	Ikona chatu nastavena
+Chat removed	Chat odstraněn
+Chat save fallback (failed tries)	Náhradní ukládání chatu (neúspěšné pokusy)
+Chats, contacts, settings and a mesh terminal - all in the browser. No reboot; the device keeps its normal screen.	Chaty, kontakty, nastavení a mesh terminál — vše v prohlížeči. Bez restartu; zařízení dál zobrazuje svou běžnou obrazovku.
+Choose .wav from files	Vybrat soubor .wav
+Choose your name	Zvol si jméno
+Choose your region	Vyber svůj region
+Clear	Vymazat
+Clear battery history?	Vymazat historii baterie?
+Clear history	Vymazat historii
+Clear telemetry history for this node?	Vymazat historii telemetrie tohoto uzlu?
+Client repeat	Client repeat
+Clock & time	Hodiny a čas
+Clock synced	Čas synchronizován
+Clock: 12-hour	Čas: 12hodinový
+Clock: 24-hour	Čas: 24hodinový
+Close	Zavřít
+Colourful chat bubbles	Barevné bubliny chatu
+Commands	Příkazy
+Community Preset	Komunitní předvolba
+Community preset (meshcomod web)	Komunitní předvolba (web meshcomod)
+Compact	Kompaktní
+Compact messages	Kompaktní zprávy
+Compact messages (IRC style)	Kompaktní zprávy (styl IRC)
+Connect	Připojit
+Connect Wi-Fi to reload tiles	Pro obnovení dlaždic připoj Wi-Fi
+Connect to Wi-Fi	Připojit k Wi-Fi
+Connect to Wi-Fi first	Nejdřív připoj Wi-Fi
+Connect to Wi-Fi first, then try again.	Nejdřív připoj Wi-Fi a zkus to znovu.
+Connect to Wi-Fi to get a browser address.	Připoj Wi-Fi pro získání adresy prohlížeče.
+Connected	Připojeno
+Connected - a browser is viewing this screen.	Připojeno — prohlížeč sleduje tuto obrazovku.
+Connecting...	Připojuji...
+Connecting…	Připojuji…
+Console not available on this build	Konzole v tomto sestavení není dostupná
+Contact added	Kontakt přidán
+Contact deleted	Kontakt odstraněn
+Contact gone	Kontakt již neexistuje
+Contact missing	Kontakt chybí
+Contact shared	Kontakt sdílen
+Contacts	Kontakty
+Contacts are on internal flash - the SD card did not mount at boot. Re-seat the card and reboot.	Kontakty jsou v interní flash — SD karta se při startu nepřipojila. Znovu ji vlož a restartuj zařízení.
+Contacts are on internal flash.	Kontakty jsou v interní flash.
+Contacts are saved to the SD card.	Kontakty se ukládají na SD kartu.
+Contacts full	Kontakty jsou plné
+Contacts:	Kontakty:
+Control	Ovládání
+Control this device from a browser	Ovládat zařízení z prohlížeče
+Copied %s	Zkopírováno: %s
+Copied - Paste in a folder	Zkopírováno — vlož do složky
+Copy	Kopírovat
+Copy blocked: SD card holds a different or unreadable profile	Kopírování blokováno: SD karta obsahuje jiný nebo nečitelný profil
+Copy blocked: SD profile could not be prepared safely	Kopírování blokováno: profil na SD nešlo bezpečně připravit
+Copy blocked: internal data is busy	Kopírování blokováno: interní data se používají
+Copy blocked: migration guard unavailable	Kopírování blokováno: ochrana migrace není dostupná
+Copy failed (no internal identity)	Kopírování selhalo (chybí interní identita)
+Copy incomplete: SD data may be mixed. Retry before reboot.	Kopírování není úplné: data na SD mohou být smíšená. Před restartem opakuj pokus.
+Copy internal data to SD	Kopírovat interní data na SD
+Copy only missing internal files to a matching SD profile,\nkeep existing SD data, then reboot?	Kopírovat jen chybějící interní soubory do odpovídajícího profilu na SD,\nponechat stávající data na SD a restartovat?
+Copy secret	Kopírovat tajný klíč
+Copying internal data to SD...	Kopíruji interní data na SD...
+Copying internal data to SD...\nThis may take a few minutes; keep powered.	Kopíruji interní data na SD...\nMůže to trvat několik minut; neodpojuj napájení.
+Could not add	Nepodařilo se přidat
+Could not load blocked users	Seznam blokovaných uživatelů nelze načíst
+Could not save the crash report	Hlášení pádu se nepodařilo uložit
+Couldn't delete	Nepodařilo se smazat
+Couldn't fetch terrain data.\nCheck the connection and the\nelevation server, then\ntry again.	Data terénu nelze načíst.\nZkontroluj připojení a\nserver výškových dat\na zkus to znovu.
+Couldn't save the name to storage	Jméno se nepodařilo uložit
+Couldn't send login	Přihlášení se nepodařilo odeslat
+Couldn't start the analyzer.\nTry again.	Analyzátor nelze spustit.\nZkus to znovu.
+Crash export failed	Export pádu selhal
+Create	Vytvořit
+Create QR	Vytvořit QR
+Create a private channel	Vytvořit soukromý kanál
+Create failed	Vytvoření selhalo
+Create private channel	Vytvořit soukromý kanál
+Current tile transfer is busy - retry	Přenos dlaždic právě probíhá — zkus to znovu
+Custom UTC offset (hours)	Vlastní posun UTC (hodiny)
+Cut	Vyjmout
+Cut - Paste in a folder	Vyjmuto — vlož do složky
+DM sound	Zvuk DM
+DND	DND
+Danger zone	Nebezpečné operace
+Data -> SD card on reboot\n(card must be inserted)	Data -> SD karta po restartu\n(karta musí být vložená)
+Data -> internal on reboot	Data -> interní paměť po restartu
+Delete	Smazat
+Delete %d contact(s)?	Smazat kontakty (%d)?
+Delete chat	Smazat chat
+Delete chat with "%s"?\nMessage history will be cleared.	Smazat chat s „%s“?\nHistorie zpráv se vymaže.
+Delete failed	Mazání selhalo
+Delete history	Smazat historii
+Delete this backup file?\nThis cannot be undone.	Smazat tuto zálohu?\nTuto akci nelze vrátit.
+Delete this chat's entire history?\nThe chat itself stays.	Smazat celou historii tohoto chatu?\nSamotný chat zůstane.
+Deleted	Smazáno
+Deleted %d	Smazáno: %d
+Deleted %d messages	Smazané zprávy: %d
+Deleting contacts	Mažu kontakty
+Delivered	Doručeno
+Detailed sensors	Podrobnosti senzorů
+Device clock differs from "%s" by %lu h%s	Čas zařízení se od „%s“ liší o %lu h%s
+Device clock differs from "%s" by %lu min%s	Čas zařízení se od „%s“ liší o %lu min%s
+Device name hidden	Název zařízení skryt
+Device name shown	Název zařízení zobrazen
+Device time:	Čas zařízení:
+Diagnostics	Diagnostika
+Diagnostics are on the About page.	Diagnostika je na stránce O aplikaci.
+Discovered	Objevené
+Discovered settings	Nastavení objevených uzlů
+Display	Displej
+Display name	Zobrazované jméno
+Distance in miles	Vzdálenost v mílích
+Distance: km	Vzdálenost: km
+Distance: miles	Vzdálenost: míle
+Do Not Disturb	Nerušit
+Do Not Disturb off	Nerušit vypnuto
+Do Not Disturb on	Nerušit zapnuto
+Down	Dolů
+Download failed	Stahování selhalo
+Download failed (network?)	Stahování selhalo (síť?)
+Download mode	Režim nahrávání
+Download mode… reflash over USB	Režim nahrávání… nahraj firmware přes USB
+Downloaded - tap Use to switch	Staženo — přepni klepnutím na Použít
+Downloading map tiles…\n\nKeep Wi-Fi connected.\nTiles appear as they arrive\nand are saved for offline use.	Stahuji mapové dlaždice…\n\nNech Wi-Fi připojenou.\nDlaždice se zobrazují průběžně\na ukládají pro použití offline.
+Downloading…	Stahuji…
+Duty meter	Měřič duty cycle
+Edge scroll	Posouvání u okraje
+Edit in Settings → Quick replies	Uprav v Nastavení → Rychlé odpovědi
+Editing	Úpravy
+Empty = plaintext to a private broker	Prázdné = nešifrovaně k soukromému brokeru
+Empty file	Prázdný soubor
+Enable Bluetooth	Zapnout Bluetooth
+Enable MQTT bridge	Zapnout MQTT bridge
+Enable only if your repeater re-floods just one region. Otherwise leave off — it can block cross-region login/DMs.	Zapni jen pokud tvůj repeater opakuje Flood pouze v jednom regionu. Jinak nech vypnuté — může to blokovat přihlášení a DM mezi regiony.
+Enable web access	Povolit webový přístup
+Encryption key (optional)	Šifrovací klíč (volitelný)
+End time	Čas ukončení
+Enter SSID first	Nejdřív zadej SSID
+Enter a name	Zadej jméno
+Enter a network name	Zadej název sítě
+Enter a region name	Zadej název regionu
+Enter adds a new line	Enter vloží nový řádek
+Enter exactly 32 hex characters.	Zadej přesně 32 hex znaků.
+Enter key sends message	Enter odešle zprávu
+Enter sends messages	Enter odesílá zprávy
+Enter the 32-hex secret shared by the channel creator.	Zadej tajný klíč o 32 hex znacích od zakladatele kanálu.
+Entering remote mode - rebooting...	Zapínám vzdálený režim — restartuji...
+Erase all	Smazat vše
+Erases identity, contacts, channels, messages, Wi-Fi and all settings, then reboots.	Smaže identitu, kontakty, kanály, zprávy, Wi-Fi a veškerá nastavení a restartuje zařízení.
+Erasing everything…	Mažu vše…
+Every node you talk to must match. You can change this later in Settings.	Všechny uzly, se kterými komunikuješ, musí mít stejné hodnoty. Později je můžeš změnit v Nastavení.
+Expansion Kit	Expansion Kit
+Experimental	Experimentální
+Experimental - has known issues. Off = soft mouse cursor.	Experimentální — známé potíže. Vypnuto = softwarový kurzor myši.
+Experimental saved	Experimentální nastavení uloženo
+Export failed (can't open file)	Export selhal (soubor nelze otevřít)
+Export new backup	Exportovat novou zálohu
+Export settings	Exportovat nastavení
+Exporting settings…	Exportuji nastavení…
+External antenna selected	Vybrána externí anténa
+Factory reset	Tovární nastavení
+Factory reset blocked: SD activity is still running; close tools and retry.	Obnovení blokováno: stále probíhá práce s SD; zavři nástroje a zkus to znovu.
+Factory reset blocked: storage is busy	Obnovení blokováno: úložiště se používá
+Factory reset incomplete: SD data may already be partially erased. Retry to finish, or remove the card before resetting internal data.	Obnovení není úplné: část dat na SD již může být smazána. Opakuj pokus, nebo před obnovením interních dat vyjmi kartu.
+Factory reset?\n\nErases identity, contacts,\nchannels, messages, Wi-Fi\nand every setting. This\ncannot be undone.	Obnovit tovární nastavení?\n\nSmaže identitu, kontakty,\nkanály, zprávy, Wi-Fi\na veškerá nastavení.\nTuto akci nelze vrátit.
+Failed to save channel.	Kanál se nepodařilo uložit.
+Favorites full (max %d)	Oblíbené jsou plné (max. %d)
+Favorites unsupported	Oblíbené nejsou podporované
+Fetching the app list from firmware.wadamesh.com	Načítám seznam aplikací z firmware.wadamesh.com
+Files	Soubory
+Find	Hledat
+Finish	Dokončit
+Firmware beta_%d\nCouldn't reach the update server	Firmware beta_%d\nServer aktualizací není dostupný
+Firmware:	Firmware:
+Flash on new message	Bliknout při nové zprávě
+Flood	Flood
+Flood advert sent	Flood Advert odeslán
+Flood every	Flood každých
+Flood: relayed across the mesh (multi-hop).\nZero-hop: neighbours only (no relaying).	Flood: přenos přes mesh (multi-hop).\nZero-hop: pouze sousedé (bez opakování).
+Folder created	Složka vytvořena
+For Launcher installs: saves the latest firmware of the selected channel to the SD card (BINS folder).	Instalace přes Launcher: uloží nejnovější firmware vybrané větve na SD kartu (složka BINS).
+Forget network	Zapomenout síť
+Format	Formátovat
+Format SD as MESHCOMOD (FAT32)?\nAll data on the card will be erased.	Formátovat SD jako MESHCOMOD (FAT32)?\nVšechna data na kartě se smažou.
+Format failed (no card / SD error)	Formátování selhalo (chybí karta / chyba SD)
+Frequency / bandwidth	Frekvence / šířka pásma
+Full	Plné
+GPS	GPS
+GPS %s · Buzzer %s	GPS %s · Bzučák %s
+GPS %s · Buzzer %s\n%s	GPS %s · Bzučák %s\n%s
+GPS off	GPS vypnuto
+GPS on	GPS zapnuto
+GPS serial baud	Přenosová rychlost GPS
+GPS unset	GPS nenastaveno
+GPS: acquiring...	GPS: získávám polohu...
+GPS: fix	GPS: fix
+GPS: off	GPS: vypnuto
+GPS: searching	GPS: hledám
+Game over  —  score %d   (tap to restart)	Konec hry — skóre %d   (klepnutím restartuješ)
+General	Obecné
+Get	Získat
+Get Started	Začít
+Get test builds (beta)	Získávat testovací sestavení (beta)
+Go	Spustit
+Green pressure  Gray altitude	Zelená: tlak  Šedá: nadmořská výška
+Hashtag name	Název hashtagu
+Hidden - turn it back on in the Lua Store	Skryto — znovu zapni v Lua Store
+Hidden network	Skrytá síť
+Hide	Skrýt
+Hide device name	Skrýt název zařízení
+Hide this app from the drawer?	Skrýt tuto aplikaci v nabídce?
+High-gain receiver (FEM LNA)	Přijímač s vyšším ziskem (FEM LNA)
+Highly experimental. This forwards the text, sender name and timestamp of every message your node receives to an MQTT broker, where anyone able to read the broker can read them. Direct messages are private messages from other people who never agreed to be shared. Use a broker you control, set an encryption key below, and never a public broker.	Vysoce experimentální. Přeposílá text, jméno odesílatele a čas každé zprávy přijaté tvým uzlem do MQTT brokeru. Kdo má přístup k brokeru, může je číst. DM jsou soukromé zprávy lidí, kteří ke sdílení nedali souhlas. Použij vlastní broker, níže nastav šifrovací klíč a nikdy nepoužívej veřejný broker.
+History limit off	Limit historie vypnut
+Home	Domů
+Hotkey saved	Klávesová zkratka uložena
+How you'll appear to other nodes. You can change this later in Settings.	Takto tě uvidí ostatní uzly. Později to můžeš změnit v Nastavení.
+Humidity	Vlhkost
+I accept the privacy risk	Přijímám riziko pro soukromí
+Identity (public key)	Identita (veřejný klíč)
+Idle power-save	Úspora při nečinnosti
+Idle sleep disabled	Uspání při nečinnosti vypnuto
+Idle sleep enabled	Uspání při nečinnosti zapnuto
+Image too large (>4 MB)	Obrázek je příliš velký (>4 MB)
+Import	Importovat
+Import backup	Importovat zálohu
+Import failed (bad/unreadable JSON)	Import selhal (neplatný/nečitelný JSON)
+Import settings	Importovat nastavení
+Import this backup?\nReplaces identity,\nchannels & contacts,\nthen reboots.	Importovat tuto zálohu?\nNahradí identitu,\nkanály a kontakty\na restartuje zařízení.
+Import: storage unavailable	Import: úložiště není dostupné
+Importing settings…	Importuji nastavení…
+Inactive	Neaktivní
+Info	Info
+Insert emoji / symbol	Vložit emoji / symbol
+Install	Instalovat
+Install a previous version	Instalovat předchozí verzi
+Install an earlier version	Instalovat starší verzi
+Install failed (network?)	Instalace selhala (síť?)
+Install update	Instalovat aktualizaci
+Installed	Nainstalováno
+Installing…	Instaluji…
+Internal (on-board)\nExternal (MMCX)\nAuto (legacy, per transmit)	Interní (vestavěná)\nExterní (MMCX)\nAutomaticky (legacy, při vysílání)
+Internal has no folders	Interní úložiště nemá složky
+Internal storage   %s / %s	Interní úložiště   %s / %s
+Invalid lat/lon	Neplatná zeměpisná šířka/délka
+Invalid max hops	Neplatný limit hops
+Invalid radio values	Neplatné hodnoty rádia
+Join	Připojit se
+Join a hashtag channel	Připojit se ke kanálu s hashtagem
+Join a private channel	Připojit se k soukromému kanálu
+Join hashtag channel	Připojit kanál s hashtagem
+Join network	Připojit se k síti
+Join private channel	Připojit soukromý kanál
+Join the public channel	Připojit se k veřejnému kanálu
+Joined %.40s	Připojeno: %.40s
+Keep per chat (messages)	Uchovat v chatu (zprávy)
+Key already in use	Klávesa se již používá
+Keyboard	Klávesnice
+Keyboard backlight	Podsvícení klávesnice
+Keyboard light auto	Podsvícení klávesnice automaticky
+Keyboard light off	Podsvícení klávesnice vypnuto
+Keyboard light on	Podsvícení klávesnice zapnuto
+Keyboard nav: WASDZ on	Ovládání klávesnicí: WASDZ zapnuto
+Keyboard nav: off	Ovládání klávesnicí: vypnuto
+Keyboard navigation	Ovládání klávesnicí
+Keys	Klávesy
+Known regions	Známé regiony
+LOS → %s	LOS → %s
+Landscape (desktop)	Na šířku (desktop)
+Landscape set - applies when remote mode starts.	Orientace na šířku nastavena — použije se ve vzdáleném režimu.
+Language	Jazyk
+Language catalog unavailable - check Wi-Fi, then reopen this tab.	Katalog jazyků není dostupný — zkontroluj Wi-Fi a znovu otevři tuto kartu.
+Language updated - restarting to apply it…	Jazyk aktualizován — restartuji pro použití změn…
+Languages	Jazyky
+Large (bigger icons)	Velké (větší ikony)
+Latitude	Zeměpisná šířka
+Leave empty if not required	Pokud není povinné, nech prázdné
+Leaving remote mode - rebooting...	Ukončuji vzdálený režim — restartuji...
+Left	Vlevo
+Let's set up your device.\n\nYou'll pick a name and choose your LoRa region. Takes about a minute.	Nastavíme tvoje zařízení.\n\nZvolíš si jméno a region LoRa. Zabere to asi minutu.
+Letters only	Pouze písmena
+LoRa antenna (P4)	Anténa LoRa (P4)
+Loading catalog…	Načítám katalog…
+Loading map tiles…\n\nKeep Wi-Fi connected.\nTiles appear as they arrive.	Načítám mapové dlaždice…\n\nNech Wi-Fi připojenou.\nDlaždice se zobrazují průběžně.
+Loading map…	Načítám mapu…
+Loading the language catalog…	Načítám katalog jazyků…
+Loading...	Načítám...
+Local every	Lokálně každých
+Local sensors	Místní senzory
+Lock	Zamknout
+Lock screen	Zamykací obrazovka
+Lock screen wallpaper	Tapeta zamykací obrazovky
+Lock text colour	Barva textu zámku
+Lock text colour set	Barva textu zámku nastavena
+Lock wallpaper	Tapeta zámku
+Lock wallpaper set	Tapeta zámku nastavena
+Lock when screen off	Zamknout při zhasnutí displeje
+Locking…	Zamykám…
+Locks when screen off\n(hold Backspace to unlock)	Zamkne se při zhasnutí displeje\n(odemkneš podržením Backspace)
+Locks when screen off\n(double-press d-pad center to unlock)	Zamkne se při zhasnutí displeje\n(odemkneš dvojím stiskem středu D-padu)
+Locks when screen off\n(hold the trackball to unlock)	Zamkne se při zhasnutí displeje\n(odemkneš podržením trackballu)
+Locks when screen off\n(press Volume Down to unlock)	Zamkne se při zhasnutí displeje\n(odemkneš stiskem snížení hlasitosti)
+Locks when screen off\n(press the button to unlock)	Zamkne se při zhasnutí displeje\n(odemkneš stiskem tlačítka)
+Locks when screen off\n(hold the wake button to unlock)	Zamkne se při zhasnutí displeje\n(odemkneš podržením budicího tlačítka)
+Log in again	Znovu se přihlásit
+Logging in again...	Přihlašuji znovu...
+Logging in…	Přihlašuji…
+Login OK (perms %u)	Přihlášení OK (oprávnění %u)
+Login failed	Přihlášení selhalo
+Logs	Protokoly
+Longitude	Zeměpisná délka
+MHz	MHz
+MQTT bridge	MQTT bridge
+Map	Mapa
+Map options	Nastavení mapy
+Map storage error.\nReflash the tiles partition.	Chyba úložiště map.\nZnovu nahraj oddíl dlaždic.
+Map storage error.\n\nSD card detected but the\ntile cache didn't mount.\nReboot to retry.	Chyba úložiště map.\n\nSD karta je přítomná, ale\ncache dlaždic se nepřipojila.\nZkus restartovat.
+Map tiles: microSD	Mapové dlaždice: microSD
+Map tiles: microSD\n\n/maps/osm/z/x/y.png\n(or /tiles/z/x/y.jpg)\n\nMap appears when a tile\nfor this area is found.	Mapové dlaždice: microSD\n\n/maps/osm/z/x/y.png\n(nebo /tiles/z/x/y.jpg)\n\nMapa se zobrazí, až se najde\ndlaždice pro tuto oblast.
+Map tiles: server	Mapové dlaždice: server
+Map — no tile pack on SPIFFS yet.\n\nUpload a tile pack to /tiles/<z>/<x>/<y>.jpg with the host-side generator.	Mapa — ve SPIFFS zatím není balíček dlaždic.\n\nNahraj balíček do /tiles/<z>/<x>/<y>.jpg pomocí generátoru na počítači.
+Map — set your location\nin Settings → Profile to\nshow the map here.	Mapa — nastav polohu\nv Nastavení → Profil,\naby se zde zobrazila mapa.
+Mark all chats and channels as read?	Označit všechny chaty a kanály jako přečtené?
+Mark as read	Označit jako přečtené
+Mark read	Označit přečtené
+Marked read	Označeno jako přečtené
+Max hops (0..64)	Max. hops (0..64)
+Max zoom for this pack	Max. přiblížení balíčku
+Memory detail	Podrobnosti paměti
+Mesh health: a flood advert is rebroadcast by every repeater in range, so frequent floods add airtime for the whole network. Keep them infrequent (a day or more). Your neighbours still see you from zero-hop adverts and your message replies, so flood mainly when distant nodes need to rediscover you. Leave both Off to advertise only when you tap the buttons above.	Zátěž mesh: Flood Advert opakuje každý repeater v dosahu, takže časté vysílání Flood zvyšuje airtime celé sítě. Používej dlouhý interval (den nebo více). Sousedé tě stále vidí díky Zero-hop Advert a odpovědím na zprávy; Flood používej hlavně pro znovuobjevení vzdálenými uzly. Vypnutím obou voleb se Advert odešle jen tlačítky výše.
+Message	Zpráva
+Message LED	LED zpráv
+Message LED off	LED zpráv vypnuta
+Message LED on	LED zpráv zapnuta
+Message deleted	Zpráva smazána
+Message didn't get through.\nResend it?	Zpráva se nedoručila.\nOdeslat znovu?
+Message info	Informace o zprávě
+Message sound	Zvuk zprávy
+Messages	Zprávy
+Min zoom for this pack	Min. přiblížení balíčku
+Mode: BLE starting / low memory	Režim: spouštění BLE / málo paměti
+Model:	Model:
+Multi ACKs	Vícenásobné ACK
+Multi-ack %s · Repeat %s · RX boost %s	Multi-ack %s · Repeat %s · RX boost %s
+Multi-byte routing (path hash)	Vícebajtové směrování (path hash)
+Mute @	Ztlumit @
+Mute msgs	Ztlumit zprávy
+Mute notification sound	Ztlumit zvuk oznámení
+My position (no GPS fix)	Moje poloha (bez GPS fix)
+Name	Jméno
+Name can't be empty.	Jméno nesmí být prázdné.
+Name fragment	Část jména
+Name saved	Jméno uloženo
+Navigation keys	Navigační klávesy
+Navigation keys — tap a row, then press a key	Navigační klávesy — klepni na řádek a stiskni klávesu
+Nearby on map	Blízké uzly na mapě
+Network name	Název sítě
+Network name (SSID)	Název sítě (SSID)
+New	Nové
+New DM	Nová DM
+New channel msg	Nová zpráva v kanálu
+New contact	Nový kontakt
+New file	Nový soubor
+New folder	Nová složka
+New game	Nová hra
+New room msg	Nová zpráva v room
+Next	Další
+Night mode (invert)	Noční režim (inverze)
+No .json backups found.\nExport one first, or copy a\nmeshcore-backup.json to the\nSD card or internal flash.	Nenalezeny zálohy .json.\nNejdřív vytvoř export nebo\nzkopíruj meshcore-backup.json\nna SD kartu či do interní flash.
+No @mentions yet	Zatím žádné @zmínky
+No Bluetooth on this device	Toto zařízení nemá Bluetooth
+No DM key	Chybí klíč DM
+No GPS module on this device.	Toto zařízení nemá modul GPS.
+No JPEGs found in /lock/.\nAdd images via the file\nmanager or an SD card.	V /lock/ nejsou žádné JPEG.\nPřidej obrázky správcem\nsouborů nebo na SD kartě.
+No SD card	Chybí SD karta
+No SD card (or unreadable format)	Chybí SD karta (nebo nečitelný formát)
+No backups yet. Tap Export new backup above to create one.	Zatím žádné zálohy. Vytvoř ji tlačítkem Exportovat novou zálohu výše.
+No battery history yet.\n\nLogged every 5 minutes.	Historie baterie zatím chybí.\n\nZáznam každých 5 minut.
+No blocked users.\n\nLong-press a message and tap\nBlock to add one.	Žádní blokovaní uživatelé.\n\nPodrž zprávu a klepni\nna Blokovat pro přidání.
+No contact for thread	Vláknu chybí kontakt
+No contact to trace	Chybí kontakt pro trasování
+No contacts have shared\na GPS location yet.	Žádný kontakt zatím\nnesdílel polohu GPS.
+No discovered nodes yet.\n\nAnything heard over the air that isn't in your contacts will show up here. When auto-add is off, you can manually add nodes to your contacts.	Zatím žádné objevené uzly.\n\nZde se zobrazí přijaté uzly, které nemáš v kontaktech. Při vypnutém automatickém přidávání je můžeš přidat ručně.
+No earlier versions yet	Zatím žádné starší verze
+No local expansion data	Chybí data místního rozšíření
+No location for this contact	U tohoto kontaktu chybí poloha
+No map storage.\n\nInsert an SD card to cache\nWi-Fi tiles (or reflash to\nrestore the tiles partition).	Chybí úložiště map.\n\nVlož SD kartu pro cache\ndlaždic z Wi-Fi (nebo znovu\nnahraj oddíl dlaždic).
+No map tiles here.\n\nConnect to Wi-Fi (Settings → Wi-Fi)\nto download this area.	Zde chybí mapové dlaždice.\n\nPřipoj Wi-Fi (Nastavení → Wi-Fi)\npro stažení této oblasti.
+No mapped repeaters in this route	Na trase nejsou zmapované repeatery
+No networks found (2.4 GHz only)	Sítě nenalezeny (pouze 2,4 GHz)
+No onboard GPS	Chybí vestavěná GPS
+No other networks found	Další sítě nenalezeny
+No position yet. A cold start needs a clear view of the sky and can take several minutes.	Poloha zatím není dostupná. Studený start vyžaduje volný výhled na oblohu a může trvat několik minut.
+No regions yet.\n\nAdd a #region to have messages\nscoped to it named in message details.	Zatím žádné regiony.\n\nPřidej #region, aby se jeho\nnázev zobrazoval v podrobnostech zpráv s daným scope.
+No reply from %s	%s neodpovídá
+No reply. Check password, server,\nor device clock (device: %s)	Bez odpovědi. Ověř heslo, server\nnebo čas zařízení (zařízení: %s)
+No saved map tiles here.\n\nConnect to Wi-Fi (Settings → Wi-Fi)\nto download this area.\nSaved tiles stay available offline.	Zde nejsou uložené mapové dlaždice.\n\nPřipoj Wi-Fi (Nastavení → Wi-Fi)\npro stažení této oblasti.\nUložené dlaždice fungují offline.
+No system time yet	Systémový čas ještě není nastaven
+No telemetry in this window.\nRequest one, or widen the range below.	V tomto období chybí telemetrie.\nVyžádej ji nebo níže rozšiř období.
+No tiles (non-ESP32)	Bez dlaždic (mimo ESP32)
+No version known yet. Wi-Fi and a completed update check are needed first.	Verze zatím není známá. Nejdřív je potřeba Wi-Fi a dokončená kontrola aktualizací.
+Node name	Název uzlu
+Node\nRegion\nRadio\nSignal\nContacts\nChannels\nBattery\nUptime	Uzel\nRegion\nRádio\nSignál\nKontakty\nKanály\nBaterie\nDoba provozu
+Normal (100%)\nLarge (150%)\nHuge (200%)	Normální (100%)\nVelké (150%)\nObrovské (200%)
+Not enough free memory for Bluetooth. Turn Wi-Fi off first.	Pro Bluetooth není dost paměti. Nejdřív vypni Wi-Fi.
+Not enough free memory for Wi-Fi. Turn Bluetooth off first.	Pro Wi-Fi není dost paměti. Nejdřív vypni Bluetooth.
+Not enough free memory to fetch it. Reboot and try again.	Pro načtení není dost paměti. Restartuj a zkus to znovu.
+Nothing selected	Nic není vybráno
+Notification sound set	Zvuk oznámení nastaven
+Notify on new contact	Oznámit nový kontakt
+Off	Vypnuto
+Off\n1 day\n2 days\n3 days\n7 days	Vypnuto\n1 den\n2 dny\n3 dny\n7 dní
+Off\n1\n2\n3\n5\n8	Vypnuto\n1\n2\n3\n5\n8
+Off\n60 min\n90 min\n2 hours\n3 hours\n4 hours	Vypnuto\n60 min\n90 min\n2 hodiny\n3 hodiny\n4 hodiny
+Offline	Offline
+Older messages in a chat are dropped past this. A very large or unlimited history makes the chat list slower.	Starší zprávy nad tento limit se zahazují. Velmi dlouhá nebo neomezená historie zpomaluje seznam chatů.
+On - open the address above in a phone browser.	Zapnuto — otevři adresu výše v prohlížeči telefonu.
+On boot	Při startu
+On map	Na mapě
+Open Advertise app	Otevřít aplikaci Advertise
+Open a .wav, then tap 'Set as notification sound'	Otevři .wav a klepni na „Nastavit jako zvuk oznámení“
+Open a JPEG, then tap 'Set as wallpaper'	Otevři JPEG a klepni na „Nastavit jako tapetu“
+Open chat	Otevřít chat
+Open in a browser (same Wi-Fi):	Otevři v prohlížeči (stejná Wi-Fi):
+Open in web	Otevřít na webu
+Open mesh console	Otevřít mesh konzoli
+Optional — type your network, or leave blank to skip.	Volitelné — zadej síť nebo nech prázdné pro přeskočení.
+Orange temp  Cyan humidity	Oranžová: teplota  Tyrkysová: vlhkost
+Orientation (tap to rotate, reboots)	Orientace (klepnutím otočíš, restartuje)
+Out of memory	Nedostatek paměti
+Overwrite oldest	Přepsat nejstarší
+Overwrite the SD card's settings and\nidentity with the internal copies,\nthen reboot?	Přepsat nastavení a identitu\nna SD kartě interními kopiemi\na restartovat zařízení?
+PNG isn't supported here\nUse a JPEG	PNG zde není podporováno\nPoužij JPEG
+Pairing code	Párovací kód
+Pairing code saved — reboot to apply	Párovací kód uložen — projeví se po restartu
+Pairing code: %06lu	Párovací kód: %06lu
+Pairing code: n/a	Párovací kód: není dostupný
+Password (empty = open)	Heslo (prázdné = otevřená síť)
+Password (empty = skip Wi-Fi)	Heslo (prázdné = přeskočit Wi-Fi)
+Password (optional)	Heslo (volitelné)
+Password too long	Heslo je příliš dlouhé
+Paste	Vložit
+Paste failed	Vložení selhalo
+Paste the 64-hex public key and a name. Useful when you want to DM someone before their advert has arrived.	Vlož veřejný klíč o 64 hex znacích a jméno. Hodí se pro DM před přijetím Advert daného kontaktu.
+Pasted	Vloženo
+Path hash: %u byte%s	Path hash: %u byte%s
+Path reset	Trasa resetována
+Path reset failed	Reset trasy selhal
+Paused  —  score %d	Pozastaveno — skóre %d
+Per-transmit switching on	Přepínání při každém vysílání zapnuto
+Pick colour	Vybrat barvu
+Ping	Ping
+Ping failed	Ping selhal
+Pinged (direct) — waiting…	Ping odeslán (direct) — čekám…
+Pinged (flood) — waiting…	Ping odeslán (Flood) — čekám…
+Play	Přehrát
+Poll (min)	Dotaz (min)
+Poll every	Dotaz každých
+Poll every %d min	Dotaz každých %d min
+Port	Port
+Portrait set - applies when remote mode starts.	Orientace na výšku nastavena — použije se ve vzdáleném režimu.
+Position saved	Poloha uložena
+Power	Napájení
+Power off	Vypnout
+Powering off… click trackball to wake	Vypínám… probudíš stiskem trackballu
+Press a key…	Stiskni klávesu…
+Probe now	Prověřit nyní
+Probing neighbours…	Prověřuji sousedy…
+Profile	Profil
+Pubkey must be 64 hex chars.	Veřejný klíč musí mít 64 hex znaků.
+Public channel ready	Veřejný kanál připraven
+Public key (64 hex chars)	Veřejný klíč (64 hex znaků)
+Public key:	Veřejný klíč:
+Publish channel messages	Publikovat zprávy kanálů
+Publish direct messages	Publikovat soukromé zprávy
+Purge	Vyčistit
+Purge all discovered nodes?	Smazat všechny objevené uzly?
+Quick replies	Rychlé odpovědi
+Quick reply	Rychlá odpověď
+RAM %u%%  ·  PSRAM %u%%	RAM %u%%  ·  PSRAM %u%%
+RX %d entries · Raw %d entries	RX %d záznamů · Raw %d záznamů
+RX boosted gain	Zvýšený zisk RX
+RX log	Protokol RX
+Radio & Mesh	Rádio a mesh
+Radio + region set	Rádio a region nastaveny
+Radio applied	Nastavení rádia použito
+Radio off	Rádio vypnuto
+Radio: off	Rádio: vypnuto
+Range test	Range test
+RangeTest failed	RangeTest selhal
+RangeTest sent (direct)	RangeTest odeslán (direct)
+RangeTest sent (flood)	RangeTest odeslán (Flood)
+Raw log	Raw protokol
+Reads packets on a background task so a busy screen can't drop them.	Čte pakety v úloze na pozadí, aby je vytížená obrazovka nezahazovala.
+Reboot	Restartovat
+Reboot device	Restartovat zařízení
+Rebooting...	Restartuji...
+Rebooting…	Restartuji…
+Receive unreleased test firmware — newer features, but less tested. The update check and Install update both follow the beta channel.	Přijímat nevydaný testovací firmware — novější funkce, ale méně ověřené. Kontrola i instalace aktualizací budou používat beta větev.
+Recently heard	Nedávno slyšené
+Reformat SD as MESHCOMOD (FAT32)?\nALL data on the card will be erased.	Přeformátovat SD jako MESHCOMOD (FAT32)?\nVŠECHNA data na kartě se smažou.
+Region & scope	Region a scope
+Region list is full	Seznam regionů je plný
+Region scope (#tag) for this channel.\nBlank = use the default scope.	Scope regionu (#tag) pro tento kanál.\nPrázdné = výchozí scope.
+Region scope (#tag), blank = default.	Scope regionu (#tag), prázdné = výchozí.
+Region scope (#tag, blank = none)	Scope regionu (#tag, prázdné = žádný)
+Remember password	Zapamatovat heslo
+Remote UI	Vzdálené UI
+Remote UI (on)	Vzdálené UI (zapnuto)
+Remote access	Vzdálený přístup
+Remote terminal	Vzdálený terminál
+Remote terminal (recommended)	Vzdálený terminál (doporučeno)
+Remote terminal off	Vzdálený terminál vypnut
+Remove	Odstranit
+Remove %s?	Odstranit %s?
+Remove channel	Odstranit kanál
+Remove channel "%s"?\nLeaves it on this device only.	Odstranit kanál „%s“?\nOpustíš ho jen na tomto zařízení.
+Removed	Odstraněno
+Removed from favorites	Odebráno z oblíbených
+Rename	Přejmenovat
+Rename failed	Přejmenování selhalo
+Renamed	Přejmenováno
+Replay	Přehrát znovu
+Replay route on map	Přehrát trasu na mapě
+Replaying route…	Přehrávám trasu…
+Resend	Odeslat znovu
+Resend failed	Opakované odeslání selhalo
+Resends a message until a repeater echoes it or the recipient ACKs. Turn off to send once only.	Opakuje zprávu, dokud ji repeater nezopakuje nebo příjemce nepotvrdí ACK. Vypni pro jediné odeslání.
+Reset	Resetovat
+Reset path	Resetovat trasu
+Restarting to apply the language…	Restartuji pro změnu jazyka…
+Restarting to enable Bluetooth	Restartuji pro zapnutí Bluetooth
+Resume	Pokračovat
+Resuming missing files to SD...\nThis may take a few minutes; keep powered.	Doplňuji chybějící soubory na SD...\nMůže to trvat několik minut; neodpojuj napájení.
+Retry sends until heard	Opakovat vysílání do zachycení
+Reverse scrollball	Obrátit posouvání trackballu
+Right	Vpravo
+Roll to highlight • click to insert	Otáčením vyber • stiskem vlož
+Room is read-only for you.\nJoin with the room password to post.	Tuto room můžeš pouze číst.\nPro psaní se připoj s heslem room.
+Rotating - reconnecting...	Otáčím — připojuji znovu...
+Rotating… rebooting	Otáčím… restartuji
+Run setup again	Znovu spustit průvodce
+SD card   %s	SD karta   %s
+SD card   %s   (hold: format)	SD karta   %s   (podržení: formátovat)
+SD card   (tap to mount)	SD karta   (klepnutím připojíš)
+SD card   (unreadable - tap to retry)	SD karta   (nečitelná — klepnutím opakuj pokus)
+SD card inserted	SD karta vložena
+SD card lost - reinsert to recover	SD karta odpojena — vlož ji znovu pro obnovení
+SD card remounted	SD karta znovu připojena
+SD card removed	SD karta vyjmuta
+SD card unavailable	SD karta není dostupná
+SD data is unavailable - contacts and channels cannot be saved until the card is reinserted.	Data na SD nejsou dostupná — kontakty a kanály nelze uložit, dokud kartu nevložíš zpět.
+SD data is unavailable - identity, settings, contacts and channels cannot be saved until the card is reinserted.	Data na SD nejsou dostupná — identitu, nastavení, kontakty a kanály nelze uložit, dokud kartu nevložíš zpět.
+SD data migration is incomplete. Identity and settings remain internal; use Copy internal data to SD to retry.	Přesun dat na SD není dokončen. Identita a nastavení zůstávají interně; opakuj volbou Kopírovat interní data na SD.
+SD download failed: %s	Stahování na SD selhalo: %s
+SD formatted - %s (MESHCOMOD)	SD naformátována — %s (MESHCOMOD)
+SD is busy - close tools and retry	SD se používá — zavři nástroje a zkus to znovu
+SD removed - card-backed data cannot be saved	SD vyjmuta — data ukládaná na kartu nelze uložit
+SD stayed busy - format cancelled, retry	SD zůstala zaneprázdněná — formátování zrušeno, zkus znovu
+SD unreadable - format it as FAT32 on a computer	SD není čitelná — na počítači ji naformátuj jako FAT32
+SF	SF
+SF / CR / TX / AF	SF / CR / TX / AF
+SPIFFS %u/%u KB used	SPIFFS využito %u/%u KB
+SSID set — enter password, then Save	SSID nastaveno — zadej heslo a ulož
+SSID too long	SSID je příliš dlouhé
+Sample text	Ukázkový text
+Save	Uložit
+Save & restart	Uložit a restartovat
+Save / turn on	Uložit / zapnout
+Save auto-add	Uložit automatické přidávání
+Save experimental	Uložit experimentální
+Save failed	Uložení selhalo
+Save name	Uložit jméno
+Save policy	Uložit pravidla
+Save position	Uložit polohu
+Save quick replies	Uložit rychlé odpovědi
+Save report	Uložit hlášení
+Save update bin to SD	Uložit aktualizaci na SD
+Saved	Uloženo
+Saved backups	Uložené zálohy
+Saved network	Uložená síť
+Saved profiles	Uložené profily
+Saved to slot %d	Uloženo do slotu %d
+Saved — applying…	Uloženo — používám…
+Saved — rebooting	Uloženo — restartuji
+Saved — reconnecting…	Uloženo — připojuji znovu…
+Saved: %s\nFlash it from the Launcher.	Uloženo: %s\nNahraj pomocí Launcheru.
+Saved: %s\nReady for offline flashing.	Uloženo: %s\nPřipraveno k offline nahrání.
+Saves the latest firmware of the selected channel to the SD card (BINS folder).	Uloží nejnovější firmware vybrané větve na SD kartu (složka BINS).
+Saving to SD… %d%%	Ukládám na SD… %d%%
+Saving to SD… 0%	Ukládám na SD… 0%
+Scan to open on phone	Naskenuj pro otevření v telefonu
+Scanning…	Hledám…
+Scope direct msgs to region	Omezit DM pomocí scope regionu
+Screen	Obrazovka
+Screen locked	Obrazovka zamčena
+Screen timeout (s, 0 = never)	Zhasnutí displeje (s, 0 = nikdy)
+Screen timeout (s, 0 = never, min 10)	Zhasnutí displeje (s, 0 = nikdy, min. 10)
+Screen timeout: %ds	Zhasnutí displeje: %ds
+Screen timeout: never	Zhasnutí displeje: nikdy
+Screen-off just dims	Při zhasnutí jen ztlumit
+Screenshot needs an SD card	Snímek obrazovky vyžaduje SD kartu
+Screenshot: low memory	Snímek obrazovky: málo paměti
+Screenshot: no SD card	Snímek obrazovky: chybí SD karta
+Screenshot: write failed	Snímek obrazovky: zápis selhal
+Scroll down	Posunout dolů
+Scroll up	Posunout nahoru
+Scrollball: normal	Trackball: normální
+Scrollball: reversed	Trackball: obrácený
+Search	Hledat
+Search contacts	Hledat kontakty
+Secondary keyboards	Další klávesnice
+Secret (32 hex chars)	Tajný klíč (32 hex znaků)
+Secret (32 hex, optional)	Tajný klíč (32 hex, volitelný)
+Secret must be 32 hex chars (or empty).	Tajný klíč musí mít 32 hex znaků (nebo být prázdný).
+Select	Vybrat
+Select a DM thread	Vyber konverzaci DM
+Select all	Vybrat vše
+Select network	Vybrat síť
+Send advert	Odeslat Advert
+Send advert now	Odeslat Advert nyní
+Send an advert now, or set how often you re-advertise.	Odešli Advert nyní nebo nastav interval opakování.
+Send failed	Odeslání selhalo
+Sender blocked	Odesílatel blokován
+Sensors	Senzory
+Sensors tab: off (restart to apply)	Karta Senzory: vypnuta (vyžaduje restart)
+Sensors tab: on (restart to apply)	Karta Senzory: zapnuta (vyžaduje restart)
+Sent	Odesláno
+Set	Nastavit
+Set an SSID first	Nejdřív nastav SSID
+Set as notification sound	Nastavit jako zvuk oznámení
+Set as wallpaper	Nastavit jako tapetu
+Set your location first	Nejdřív nastav polohu
+Settings	Nastavení
+Setup complete	Nastavení dokončeno
+Share QR	Sdílet QR
+Share channel	Sdílet kanál
+Share contact	Sdílet kontakt
+Share failed	Sdílení selhalo
+Share location in advert	Sdílet polohu pomocí Advert
+Share secret	Sdílet tajný klíč
+Share the 32-char secret so others can join. Leave the secret empty to generate a random one.	Sdílej klíč o 32 znacích, aby se ostatní mohli připojit. Prázdné pole vygeneruje náhodný klíč.
+Share: %s	Sdílet: %s
+Show	Zobrazit
+Show Sensors tab	Zobrazit kartu Senzory
+Show in the app drawer	Zobrazit v nabídce aplikací
+Show link lines	Zobrazit spojnice
+Show menu-bar letters	Zobrazit písmena nabídky
+Show on chart	Zobrazit v grafu
+Show on map	Zobrazit na mapě
+Sightline	Přímá viditelnost
+Signal & traffic	Signál a provoz
+Signal probe	Sonda signálu
+Skip	Přeskočit
+Sleep ready	Připraveno k uspání
+Slot %d cleared	Slot %d vymazán
+Slot empty	Slot je prázdný
+Small\nMedium\nLarge	Malé\nStřední\nVelké
+Snake  —  swipe or roll the trackball	Had — táhni prstem nebo otáčej trackballem
+Sort	Řazení
+Sound	Zvuk
+Sound off	Zvuk vypnut
+Sound on	Zvuk zapnut
+Sound: %s	Zvuk: %s
+Start time	Čas zahájení
+Step 1 of 3	Krok 1 ze 3
+Step 2 of 3	Krok 2 ze 3
+Step 3 of 3	Krok 3 ze 3
+Still analyzing the previous\npath… try again in a moment.	Předchozí trasa se stále\nanalyzuje… zkus to za chvíli.
+Stop	Zastavit
+Storage	Úložiště
+Store	Store
+Store data on SD (reboot)	Ukládat data na SD (restart)
+Streams the device screen as a live picture you tap to control. Heavier; the panel shows a placeholder. Toggling reboots the device.	Přenáší obrazovku zařízení jako živý obraz ovládaný klepnutím. Náročnější; displej zobrazuje náhradní obrazovku. Přepnutí restartuje zařízení.
+Switch	Přepnout
+Switch to the external antenna?\n\nMake sure an antenna is actually connected to the external antenna socket first. Transmitting with nothing attached can damage the radio.\n\nResets to the on-board antenna on every reboot.	Přepnout na externí anténu?\n\nNejdřív ověř, že je anténa skutečně připojená k externímu konektoru. Vysílání bez antény může poškodit rádio.\n\nPo každém restartu se vrátí vestavěná anténa.
+Sync clock from system	Synchronizovat čas se systémem
+System Information	Systémové informace
+TCP %s  BLE %s\nWS clients %d  GPS %s  Buzzer %s	TCP %s  BLE %s\nWS klienti %d  GPS %s  Bzučák %s
+TCP off	TCP vypnuto
+TCP on	TCP zapnuto
+TOUCH BETA	TOUCH BETA
+TX	TX
+Tab hotkeys — tap a row, then press a key	Zkratky karet — klepni na řádek a stiskni klávesu
+Tap Use to switch - the device reboots to apply.	Klepni na Použít — zařízení se restartuje pro změnu jazyka.
+Tap Use to switch - the device reboots to apply. Language files live in /lang on the storage; edit them or add your own.	Klepni na Použít — zařízení se restartuje pro změnu jazyka. Jazykové soubory jsou v /lang na úložišti; můžeš je upravit nebo přidat vlastní.
+Tap a language; the device reboots to apply.	Klepni na jazyk; zařízení se restartuje pro použití změny.
+Taste the rainbow!	Všechny barvy duhy!
+Telemetry	Telemetrie
+Telemetry req (direct)…	Žádám telemetrii (direct)…
+Telemetry req (flood)…	Žádám telemetrii (Flood)…
+Telemetry req failed	Žádost o telemetrii selhala
+Telemetry requests allowed	Žádosti o telemetrii povoleny
+Telemetry requests off	Žádosti o telemetrii vypnuty
+Telemetry req…	Žádám telemetrii…
+Telemetry settings	Nastavení telemetrie
+Temperature	Teplota
+Test builds: off	Testovací sestavení: vypnuta
+Test builds: on	Testovací sestavení: zapnuta
+Theme	Motiv
+Then pick a mode:	Potom vyber režim:
+This contact hasn't shared\na GPS position.	Tento kontakt nesdílel\npolohu GPS.
+This device can run Wi-Fi and Bluetooth at once, as a standalone radio and a phone companion (MeshCore app) together.\n\nRunning both at the same time uses more RAM, so turn on only what you need.\n\nSet them up anytime in Settings.	Toto zařízení zvládá Wi-Fi a Bluetooth současně: jako samostatné rádio i companion pro telefon (aplikace MeshCore).\n\nSouběh spotřebuje více RAM, proto zapínej jen to, co potřebuješ.\n\nObojí lze kdykoli upravit v Nastavení.
+Throttles the CPU when idle to save power	Při nečinnosti snižuje takt CPU pro úsporu energie
+Tile reload needs Wi-Fi build	Obnovení dlaždic vyžaduje sestavení s Wi-Fi
+Tiles cleared — reconnect Wi-Fi to re-download	Dlaždice vymazány — připoj Wi-Fi pro nové stažení
+Tiles from SD card	Dlaždice z SD karty
+Time   %s	Čas   %s
+Time offset (vs automatic)	Posun času (oproti automatickému)
+Time offset: %+d h	Posun času: %+d h
+Time range (hours ago)	Časové období (hodin zpět)
+Time zone	Časové pásmo
+Time zone: %s	Časové pásmo: %s
+Tip: you can scan for networks in Settings → Network after setup.	Tip: po dokončení můžeš hledat sítě v Nastavení → Síť.
+Today	Dnes
+Toggle GPS	Přepnout GPS
+Too large to edit (>8 KB)	Příliš velké pro úpravy (>8 KB)
+Topographic map	Topografická mapa
+Trace	Trace
+Trace SNR	Trace SNR
+Trace failed	Trace selhal
+Trace route	Trace trasy
+Trace sent…	Trace odeslán…
+Tracing route…	Trasuji cestu…
+Trackball navigates UI	Trackball ovládá UI
+Trackball: cursor	Trackball: kurzor
+Trackball: navigate UI	Trackball: ovládání UI
+Turn Wi-Fi on first	Nejdřív zapni Wi-Fi
+Turn Wi-Fi on, then tap refresh. Apps already installed still work.	Zapni Wi-Fi a obnov seznam. Nainstalované aplikace dál fungují.
+Turn off	Vypnout
+Turn on legacy per-transmit switching?\n\nDiagnostic mode, for comparison only. It transmits on the on-board antenna and listens on the external one, so your outbound signal will be much weaker than your inbound.\n\nResets to the on-board antenna on every reboot.	Zapnout legacy přepínání při vysílání?\n\nDiagnostický režim pouze pro porovnání. Vysílá vestavěnou anténou a přijímá externí, takže odchozí signál bude mnohem slabší než příchozí.\n\nPo každém restartu se vrátí vestavěná anténa.
+Turn the history limit off?\n\nA busy channel can then fill the whole message store, which uses more space and makes the chat list and app noticeably slower. Only do this if you really need the full backlog.	Vypnout limit historie?\n\nRušný kanál pak může zaplnit celé úložiště zpráv. Zabere více místa a znatelně zpomalí seznam chatů i aplikaci. Použij jen pokud potřebuješ úplnou historii.
+Turn this on, then open the address below in any web browser on the same Wi-Fi - no app needed. This device's screen appears live in the browser and you can tap to control it.	Zapni a otevři adresu níže v prohlížeči na stejné Wi-Fi — bez aplikace. Obrazovka zařízení se zobrazí živě a lze ji ovládat klepnutím.
+Type a URL, then Go	Zadej URL a spusť
+Type a message...	Napiš zprávu...
+Type a new 6-digit code · applies after a reboot	Zadej nový 6místný kód · projeví se po restartu
+Type your network name — or switch to Wi-Fi in Settings to scan	Zadej název sítě nebo ji vyhledej v Nastavení Wi-Fi
+UI size (restart to apply)	Velikost UI (vyžaduje restart)
+UI size saved — restart to apply	Velikost UI uložena — vyžaduje restart
+USB powered	Napájeno přes USB
+Unblock	Odblokovat
+Unblocked	Odblokováno
+Unfavorite it first	Nejdřív odeber z oblíbených
+Unlocking…	Odemykám…
+Unmute @	Zapnout zvuk @
+Unmute msgs	Zapnout zvuk zpráv
+Unread %d	Nepřečtené: %d
+Unread %d\nRAM %u%%  ·  PSRAM %u%%	Nepřečtené: %d\nRAM %u%%  ·  PSRAM %u%%
+Unsupported WAV (need 16-bit PCM)	Nepodporovaný WAV (vyžaduje 16bit PCM)
+Up	Nahoru
+Update	Aktualizovat
+Update bin saved to SD	Aktualizace uložena na SD
+Update complete.\nRebooting...	Aktualizace dokončena.\nRestartuji...
+Update manually at flasher.wadamesh.com\n(Wi-Fi update is paused for now)	Aktualizuj ručně na flasher.wadamesh.com\n(aktualizace přes Wi-Fi jsou pozastavené)
+Update via the Launcher	Aktualizuj přes Launcher
+Update via the Launcher / flasher.wadamesh.com	Aktualizuj přes Launcher / flasher.wadamesh.com
+Update via the Launcher / flasher.wadamesh.com.	Aktualizuj přes Launcher / flasher.wadamesh.com.
+Updated - rebooting…	Aktualizováno — restartuji…
+Use	Použít
+Username (optional)	Uživatelské jméno (volitelné)
+Volume	Hlasitost
+W up  ·  A left  ·  D right  ·  Z down  ·  S select  ·  Q back	W nahoru · A vlevo · D vpravo · Z dolů · S vybrat · Q zpět
+WADA#15B6A6 MESH#	WADA#15B6A6 MESH#
+WADAMESH	WADAMESH
+Waiting for Wi-Fi...	Čekám na Wi-Fi...
+Welcome to WADAMESH	Vítej ve WADAMESH
+While this is on, anyone on your Wi-Fi can view and control this device. Uses plain HTTP (local network only).	Při zapnutí může kdokoli na tvé Wi-Fi sledovat a ovládat zařízení. Používá nešifrované HTTP (pouze místní síť).
+Wi-Fi	Wi-Fi
+Wi-Fi & Bluetooth	Wi-Fi a Bluetooth
+Wi-Fi and Bluetooth unavailable; retry from Settings	Wi-Fi a Bluetooth nejsou dostupné; zkus znovu v Nastavení
+Wi-Fi is not enabled in this build.	Wi-Fi v tomto sestavení není povolena.
+Wi-Fi isn't available on this build.	Wi-Fi v tomto sestavení není dostupná.
+Wi-Fi needed to fetch the\nterrain profile for this path.\nConnect in Settings → Wi-Fi.	Profil terénu pro tuto trasu\nvyžaduje Wi-Fi. Připoj ji\nv Nastavení → Wi-Fi.
+Wi-Fi not connected	Wi-Fi není připojena
+Wi-Fi off	Wi-Fi vypnuta
+Wi-Fi on	Wi-Fi zapnuta
+Wi-Fi on, scanning…	Wi-Fi zapnuta, hledám…
+Wi-Fi paused; Bluetooth disconnect timed out	Wi-Fi pozastavena; vypršel čas na odpojení Bluetooth
+Wi-Fi saved (radio off)	Wi-Fi uložena (rádio vypnuto)
+Wi-Fi saved, applying	Wi-Fi uložena, používám
+Wi-Fi saved, reconnecting	Wi-Fi uložena, připojuji znovu
+Wi-Fi unavailable; Bluetooth restored	Wi-Fi není dostupná; Bluetooth obnoveno
+Wi-Fi unavailable; retry from Settings	Wi-Fi není dostupná; zkus znovu v Nastavení
+Yesterday	Včera
+You can run setup later in Settings → Device	Průvodce můžeš spustit později v Nastavení → Zařízení
+Your location is unknown.\nSet GPS / position in\nSettings → Profile first.	Tvoje poloha není známá.\nNejdřív nastav GPS / polohu\nv Nastavení → Profil.
+Your name	Tvoje jméno
+Your own apps	Vlastní aplikace
+Zero-hop	Zero-hop
+Zero-hop advert sent	Zero-hop Advert odeslán
+Zoom: +/- buttons	Přiblížení: tlačítka +/-
+ambiguous (several regions matched)	nejednoznačné (odpovídá více regionům)
+client connected	klient připojen
+command	příkaz
+contacts (%d):	kontakty (%d):
+diag boot...	diagnostika startu...
+double-tap SPACE cycles through the ones you enable	dvojí stisk mezerníku přepíná povolené klávesnice
+drive the UI without the screen; keys still type in text fields	ovládání UI bez dotyku; v textových polích klávesy dál píšou
+e.g. Family	např. Rodina
+e.g. mesh	např. mesh
+from	od
+h  to	h  do
+hold Backspace to unlock	odemkneš podržením Backspace
+double-press d-pad center to unlock	odemkneš dvojím stiskem středu D-padu
+hold the trackball to unlock	odemkneš podržením trackballu
+press the button to unlock	odemkneš stiskem tlačítka
+hold the wake button to unlock	odemkneš podržením budicího tlačítka
+kHz	kHz
+keep holding	drž dál
+last wake:	poslední probuzení:
+last wake: 	poslední probuzení: 
+leave empty to generate	nech prázdné pro vygenerování
+lights the keyboard + wakes the screen on an incoming message	příchozí zpráva rozsvítí klávesnici a probudí displej
+mesh  link  armed	mesh link připraven
+mesh busy	mesh zaneprázdněn
+min (0=off)	min (0=vypnuto)
+mkdir failed	vytvoření složky selhalo
+n/a in this build	v tomto sestavení nedostupné
+now on channel %s	nyní v kanálu %s
+now talking to %s	nyní komunikuješ s %s
+off	vypnuto
+off = Enter adds a new line; tap Send to send	vypnuto = Enter vloží řádek; klepnutím na Odeslat zprávu odešleš
+on	zapnuto
+peak --	maximum --
+pick accented letters as you type; off = plain typing	nabízí písmena s diakritikou při psaní; vypnuto = běžné psaní
+press Volume Down to unlock	odemkneš stiskem snížení hlasitosti
+push past a screen edge to scroll content	pohybem za okraj obrazovky posuneš obsah
+score %d	skóre %d
+search	hledat
+tap for details	klepnutím zobrazíš podrobnosti
+tap the language key (e.g. EN) on the keyboard to cycle the ones you enable	klepnutím na jazykovou klávesu (např. EN) přepneš povolené klávesnice
+tap to cancel	klepnutím zrušíš
+tap to exit full screen	klepnutím ukončíš celou obrazovku
+zoom	přiblížení
+zoom %d	přiblížení %d
+~17 dB amp for quiet/remote areas; turn off in noisy spots.	Zesílení ~17 dB pro klidná/odlehlá místa; v rušených oblastech vypni.
+Scope	Scope
+another region	jiný region
+my region	můj region
+Save FAIL x%u	Uložení SELHALO x%u
+Save migrating	Probíhá přesun úložiště
+Saved %s	Uloženo %s
+Sort discovered	Řadit objevené
+Sort by	Řadit podle
+Peers	Peers
+Favorites	Oblíbené
+Has location	Má polohu
+Direct (0-hop)	Direct (0-hop)
+Heard %s	Slyšeno %s
+Traffic (since boot)\n  Sent   %u flood, %u direct\n  Recv   %u flood, %u direct	Provoz (od startu)\n  TX   %u Flood, %u direct\n  RX   %u Flood, %u direct
+Overwrite oldest non-favorite	Přepsat nejstarší mimo oblíbené
+"%s" wants to send messages on the mesh.\n\nThey will be sent as %s and cannot be told apart from messages you typed.\n\nOnly allow this for an app you trust.	„%s“ chce odesílat zprávy do mesh.\n\nBudou odeslány jako %s a nepůjdou odlišit od zpráv, které napíšeš.\n\nPovol jen aplikaci, které důvěřuješ.
+%d of %d on map	%d z %d na mapě
+1-character messages will be ignored	Jednoznakové zprávy se budou ignorovat
+1-character messages will be shown	Jednoznakové zprávy se budou zobrazovat
+All	Vše
+Allow	Povolit
+Ignore 1-character messages	Ignorovat jednoznakové zprávy
+Join w/ password	Připojit s heslem
+Location no longer shared	Poloha se již nesdílí
+Location shared with anyone who asks	Poloha se sdílí s každým, kdo požádá
+Location shared with chosen contacts only	Poloha se sdílí jen s vybranými kontakty
+Location shared with this contact	Poloha se sdílí s tímto kontaktem
+Location sharing off	Sdílení polohy vypnuto
+Max dots	Max. bodů
+Most mesh spam is a single character, because it is the cheapest message to send. Dropped silently: no chat entry, no notification, no sound.	Většina spamu v mesh má jediný znak, protože jeho odeslání je nejlevnější. Zahodí se tiše: bez záznamu v chatu, oznámení a zvuku.
+Never\nChosen contacts only\nAnyone who asks	Nikdy\nJen vybrané kontakty\nKdokoli požádá
+No apps installed.	Žádné nainstalované aplikace.
+No reply. Path hash is %u bytes;\nolder repeaters drop those.\nTry 1 byte (Settings > Radio & Mesh)	Bez odpovědi. Path hash má %u bajtů;\nstarší repeatery ho zahazují.\nZkus 1 bajt (Nastavení > Rádio a mesh)
+Not supported on this board	Tato deska nepodporuje
+Reconnected to %.40s	Znovu připojeno: %.40s
+Sent only when that contact asks, encrypted to them. Nothing is broadcast. Needs "Answer telemetry requests" on. Pick contacts in a contact's menu.	Odešle se pouze na žádost tohoto kontaktu, šifrovaně pro něj. Nic se nevysílá veřejně. Vyžaduje volbu „Odpovídat na žádosti o telemetrii“. Kontakty vyber v nabídce kontaktu.
+Server has forgotten you.\nJoin with the room password.	Server tě již nezná.\nPřipoj se s heslem room.
+Share my loc	Sdílet mou polohu
+Share my location when asked	Sdílet mou polohu na žádost
+Stop sharing loc	Ukončit sdílení polohy
+not asked yet	zatím bez žádosti
+Battery life: gathering data…	Výdrž baterie: sbírám data…
+Small\nMedium\nLarge\nJumbo	Malé\nStřední\nVelké\nObří
+"%s" wants to send PRIVATE messages as you.\n\nIt could write to any of your contacts, or post to a room, and the message will look exactly like one you typed.\n\nOnly allow this for an app you trust.	„%s“ chce tvým jménem odesílat SOUKROMÉ zprávy.\n\nMůže psát kterémukoli kontaktu nebo do room a zpráva bude vypadat přesně jako od tebe.\n\nPovol jen aplikaci, které důvěřuješ.
+Map pan off	Posouvání mapy vypnuto
+Map pan: arrows pan, Back exits	Mapa: šipky posouvají, Zpět ukončí
+Perf:	Výkon:
+Post to channels as me	Psát do kanálů mým jménem
+Powering off… press BOOT to wake	Vypínám… probudíš stiskem BOOT
+Read channel messages	Číst zprávy kanálů
+Read private messages	Číst soukromé zprávy
+Send private messages as me	Posílat soukromé zprávy mým jménem
+What each installed app is allowed to do. Anything an app sends goes out under your node name and cannot be told apart from a message you typed. Private covers direct messages and room posts, and is kept separate from channels on purpose. Turn one off to take it back.	Oprávnění nainstalovaných aplikací. Všechny jejich zprávy odcházejí pod jménem tvého uzlu a nelze je odlišit od tvých. Soukromé zprávy zahrnují DM a příspěvky do room; záměrně jsou oddělené od kanálů. Vypnutím oprávnění odebereš.
+Wi-Fi off, new map areas can't download	Wi-Fi vypnuta, nové oblasti mapy nelze stáhnout
+App permissions	Oprávnění aplikací
+"%s" wants to send discovery probes.\n\nEach probe asks every node in range to reply, so it uses airtime on the whole local mesh, not just yours.\n\nNothing is sent under your name and no message is transmitted.	„%s“ chce odesílat discovery probes.\n\nKaždá sonda žádá o odpověď všechny uzly v dosahu, takže zabírá airtime celé místní mesh, nejen tvého uzlu.\n\nNic neodesílá pod tvým jménem a neposílá žádnou zprávu.
+?	?
+About / credits	O aplikaci / autoři
+Auth failed	Ověření selhalo
+Auto-add on for %s — new %s land in Contacts automatically.	Automatické přidávání zapnuto pro %s — nové %s se přidají do Kontaktů automaticky.
+Console mode	Režim konzole
+Console mode (experimental)	Režim konzole (experimentální)
+Direct (0-hop) only	Pouze Direct (0-hop)
+EXPERIMENTAL. Boots into a text console with no graphical interface: type commands, read replies. Frees the memory and processor time the interface uses. Type 'ui' in the console to come back, and if it ever fails to start the device returns here on its own. Toggling reboots.	EXPERIMENTÁLNÍ. Spustí textovou konzoli bez grafického rozhraní: zadáváš příkazy a čteš odpovědi. Uvolní paměť a čas procesoru používané UI. Pro návrat napiš do konzole 'ui'; pokud se konzole nespustí, zařízení se vrátí samo. Přepnutí restartuje zařízení.
+EXPERIMENTAL. Boots into a text console with no graphical interface: type commands, read replies. Frees the memory and processor time the interface uses. Type 'ui' in the console to come back. Toggling reboots.	EXPERIMENTÁLNÍ. Spustí textovou konzoli bez grafického rozhraní: zadáváš příkazy a čteš odpovědi. Uvolní paměť a čas procesoru používané UI. Pro návrat napiš do konzole 'ui'. Přepnutí restartuje zařízení.
+Enter text	Zadej text
+Entering console mode - rebooting...	Zapínám režim konzole — restartuji...
+Favorite	Oblíbený
+How tiles work:\nThe map is built from 256×256 "slippy" tiles. Only the tiles for the area you're viewing are fetched — there is no bulk pre-download.\n\nBecause this device can't do HTTPS (not enough heap after Wi-Fi starts) and decodes JPEG far more cheaply than PNG, tiles come from the wadamesh proxy: it fetches the upstream PNG over HTTPS with an identifying User-Agent, re-encodes it as JPEG, and caches it. Your device then caches each tile to its own flash, so a tile is only downloaded once.\n\nUse Options → Reload tiles to re-download the tiles currently in view if one looks corrupted.	Jak fungují dlaždice:\nMapa se skládá z dlaždic 256×256. Stahují se jen dlaždice právě zobrazené oblasti — hromadné předstahování není dostupné.\n\nProtože zařízení nezvládá HTTPS (po spuštění Wi-Fi chybí heap) a JPEG dekóduje mnohem levněji než PNG, dlaždice poskytuje proxy wadamesh: stáhne původní PNG přes HTTPS s identifikačním User-Agent, převede na JPEG a uloží do cache. Zařízení každou dlaždici uloží do své flash, takže ji stahuje jen jednou.\n\nPoškozené dlaždice stáhni znovu přes Nastavení → Obnovit viditelné dlaždice.
+Init…	Inicializuji…
+Leaving console mode - rebooting...	Ukončuji režim konzole — restartuji...
+Link lost	Spojení ztraceno
+MESH	MESH
+Map data © OpenStreetMap contributors.\nopenstreetmap.org/copyright\nLicensed under the Open Database License (ODbL).\n\n	Mapová data © přispěvatelé OpenStreetMap.\nopenstreetmap.org/copyright\nLicence Open Database License (ODbL).\n\n
+Map style © OpenTopoMap (CC-BY-SA) — opentopomap.org\nMap data © OpenStreetMap contributors (ODbL) + SRTM.\n\n	Styl mapy © OpenTopoMap (CC-BY-SA) — opentopomap.org\nMapová data © přispěvatelé OpenStreetMap (ODbL) + SRTM.\n\n
+Name (A-Z)	Jméno (A–Z)
+Nearest first	Nejbližší první
+Recent message	Poslední zpráva
+Reload tiles in view	Obnovit viditelné dlaždice
+Repeaters	Repeaters
+SIGNAL	SIGNÁL
+SSID not found	SSID nenalezeno
+Saved networks	Uložené sítě
+Select to delete	Vybrat ke smazání
+Send discovery probes	Odesílat discovery probes
+Show contacts	Zobrazit kontakty
+Show coordinates	Zobrazit souřadnice
+Show tile z/x/y	Zobrazit z/x/y dlaždice
+Starting…	Spouštím…
+Text console (experimental)	Textová konzole (experimentální)
+Tile debug overlay	Diagnostická vrstva dlaždic
+chats	chaty
+repeaters	repeaters
+rooms	rooms
+sensors	senzory
+tap to cycle off / on / auto	klepnutím přepneš vypnuto / zapnuto / automaticky
+#7A7F87 Scanning… nothing has answered yet#	#7A7F87 Hledám… zatím žádná odpověď#
+Export crash report (%uK)	Exportovat hlášení pádu (%uK)
+On-device text browser · no proxy, no tracking	Textový prohlížeč v zařízení · bez proxy a sledování
+Paste (copy)	Vložit (kopie)
+Paste (move)	Vložit (přesun)
+avg %.1f%%   peak %.1f%%   over %ds	prům. %.1f%%   max. %.1f%%   za %ds
+channel busy %.1f%%	kanál obsazen %.1f%%
+sampling...	vzorkuji...
+teal = now   blue = average	tyrkysová = nyní   modrá = průměr
+window restarted	měřicí okno restartováno
+Filter	Filtr
+Hide system files	Skrýt systémové soubory
+Networks	Sítě
+Other networks	Další sítě
+Show system files	Zobrazit systémové soubory
+Unfav	Odebrat z oblíbených
+Firmware beta_%d\nChecking for updates over Wi-Fi…	Firmware beta_%d\nHledám aktualizace přes Wi-Fi…
+Install beta_%d?\nThis downgrades the firmware and reboots.	Instalovat beta_%d?\nNahraje starší firmware a restartuje zařízení.
+Other (hidden) network…	Jiná (skrytá) síť…
+Paused	Pozastaveno
+Scan again	Hledat znovu
+At a glance	Rychlý přehled
+At a glance disabled	Rychlý přehled vypnut
+At a glance enabled	Rychlý přehled zapnut
+At a glance while locked	Rychlý přehled při zamčení
+Glance only shows when unlocked	Přehled se zobrazuje jen po odemčení
+Glance shows message previews\nwhile the screen is locked	Přehled ukazuje náhledy zpráv\ni na zamčené obrazovce
+Snake  —  swipe, roll, or press a direction	Had — táhni, otáčej nebo stiskni směr
+N/A	N/A
+This board cannot run this app.	Tato deska aplikaci nespustí.
+Signal	Signál
+Signal (stale)	Signál (zastaralý)
+nothing heard yet	zatím nic neslyšeno
+Detecting the keyboard protocol	Zjišťuji protokol klávesnice
+Older keyboard protocol	Starší protokol klávesnice
+Using the older keyboard protocol	Používám starší protokol klávesnice
+turn on if your keyboard types the wrong letters; disables modifier latching	zapni, pokud klávesnice píše nesprávná písmena; vypne přidržení modifikátorů
+Formatted OK - card did not remount, reinsert it	Formátování OK — karta se nepřipojila, vlož ji znovu
+Allow saved open networks for time sync	Povolit uložené otevřené sítě pro synchronizaci času
+Sync time from saved Wi-Fi after cold boot	Po studeném startu synchronizovat čas přes uloženou Wi-Fi
+Loud alerts	Hlasitá upozornění
+Loud alerts: off	Hlasitá upozornění: vypnuta
+Loud alerts: on	Hlasitá upozornění: zapnuta
+higher-pitched chime; louder on most buzzers	vyšší tón; na většině bzučáků hlasitější
+path unknown	trasa neznámá
+direct	direct
+hop	hop
+hops	hops
+Advertised position displaced	Poloha v Advert je posunutá
+Advertising your exact position	Advert obsahuje přesnou polohu
+Day theme - restarting to apply it…	Denní motiv — restartuji pro použití…
+Entering remote mode - restarting…	Zapínám vzdálený režim — restartuji…
+Exact	Přesná
+Leaving remote mode - restarting…	Ukončuji vzdálený režim — restartuji…
+Night theme - restarting to apply it…	Noční motiv — restartuji pro použití…
+Position in adverts	Poloha v Advert
+Rotating… restarting to apply it	Otáčím… restartuji pro použití
+Within %u km	Do %u km
+Within %u m	Do %u m
+shifts the position others see; your own map keeps the real fix	posune polohu viditelnou ostatním; vlastní mapa používá skutečný GPS fix
+Clock set	Čas nastaven
+Set clock	Nastavit čas
+Set the clock by hand (local time)	Nastavit čas ručně (místní čas)
+That is not a valid date and time	Neplatné datum a čas
+Use YYYY-MM-DD HH:MM	Použij YYYY-MM-DD HH:MM
+Browser connected	Prohlížeč připojen
+Could not clear previous upload	Předchozí nahrávání nelze vymazat
+Could not create transfer folder	Složku přenosu nelze vytvořit
+File Transfer needs the SD card	Přenos souborů vyžaduje SD kartu
+File Transfer session expired	Relace přenosu souborů vypršela
+File Transfer stopped: Wi-Fi disconnected	Přenos souborů zastaven: Wi-Fi odpojena
+File Transfer: low memory	Přenos souborů: málo paměti
+Reading file list	Načítám seznam souborů
+Session code	Kód relace
+Stop File Transfer	Zastavit přenos souborů
+Upload files or download screenshots from a browser on the same Wi-Fi.	Nahrávej soubory nebo stahuj snímky obrazovky z prohlížeče na stejné Wi-Fi.
+Waiting for browser	Čekám na prohlížeč
+Download mode (wait for USB flash)	Režim nahrávání (čeká na firmware přes USB)
+Download mode… reflash over USB,\nor press RESET to cancel	Režim nahrávání… nahraj firmware přes USB\nnebo stiskni RESET pro zrušení
+1 km	1 km
+100 m	100 m
+250 m	250 m
+Location privacy	Soukromí polohy
+position others see is shifted; your own map keeps the real fix	poloha pro ostatní je posunutá; vlastní mapa používá skutečný GPS fix
+Arrows • OK	Šipky • OK
+Direct message color	Barva soukromých zpráv
+Incoming message blink	Blikání při příchozí zprávě
+Notifications	Oznámení
+Room / channel color	Barva room / kanálu
+%s holds no plottable rows yet	%s zatím neobsahuje vykreslitelná data
+Answering with your displaced position	Odpovídám posunutou polohou
+Answering with your exact position	Odpovídám přesnou polohou
+Back is Esc only	Zpět pouze přes Esc
+Back key	Klávesa Zpět
+Back key saved	Klávesa Zpět uložena
+Bluetooth is not running.	Bluetooth neběží.
+Bluetooth now serves a keyboard	Bluetooth nyní obsluhuje klávesnici
+Bluetooth now serves the phone app	Bluetooth nyní obsluhuje aplikaci telefonu
+Colour	Barva
+Connected. Start typing.	Připojeno. Můžeš psát.
+Could not connect. Is the keyboard in pairing mode?	Připojení selhalo. Je klávesnice v režimu párování?
+Disc.	Odpoj.
+Do Not Disturb is on	Režim Nerušit je zapnutý
+Esc always goes back. If your keyboard's Esc key types a character instead, tap the button, then press that key. Press Esc to undo.	Esc se vždy vrací zpět. Pokud Esc na tvé klávesnici píše znak, klepni na tlačítko a pak tu klávesu stiskni. Stiskem Esc změnu zrušíš.
+Exact position to those contacts	Přesná poloha pro tyto kontakty
+Forget	Zapomenout
+Forget keyboard	Zapomenout klávesnici
+Forget this keyboard? You will need to pair it again.	Zapomenout tuto klávesnici? Bude nutné nové párování.
+Keyboard connected	Klávesnice připojena
+Keyboard forgotten	Klávesnice zapomenuta
+Keyboard layout	Rozložení klávesnice
+LoRa coverage survey	Průzkum pokrytí LoRa
+Lock home to drawer	Nabídka aplikací vždy jako domovská
+Looking for keyboards...	Hledám klávesnice...
+Name this run	Pojmenuj měření
+No keyboard paired	Žádná spárovaná klávesnice
+Not connected. Press a key on the keyboard to wake it.	Nepřipojeno. Pro probuzení stiskni klávesu na klávesnici.
+Pair a keyboard	Spárovat klávesnici
+Pair another keyboard	Spárovat jinou klávesnici
+Pair it again	Spárovat znovu
+Pair with %s:	Spárovat s %s:
+Pair with a code	Spárovat s kódem
+Pair without a code	Spárovat bez kódu
+Pairing failed. Try pairing with a code.	Párování selhalo. Zkus párování s kódem.
+Pairing failed. Type the code on the keyboard, then press Enter.	Párování selhalo. Napiš kód na klávesnici a stiskni Enter.
+Pairing...	Páruji...
+Phone app	Aplikace telefonu
+Pick the layout printed on the keys, or letters and symbols come out wrong.	Vyber rozložení vytištěné na klávesách, jinak budou písmena a symboly nesprávně.
+Press a key...	Stiskni klávesu...
+Put the keyboard in pairing mode, then tap Pair a keyboard.	Přepni klávesnici do režimu párování a klepni na Spárovat klávesnici.
+Put the keyboard in pairing mode; it shows up below. Only Bluetooth Low Energy keyboards work.	Přepni klávesnici do režimu párování; zobrazí se níže. Fungují jen klávesnice Bluetooth Low Energy.
+Refit	Přizpůsobit
+Requests left	Zbývající požadavky
+Review run	Prohlédnout měření
+Run review	Přehled měření
+Search again	Hledat znovu
+Sound is off	Zvuk je vypnutý
+Start	Spustit
+Survey running	Průzkum probíhá
+Survey stopped	Průzkum zastaven
+That device does not offer keyboard input.	Toto zařízení neposkytuje vstup klávesnice.
+The keyboard needs to be paired again.	Klávesnici je nutné znovu spárovat.
+This board cannot send discovery probes,	Tato deska neumí odesílat discovery probes,
+Turn Bluetooth on to use a keyboard.	Pro klávesnici zapni Bluetooth.
+Type into any text field. Arrow keys and Tab move around, Enter opens, Esc goes back.	Piš do libovolného textového pole. Šipky a Tab přesouvají výběr, Enter otevírá, Esc se vrací.
+Type this code on the keyboard, then press Enter:	Napiš tento kód na klávesnici a stiskni Enter:
+US (QWERTY)\nUK (QWERTY)\nGerman (QWERTZ)\nFrench (AZERTY)\nBelgian (AZERTY)	US (QWERTY)\nUK (QWERTY)\nNěmecké (QWERTZ)\nFrancouzské (AZERTY)\nBelgické (AZERTY)
+Unnamed device	Nepojmenované zařízení
+Upload, download, or delete files from a browser on the same Wi-Fi.	Nahrávej, stahuj a maž soubory z prohlížeče na stejné Wi-Fi.
+Use Bluetooth for	Použít Bluetooth pro
+With a code, one appears here: type it on the keyboard and press Enter. Use it when pairing without a code fails.	Při párování s kódem se kód zobrazí zde: napiš ho na klávesnici a stiskni Enter. Použij, pokud párování bez kódu selže.
+colour: balance, green even, red one-sided	barva: vyváženost, zelená obousměrně, červená jednostranně
+colour: how well WE heard them	barva: jak dobře jsme je slyšeli MY
+colour: how well they heard US	barva: jak dobře slyšeli ONI NÁS
+held by 	drží 
+no tiles cached here - blank ground, not open water	zde nejsou dlaždice v cache — prázdná plocha, ne vodní hladina
+nothing has answered a probe yet	na sondu zatím nic neodpovědělo
+reading %s ... %d rows	načítám %s ... %d řádků
+route shape, not to scale - %d of %d stops	tvar trasy, ne v měřítku — %d z %d bodů
+screen on	displej zapnut
+so it cannot run a coverage survey.	proto nemůže provést průzkum pokrytí.
+strongest first	nejsilnější první
+then stop	pak zastavit
+this device	toto zařízení
+waiting for a GPS fix - samples are discarded until then	čekám na GPS fix — do té doby se vzorky zahazují
+This SD card has Windows malware on it, like the worm some ThinkNode M9 cards shipped with. It cannot run on this radio, but it will on a Windows PC. Before the card goes in a computer, remove it with SD Scan or, safest, format the card.	Tato SD karta obsahuje malware pro Windows, například červa dodávaného s některými kartami ThinkNode M9. Na rádiu se nespustí, ale na PC s Windows ano. Před vložením do počítače ho odstraň pomocí SD Scan nebo nejlépe kartu naformátuj.
+Open SD Scan	Otevřít SD Scan
+%d of %d	%d z %d
+%d threats found	Nalezené hrozby: %d
+%s files in %s folders	%s souborů v %s složkách
+, %d unreadable	, %d nečitelných
+, map tiles skipped (%s folders)	, mapové dlaždice přeskočeny (%s složek)
+Checked 	Zkontrolováno 
+Full scan	Úplná kontrola
+Full scan...	Úplná kontrola...
+Insert the card and scan again.	Vlož kartu a spusť kontrolu znovu.
+No SD card found.	SD karta nenalezena.
+Remove %d files?	Odstranit soubory (%d)?
+Remove all	Odstranit vše
+Removed %d files.	Odstraněné soubory: %d.
+Removed %d, %d could not be removed.	Odstraněno %d, nelze odstranit %d.
+Removing...	Odstraňuji...
+SD card malware check	Kontrola malwaru na SD kartě
+Scan	Prohledat
+Scanning...	Prohledávám...
+Stopped after 	Zastaveno po 
+They are Windows programs, scripts, shortcuts or autorun files. A mesh radio never uses them, and nothing else on the card is touched.	Jde o programy pro Windows, skripty, zástupce nebo soubory autorun. Mesh rádio je nepoužívá; ostatních souborů na kartě se operace nedotkne.
+This board has no SD card access for apps.	Tato deska neposkytuje aplikacím přístup k SD kartě.
+This firmware can only find them. Update wadamesh to remove them here.	Tento firmware je umí jen najít. Pro odstranění aktualizuj wadamesh.
+Finds and removes Windows programs, scripts, shortcuts and autorun files, like the worm on some ThinkNode M9 cards. A mesh radio never uses these.	Najde a odstraní programy pro Windows, skripty, zástupce a soubory autorun, například červa z některých karet ThinkNode M9. Mesh rádio je nepoužívá.
+No known Windows malware found.	Nenalezen žádný známý malware pro Windows.
+This firmware can find these but not remove them. Update wadamesh, or format the card: in Files, hold the SD card row.	Tento firmware je umí najít, ale ne odstranit. Aktualizuj wadamesh nebo kartu naformátuj: v Souborech podrž řádek SD karty.
+SD Scan only removes files it recognises. If the card may be infected, the safest fix is to copy off what you need and format it completely: in Files, hold the SD card row.	SD Scan odstraňuje jen rozpoznané soubory. Při podezření na infekci nejdřív zkopíruj potřebná data a kartu úplně naformátuj: v Souborech podrž řádek SD karty.
+and %d more	a dalších %d
+Internal	Interní
+Map tiles	Mapové dlaždice
+SD card	SD karta
+Snake	Had
+Received %s	Přijato: %s
+Receiving %s	Přijímám %s
+Sending %s	Odesílám %s
+Calendar	Kalendář
+Chat	Chat
+Chats	Chaty
+Direct (DM) sound	Zvuk soukromé zprávy (DM)
+Discover	Hledání uzlů
+Export crash report	Exportovat hlášení pádu
+Lua Store	Lua Store
+Mentions	Zmínky
+Other (hidden) networks	Další (skryté) sítě
+Read incoming messages	Číst příchozí zprávy
+Remote	Vzdálené ovládání
+Send messages as me	Odesílat zprávy mým jménem
+Size	Velikost
+Spectrum	Spektrum
+Status	Stav
+System	Systém
+Target	Cíl
+Traffic (since boot)	Provoz (od startu)
+Type	Typ
+Up to date	Aktuální
+Send	Odeslat
+Device	Zařízení
+Network	Síť
+Channels	Kanály
+Brightness	Jas
+Password	Heslo
+Default	Výchozí
+Custom	Vlastní
+None	Žádné
+On	Zapnuto
+Yes	Ano
+No	Ne
+OK	OK
+Done	Hotovo
+Refresh	Obnovit
+Options	Možnosti
+Details	Podrobnosti
+Terminal	Terminál
+Advertise	Advertise
+Cmdr	Cmdr
+Apps that may send messages on the mesh. Anything they send goes out under your node name and cannot be told apart from a message you typed. Turn one off to take the permission back.	Aplikace oprávněné odesílat zprávy do mesh. Zprávy odcházejí pod jménem tvého uzlu a nelze je odlišit od tvých. Vypnutím oprávnění odebereš.
+Disconnected	Odpojeno

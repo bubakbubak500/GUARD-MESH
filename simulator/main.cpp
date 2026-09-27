@@ -5,9 +5,17 @@
 #include <windowsx.h>
 #include <bcrypt.h>
 #include "SimPlatform.h"
+#include "SimReceiveTask.h"
+#include "ui_regression.h"
+#include "i18n.h"
 #include <vector>
 #include <deque>
 #include <filesystem>
+void runScreenPolicyIntegration(UITask &task, void (*pump)(unsigned));
+void runChatSessionIntegration(UITask &task);
+void runMessageIngressIntegration(SimReceiveTask &task);
+void runThreadRefreshRegression(UITask &task, void (*pump)(unsigned));
+void runContactsPerformanceRegression();
 extern "C" unsigned lodepng_encode32(unsigned char **, size_t *, const unsigned char *, unsigned,
                                      unsigned);
 
@@ -36,7 +44,7 @@ public:
 };
 SimSerialLink serialLink;
 SensorManager sensors;
-UITask ui(&board, &serialLink);
+SimReceiveTask uiTask(&board, &serialLink);
 
 RECT viewport(HWND hwnd) {
   RECT client;
@@ -127,7 +135,7 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         (GET_X_LPARAM(lp) - r.left) * WIDTH / std::max(1L, r.right - r.left), 0L, 319L);
     pointerY = (uint16_t)std::clamp(
         (GET_Y_LPARAM(lp) - r.top) * HEIGHT / std::max(1L, r.bottom - r.top), 0L, 239L);
-    ui.noteUserInput();
+    uiTask.noteUserInput();
     return 0;
   }
   return DefWindowProcW(hwnd, msg, wp, lp);
@@ -140,10 +148,10 @@ void pump(unsigned ms) {
       TranslateMessage(&msg);
       DispatchMessage(&msg);
     }
-    ui.loop();
+    uiTask.loop();
     SdNvsPrefs::tick(millis());
     if (the_mesh.pendingAck && millis() >= the_mesh.ackDue) {
-      ui.onMessageAcked(the_mesh.pendingAck);
+      uiTask.onMessageAcked(the_mesh.pendingAck);
       the_mesh.pendingAck = 0;
     }
     if (injectRequested) {
@@ -155,7 +163,7 @@ void pump(unsigned ms) {
       try {
         captureSnapshot();
       } catch (const std::exception &e) {
-        ui.showAlert(e.what(), 2500);
+        uiTask.showAlert(e.what(), 2500);
       }
     }
     static bool screenOn = true;
@@ -219,10 +227,12 @@ void receiveDemo() {
   if (the_mesh.contacts.empty())
     return;
   const auto &c = the_mesh.contacts[0];
-  ui.notify(UIEventType::contactMessage);
-  ui.newMsgFromPubWithMeta(0, true, c.id.pub_key, c.name,
-                           "Simulated incoming message. No radio transmission.",
-                           ui.getMsgCount() + 1, 24, -72);
+  UIMessageEvent event(UIEventType::contactMessage, 0, c.id.pub_key, c.name,
+                       "Simulated incoming message. No radio transmission.", uiTask.getMsgCount() + 1);
+  event.hasRx = event.isFlood = true;
+  event.snrQ4 = 24;
+  event.rssi = -72;
+  uiTask.receiveMessage(event);
   ++the_mesh.received;
 }
 void captureSnapshot() {
@@ -420,7 +430,9 @@ ColorVal UIColor::window_bkg = 0, UIColor::title_bkg = 0, UIColor::title_txt = 0
 
 int appMain(int argc, char **argv) {
   setvbuf(stdout, nullptr, _IONBF, 0);
-  bool smoke = argc > 1 && strcmp(argv[1], "--smoke") == 0;
+  bool czech = argc > 1 && strcmp(argv[1], "--smoke-cs") == 0;
+  bool keyboardNav = argc > 1 && strcmp(argv[1], "--smoke-nav") == 0;
+  bool smoke = czech || keyboardNav || (argc > 1 && strcmp(argv[1], "--smoke") == 0);
   WNDCLASSW cls{};
   cls.lpfnWndProc = windowProc;
   cls.hInstance = GetModuleHandle(nullptr);
@@ -437,6 +449,12 @@ int appMain(int argc, char **argv) {
     return 1;
   SdNvsPrefs::load(smoke ? "" : "state/preferences.txt");
   touchPrefsBegin();
+  if (smoke) touchPrefsSetUiLang(czech ? LANG_CS : LANG_EN);
+  if (keyboardNav) {
+    touchPrefsSetKbdNav(true);
+    touchPrefsSetNavDirKey(0, 'k');
+    touchPrefsSetNavDirKey(1, 'j');
+  }
   touchPrefsSetSetupDone(true);
   touchPrefsSetScreenTimeoutSecs(0);
   auto &prefs = the_mesh.prefs;
@@ -454,15 +472,38 @@ int appMain(int argc, char **argv) {
   prefs.node_name[sizeof prefs.node_name - 1] = 0;
   puts("Starting the shared T-Deck firmware UI (simulated peripherals)...");
   seedScenario();
-  ui.begin(&display, &sensors, &prefs);
+  if (smoke) SPIFFS.enableMemory();
+  uiTask.begin(&display, &sensors, &prefs);
+  if (smoke) { lv_refr_now(nullptr); saveFrame("splash.png"); }
   receiveDemo();
-  ui.notify(UIEventType::channelMessage);
-  ui.newMsgFromPubWithMeta(0, true, nullptr, "#guardian-sim",
-                           "SIM Bravo: Welcome to the T-Deck firmware simulator.",
-                           ui.getMsgCount() + 1, 20, -80);
+  UIMessageEvent channelEvent(UIEventType::channelMessage, 0, nullptr, "#guardian-sim",
+                              "SIM Bravo: Welcome to the T-Deck firmware simulator.", uiTask.getMsgCount() + 1);
+  channelEvent.hasRx = channelEvent.isFlood = true;
+  channelEvent.snrQ4 = 20;
+  channelEvent.rssi = -80;
+  uiTask.receiveMessage(channelEvent);
   ShowWindow(window, smoke ? SW_HIDE : SW_SHOW);
   pump(2600);
+  if (czech && (strcmp(TR("Settings"), "Nastavení") || strcmp(TR("Advert"), "Advert")))
+    throw std::runtime_error("Czech translation or preserved Advert term failed");
   if (smoke) {
+    if (keyboardNav) {
+      lv_group_t* group = nullptr;
+      for (auto* input = lv_indev_get_next(nullptr); input; input = lv_indev_get_next(input))
+        if (lv_indev_get_type(input) == LV_INDEV_TYPE_KEYPAD && input->group)
+          group = input->group;
+      if (!group || lv_group_get_obj_count(group) < 2)
+        throw std::runtime_error("UITask did not populate keyboard navigation targets");
+      auto* before = lv_group_get_focused(group);
+      SendMessageW(window, WM_CHAR, 'j', 0);
+      pump(120);
+      if (lv_group_get_focused(group) == before) {
+        SendMessageW(window, WM_CHAR, 'k', 0);
+        pump(120);
+      }
+      if (!lv_group_get_focused(group) || lv_group_get_focused(group) == before)
+        throw std::runtime_error("Firmware directional key did not move navigation focus");
+    }
     saveFrame("home.png");
     click(32, 225);
     saveFrame("chats.png");
@@ -485,9 +526,9 @@ int appMain(int argc, char **argv) {
     if (the_mesh.sent != 1)
       throw std::runtime_error("Typing and Enter did not send one simulated message");
     bool delivered = false;
-    for (int i = 0; i < ui.msgCap(); i++) {
+    for (int i = 0; i < uiTask.msgCap(); i++) {
       UITask::UIMessage m{};
-      if (ui.getMessageByIndex(i, m) && m.outgoing && !strcmp(m.text, "Simulator keyboard test") &&
+      if (uiTask.getMessageByIndex(i, m) && m.outgoing && !strcmp(m.text, "Simulator keyboard test") &&
           m.deliv_state == UITask::DELIV_DELIVERED)
         delivered = true;
     }
@@ -497,13 +538,17 @@ int appMain(int argc, char **argv) {
     click(16, 22);
     pump(300);
     click(96, 225);
+    auto* visibleContact = findLabel(lv_scr_act(), "SIM Alpha");
+    if (!visibleContact || !lv_obj_is_visible(visibleContact))
+      throw std::runtime_error("Cached Contacts tab did not materialize its visible rows");
+    lv_refr_now(nullptr); // Flush content rebound after the tab-slide layout pass.
     saveFrame("contacts.png");
     click(224, 225);
     pump(300);
     saveFrame("map.png");
     click(288, 225);
     saveFrame("settings.png");
-    clickLabel("Profile");
+    clickLabel(TR("Profile"));
     saveFrame("profile.png");
     auto profileTa = findTextarea(lv_layer_top());
     if (!profileTa)
@@ -528,9 +573,13 @@ int appMain(int argc, char **argv) {
     SetWindowPos(window, nullptr, 0, 0, 853, 681, SWP_NOMOVE | SWP_NOZORDER);
     pump(100);
     click(160, 225);
-    clickLabel("Apps");
+    clickLabel(TR("Apps"));
     pump(300);
     saveFrame("apps.png");
+    for (const char* removed : {"VNC", "Web", "Remote", "USB Files"}) {
+      if (findLabel(lv_layer_top(), removed) || findLabel(lv_scr_act(), removed))
+        throw std::runtime_error(std::string("Removed app still visible: ") + removed);
+    }
     FILE *f = fopen("labels.txt", "w");
     if (f) {
       dumpLabels(lv_scr_act(), f);
@@ -547,7 +596,24 @@ int appMain(int argc, char **argv) {
     saved.getBytes("node", &restored, sizeof restored);
     if (strcmp(restored.node_name, "SIM edited") || touchPrefsGetAccentColor() != 0x336699)
       throw std::runtime_error("Simulator settings did not survive reload");
-    puts("Smoke run complete: navigation, typing, send/ACK, profile, scaled input and persistence "
+    uiTask.persistHistoryNow();
+    if (!SPIFFS.exists("/ui_threads_v1.bin") || !SPIFFS.exists("/msgs/store.ok"))
+      throw std::runtime_error("UITask did not wire or flush the history service");
+    int channelIndexes[UITask::MAX_UI_THREADS];
+    if (uiTask.getThreadCount(true,channelIndexes,UITask::MAX_UI_THREADS)<=0)
+      throw std::runtime_error("Thread menu fixture has no channel");
+    bool channel=false;uint16_t unread=0;uint32_t timestamp=0;
+    char channelName[UITask::MAX_THREAD_NAME+1]={};
+    if (!uiTask.getThreadInfo(channelIndexes[0],channel,unread,timestamp,channelName,sizeof channelName))
+      throw std::runtime_error("Thread menu fixture lost channel metadata");
+    runThreadMenuPickerRegression(channelIndexes[0],channelName,pump);
+    runScreenPolicyIntegration(uiTask, pump);
+    runChatSessionIntegration(uiTask);
+    runMessageIngressIntegration(uiTask);
+    runThreadRefreshRegression(uiTask, pump);
+    runContactsPerformanceRegression();
+    runUiLifetimeRegression(pump);
+    puts("Smoke run complete: navigation, typing, send/ACK, profile, scaled input, persistence, radio adapter and screen lifetime "
          "passed.");
     return 0;
   }
@@ -571,7 +637,9 @@ int appMain(int argc, char **argv) {
   return 0;
 }
 
+void installSimulatorCrashDiagnostics();
 int main(int argc, char **argv) {
+  installSimulatorCrashDiagnostics();
   try {
     return appMain(argc, argv);
   } catch (const std::exception &e) {

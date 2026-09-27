@@ -393,17 +393,8 @@
   #define CAP_AUDIO_STREAM 0
 #endif
 
-// ---- On-device web browser (the "Web" reader app) ---------------------------
-// The reader fetches pages over on-device HTTPS, and a TLS handshake needs ~30 KB of
-// free INTERNAL heap. Only the 8 MB-PSRAM boards (T-Deck, Tanmatsu, ThinkNode M9, RAK
-// Tap) have that headroom; the 2 MB Heltec V4 TFT can't complete the handshake
-// (fetch returns -1), so the Web app is gated out there. Tapping a link in chat still
-// offers "Create QR" everywhere — only "Open in web" is gated to these boards.
-#if defined(HELTEC_LORA_V4_TFT) && !defined(HELTEC_LORA_V4_R8)
-  #define CAP_WEB_BROWSER 0   // 2 MB V4: TLS handshake can't fit
-#else
-  #define CAP_WEB_BROWSER 1   // 8 MB boards incl. the V4-R8
-#endif
+// Guardian does not ship the on-device Web browser.
+#define CAP_WEB_BROWSER 0
 
 // ---- Lua app host (LUA_APPS.md) --------------------------------------------
 // Sandboxed Lua 5.4 apps from the store catalog. Board-agnostic by design: the
@@ -452,18 +443,9 @@
   #endif
 #endif
 
-// ---- USB Files ---------------------------------------------------------------
-// files.wadamesh.com browses and edits the SD card and internal storage over the
-// USB cable (Web Serial) while the USB Files app is open (UsbFilesSession.h).
-// Prototype boards first: the T-Deck (HW-CDC) and the Heltec V4 TFT (TinyUSB
-// CDC), one of each USB serial driver. Others follow once tested on hardware.
+// USB file transfer is removed; USB firmware flashing and companion serial remain.
 #ifndef CAP_USB_FILES
-  #if (defined(HAS_TDECK_GT911) && !defined(HAS_TDECK_PRO)) || \
-      (defined(HELTEC_LORA_V4_TFT) && !defined(HELTEC_LORA_V4_R8))
-    #define CAP_USB_FILES 1
-  #else
-    #define CAP_USB_FILES 0
-  #endif
+#define CAP_USB_FILES 0
 #endif
 
 // Read-only access to a physical SD card's directory tree from Lua. This first

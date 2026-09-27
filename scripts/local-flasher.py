@@ -8,15 +8,73 @@ from pathlib import Path
 import threading
 from urllib.parse import unquote, urlsplit
 import webbrowser
+import json
+import secrets
+from flasher_build import BuildManager
 
 ROOT = Path(__file__).resolve().parents[1] / 'deploy' / 'flasher'
+BUILD = BuildManager()
+TOKEN = secrets.token_urlsafe(32)
 
 
 class Handler(SimpleHTTPRequestHandler):
     extensions_map = {**SimpleHTTPRequestHandler.extensions_map,
                       '.js': 'text/javascript', '.mjs': 'text/javascript'}
 
+    def _local_request(self):
+        port = self.server.server_port
+        hosts = {f'localhost:{port}', f'127.0.0.1:{port}'}
+        origin = self.headers.get('Origin')
+        return (self.headers.get('Host') in hosts and
+                (origin is None or origin in {f'http://{h}' for h in hosts}))
+
+    def _json(self, value, status=200):
+        payload = json.dumps(value, ensure_ascii=False).encode('utf-8')
+        self.send_response(status)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.send_header('Content-Length', str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
+    def do_POST(self):
+        if not self._local_request() or self.headers.get('X-Flasher-Token') != TOKEN:
+            self.send_error(403)
+            return
+        if self.path != '/api/build':
+            self.send_error(404)
+            return
+        if self.headers.get('Transfer-Encoding') or self.headers.get('Content-Length', '0') != '0':
+            self.send_error(400)
+            return
+        started = BUILD.start()
+        self._json(BUILD.snapshot(), 202 if started else 409)
+
+    def do_GET(self):
+        if not self._local_request():
+            self.send_error(403)
+            return
+        if self.path == '/api/build':
+            self._json({**BUILD.snapshot(), 'token': TOKEN})
+            return
+        if self.path.startswith('/api/firmware/'):
+            name = self.path.removeprefix('/api/firmware/')
+            artifact = BUILD.artifact_for(name.removesuffix('.bin')) if name.endswith('.bin') else None
+            if artifact is None:
+                self.send_error(404)
+                return
+            with artifact.open('rb') as stream:
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/octet-stream')
+                self.send_header('Content-Length', str(artifact.stat().st_size))
+                self.end_headers()
+                self.copyfile(stream, self.wfile)
+            return
+        super().do_GET()
+
     def send_head(self):
+        if not self._local_request():
+            self.send_error(403)
+            return None
         path = unquote(urlsplit(self.path).path)
         requested = (ROOT / (path.lstrip('/') or 'index.html')).resolve()
         if ROOT.resolve() not in requested.parents or not requested.is_file():

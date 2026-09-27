@@ -57,6 +57,7 @@ uint32_t s_gen = 0;
 uint32_t s_code = 0;
 Device   s_peer = {};
 bool     s_have_peer = false;
+uint32_t s_peer_revision = 0;
 bool     s_new_pairing = false;
 bool     s_forgotten = false;
 Layout   s_layout = Layout::US;
@@ -114,7 +115,7 @@ uint32_t s_dead = 0;   // pending dead-key accent, 0 = none
 
 // Worker.
 enum class CmdType : uint8_t { Activate, Deactivate, ScanOn, ScanOff, Pair, Forget, SyncLeds };
-struct Cmd { CmdType type; int8_t index; bool with_code; };
+struct Cmd { CmdType type; detail::CommandTarget target; bool with_code; };
 TaskHandle_t  s_task = nullptr;
 QueueHandle_t s_cmdq = nullptr;
 NimBLEClient* s_client = nullptr;
@@ -322,7 +323,8 @@ uint32_t compose(uint32_t accent, uint32_t cp) {
 
 void requestLedSync() {
   if (!s_cmdq) return;
-  const Cmd c{CmdType::SyncLeds, 0, false};
+  Cmd c{};
+  c.type = CmdType::SyncLeds;
   xQueueSend(s_cmdq, &c, 0);
 }
 
@@ -765,9 +767,7 @@ void syncLeds() {
   if (n) chr->writeValue(buf, n, !chr->canWriteNoResponse());
 }
 
-void doPair(int index, bool with_code) {
-  Device dev = {};
-  if (!deviceAt(index, &dev)) return;
+void doPair(const Device& dev, bool with_code) {
   if (!ensureClient()) { setError(Error::NotRunning); setState(State::Failed); return; }
   stopScan();
   disconnectAndWait();
@@ -830,6 +830,7 @@ void doPair(int index, bool with_code) {
   portENTER_CRITICAL(&s_mux);
   s_peer = dev;
   s_have_peer = true;
+  ++s_peer_revision;
   s_new_pairing = true;
   s_state = State::Connected;
   bumpLocked();
@@ -923,25 +924,28 @@ void handle(const Cmd& c) {
       break;
     }
     case CmdType::Pair:
-      doPair(c.index, c.with_code);
+      if (c.target.present) doPair(c.target.device, c.with_code);
       break;
     case CmdType::Forget: {
-      Device dev = {};
-      const bool had = havePeer(&dev);
+      portENTER_CRITICAL(&s_mux);
+      const bool current = detail::matchesPeer(c.target, s_have_peer, s_peer, s_peer_revision);
+      portEXIT_CRITICAL(&s_mux);
+      if (!current) break;
       if (NimBLEDevice::getInitialized()) {
         disconnectAndWait();
-        if (had) {
-          const NimBLEAddress addr = toAddress(dev);
+        if (c.target.present) {
+          const NimBLEAddress addr = toAddress(c.target.device);
           if (NimBLEDevice::isBonded(addr)) NimBLEDevice::deleteBond(addr);
         }
       }
       portENTER_CRITICAL(&s_mux);
-      s_have_peer = false;
-      s_peer = Device{};
-      s_forgotten = true;
-      s_error = Error::None;
+      const bool still_current = detail::clearMatchedPeer(
+          c.target, s_have_peer, s_peer, s_peer_revision, s_forgotten);
+      if (still_current) {
+        s_error = Error::None;
+      }
       portEXIT_CRITICAL(&s_mux);
-      setState(restingState());
+      if (still_current) setState(restingState());
       break;
     }
     case CmdType::SyncLeds:
@@ -975,10 +979,14 @@ void worker(void*) {
   }
 }
 
-void post(CmdType type, int index = 0, bool with_code = false) {
-  if (!s_cmdq) return;
-  const Cmd c{type, (int8_t)index, with_code};
-  xQueueSend(s_cmdq, &c, 0);
+bool post(const Cmd& cmd) {
+  return s_cmdq && xQueueSend(s_cmdq, &cmd, 0) == pdTRUE;
+}
+
+bool post(CmdType type) {
+  Cmd cmd{};
+  cmd.type = type;
+  return post(cmd);
 }
 
 // A connect holds the worker for up to its timeout; anything the user asks for
@@ -1053,6 +1061,7 @@ void setPaired(const Device* dev) {
     s_peer = Device{};
     s_have_peer = false;
   }
+  ++s_peer_revision;
   bumpLocked();
   portEXIT_CRITICAL(&s_mux);
 }
@@ -1081,9 +1090,21 @@ bool deviceAt(int i, Device* out) {
 }
 
 void pair(int i, bool with_code) {
-  if (!s_task) return;
+  Device device = {};
+  if (deviceAt(i, &device)) pairDevice(device, with_code);
+}
+
+bool pairDevice(const Device& device, bool with_code) {
+  if (!s_task || !s_cmdq) return false;
+  Cmd cmd{};
+  cmd.type = CmdType::Pair;
+  cmd.target = detail::ownTarget(&device, 0);
+  cmd.with_code = with_code;
+  // Interrupt before publication so we cannot cancel this new command's own
+  // connect if the worker consumes it immediately. A full queue can still
+  // interrupt an older connect; the caller receives false and no success UI.
   interruptConnect();
-  post(CmdType::Pair, i, with_code);
+  return post(cmd);
 }
 
 uint32_t pairingCode() {
@@ -1098,13 +1119,45 @@ void forget() {
     portENTER_CRITICAL(&s_mux);
     s_have_peer = false;
     s_peer = Device{};
+    ++s_peer_revision;
     s_forgotten = true;
     bumpLocked();
     portEXIT_CRITICAL(&s_mux);
     return;
   }
+  Cmd cmd{};
+  cmd.type = CmdType::Forget;
+  portENTER_CRITICAL(&s_mux);
+  cmd.target = detail::ownTarget(s_have_peer ? &s_peer : nullptr, s_peer_revision);
+  portEXIT_CRITICAL(&s_mux);
   interruptConnect();
-  post(CmdType::Forget);
+  post(cmd);
+}
+
+bool forgetIfMatches(const Device& expected) {
+  if (!s_task) {
+    portENTER_CRITICAL(&s_mux);
+    const bool matches = s_have_peer && detail::sameIdentity(s_peer, expected);
+    bool cleared = false;
+    if (matches) {
+      const detail::CommandTarget target = detail::ownTarget(&s_peer, s_peer_revision);
+      cleared = detail::clearMatchedPeer(
+          target, s_have_peer, s_peer, s_peer_revision, s_forgotten);
+      if (cleared) bumpLocked();
+    }
+    portEXIT_CRITICAL(&s_mux);
+    return cleared;
+  }
+  if (!s_cmdq) return false;
+  Cmd cmd{};
+  cmd.type = CmdType::Forget;
+  portENTER_CRITICAL(&s_mux);
+  const bool matches = s_have_peer && detail::sameIdentity(s_peer, expected);
+  if (matches) cmd.target = detail::ownTarget(&s_peer, s_peer_revision);
+  portEXIT_CRITICAL(&s_mux);
+  if (!matches) return false;
+  interruptConnect();
+  return post(cmd);
 }
 
 void setLayout(Layout l) {

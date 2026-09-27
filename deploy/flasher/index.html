@@ -5,9 +5,18 @@
 <link rel="stylesheet" href="style.css"><script type="module" src="app.mjs"></script>
 </head><body><main>
 <p class="eyebrow">GUARD-MESH / USB</p><h1>Lokální instalátor</h1>
-<p class="intro">Nahraj vlastní instalační obraz do rádia. Soubory zůstávají v tomto prohlížeči; instalátor funguje bez internetu.</p>
+<p class="intro">Sestav aktuální firmware pro LilyGo T-Deck a nahraj ho přes USB. První sestavení potřebuje internet pro stažení nástrojů a závislostí.</p>
 <section>
-<label for="board">1. Vyber přesnou desku</label>
+<button id="build" disabled>1. Sestavit aktuální firmware pro T-Deck</button>
+<p id="build-status" role="status">Připojuji lokální build server…</p>
+<p class="help">Použij pro T-Deck / T-Deck Plus, nikoli T-Deck Pro. Po dokončení se obraz automaticky připraví níže. Sestavují se zdroje v tomto lokálním repozitáři.</p>
+<label for="version">Nebo vyber uložené sestavení</label>
+<select id="version"><option value="">Zatím není vybraná verze</option></select>
+<p id="version-info" class="help">Nabídka obsahuje úspěšná místní sestavení pro T-Deck, včetně předchozích verzí.</p>
+<details><summary>Průběh sestavení</summary><pre id="build-log"></pre></details>
+</section>
+<section>
+<label for="board">2. Ověř desku a připravený firmware</label>
 <select id="board"><option value="">Vyber zařízení…</option>
 <option>LilyGo T-Deck / T-Deck Plus</option><option>LilyGo T-Deck Pro (experimentální)</option>
 <option>Heltec V4 + TFT</option><option>Heltec V4-R8 + Expansion Kit V2</option>
@@ -15,7 +24,7 @@
 <option>T-LoRa Pager / LR1121</option><option>T-LoRa Pager / SX1262</option>
 <option>Attaky Mesh Series</option><option>Seeed Wio Tracker L2 (experimentální)</option></select>
 <p class="help">První verze podporuje kompletní obrazy pro ESP32-S3. Tanmatsu a T-Display P4 mají jiný instalační postup.</p>
-<label for="firmware">2. Vyber firmware-merged.bin pro tuto desku</label>
+<label for="firmware">Nebo vyber vlastní firmware-merged.bin</label>
 <input id="firmware" type="file" accept=".bin,application/octet-stream">
 <p id="file-status" role="status">Žádný soubor není vybraný.</p>
 <p class="warning"><strong>Kompletní instalace přepisuje také uložená nastavení.</strong> Sloučený obraz může přepsat identitu, kontakty a Wi-Fi nastavení i bez volby „Erase device“ v následujícím dialogu. Před instalací si udělej zálohu.</p>

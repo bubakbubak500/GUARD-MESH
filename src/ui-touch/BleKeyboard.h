@@ -79,6 +79,46 @@ struct Device {
   bool    keyboard;   // advertises the keyboard appearance, not just HID
 };
 
+// A command owns its target. The revision prevents a queued Forget from
+// deleting a different peer installed while the worker was busy connecting.
+namespace detail {
+struct CommandTarget {
+  Device device = {};
+  uint32_t revision = 0;
+  bool present = false;
+};
+inline CommandTarget ownTarget(const Device* device, uint32_t revision) {
+  CommandTarget target;
+  target.revision = revision;
+  target.present = device != nullptr;
+  if (device) {
+    target.device = *device;
+    target.device.name[sizeof target.device.name - 1] = '\0';
+  }
+  return target;
+}
+inline bool sameIdentity(const Device& lhs, const Device& rhs) {
+  if (lhs.addr_type != rhs.addr_type) return false;
+  for (size_t i = 0; i < sizeof lhs.addr; ++i)
+    if (lhs.addr[i] != rhs.addr[i]) return false;
+  return true;
+}
+inline bool matchesPeer(const CommandTarget& target, bool havePeer,
+                        const Device& current, uint32_t revision) {
+  return target.revision == revision && target.present == havePeer &&
+         (!target.present || sameIdentity(target.device, current));
+}
+inline bool clearMatchedPeer(const CommandTarget& target, bool& havePeer,
+                             Device& current, uint32_t& revision, bool& forgotten) {
+  if (!matchesPeer(target, havePeer, current, revision)) return false;
+  havePeer = false;
+  current = Device{};
+  ++revision;
+  forgotten = true;
+  return true;
+}
+} // namespace detail
+
 // Keyboard mode on/off. Starts the worker the first time it is switched on.
 void   setActive(bool on);
 bool   active();
@@ -96,10 +136,16 @@ void   scan(bool on);
 int    deviceCount();
 bool   deviceAt(int i, Device* out);
 void   pair(int i, bool with_code);
+// Returns true only when the copied device was accepted by the worker queue.
+bool   pairDevice(const Device& device, bool with_code);
 // The 6-digit code to type on the keyboard, or 0 when none is waiting.
 uint32_t pairingCode();
 // Drop the current keyboard and delete its bond.
 void   forget();
+// Forget only if this exact address and address type is still paired. True
+// means queued or, when no worker exists, cleared immediately. takeForgotten()
+// reports completion in either case.
+bool   forgetIfMatches(const Device& expected);
 
 void        setLayout(Layout l);
 Layout      layout();

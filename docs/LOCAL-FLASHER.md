@@ -1,51 +1,54 @@
 # Lokální instalace GUARD-MESH
 
-Potřeba: Python 3.9+ a desktopový Chrome nebo Edge s Web Serial.
-JavaScript instalátoru je přibalený; při instalaci není potřeba internet.
-Sestavení firmwaru může potřebovat stažení závislostí přes PlatformIO.
+Pro provoz bez prohlížeče je k dispozici [Guard-Mesh-Flasher](../desktop-flasher/README.md)
+s nativním oknem, knihovnou místních verzí a instalátorem Windows. Níže je původní webová varianta.
 
-1. Sestav správnou desku, například:
+Potřeba: Python 3.9+, Git a desktopový Chrome nebo Edge s Web Serial.
 
-   ```sh
-   pio run -e LilyGo_TDeck_companion_radio_touch -t mergebin
-   ```
+1. Spusť `Start-Flasher.cmd` na Windows nebo `sh start-flasher.sh` na Linuxu.
+   Otevře se `http://localhost:8766`.
+2. Klikni **Sestavit aktuální firmware pro T-Deck**. První běh si do
+   `.flasher-cache` nainstaluje PlatformIO a stáhne build nástroje a knihovny;
+   potřebuje internet a může trvat několik minut. Průběh je přímo na stránce.
+3. Hotový obraz se načte automaticky. Ověř **T-Deck / T-Deck Plus**,
+   zálohuj nastavení a potvrď přepsání. Build není pro T-Deck Pro.
+4. Připoj datový USB kabel, klikni **Připojit rádio a instalovat**, vyber port
+   a dokonči postup ESP Web Tools. Zavři případný sériový monitor.
 
-2. Na Windows spusť `Start-Flasher.cmd`. Na Linuxu spusť `sh start-flasher.sh`.
-   Otevře se `http://localhost:8766`. Alternativně:
+Sestavují se aktuální **lokální zdroje**, včetně necommitnutých změn; instalátor
+neprovádí automatický Git pull. Další buildy používají cache. Úspěšné obrazy se uchovávají i po restartu instalátoru. V nabídce
+**Vyber uložené sestavení** lze vybrat novou i starší verzi podle data,
+zdrojového commitu a identifikátoru buildu. Jde o místní sestavení, nikoli
+seznam upstream vydání. Při výběru se ověří SHA-256 a načte konkrétní obraz.
+Změna verze vždy zruší předchozí potvrzení instalace.
+Po změně zdrojů stiskni sestavení znovu. Chybný build nenabídne starý obraz jako
+nový; starší úspěšný obraz lze dál výslovně vybrat z historie. Při přerušení serveru během buildu před restartem počkej na ukončení jeho
+build procesu. Nespouštěj více instancí instalátoru nad stejným repozitářem.
 
-   ```sh
-   python scripts/local-flasher.py --port 8766
-   ```
+Pro jinou podporovanou desku zůstává ruční výběr `firmware-merged.bin`.
+Samotný `firmware.bin` instalátor odmítá. Tanmatsu a T-Display P4 nejsou podporované.
 
-3. Vyber přesnou desku a její soubor
-   `.pio/build/<environment>/firmware-merged.bin`.
-4. Zálohuj nastavení, potvrď správnost obrazu, připoj USB a vyber sériový port.
-   Další kroky instalace nabídne ESP Web Tools.
-5. Server ukončíš `Ctrl+C` v okně, ve kterém běží.
+## Co se zapisuje
 
-Instalátor neposkytuje žádné předpřipravené binárky ani automatické stahování.
-Python servíruje pouze soubory instalátoru na lokálním rozhraní. Firmware se
-načítá z vybraného souboru přímo do prohlížeče, nikam se nenahrává.
+**Kompletní obraz se zapisuje od adresy 0 a může přepsat identitu, kontakty
+či Wi-Fi nastavení i bez volby „Erase device“. Nejde o aktualizaci zachovávající
+nastavení.** Zálohuj data před instalací. Pro zachování NVS je potřeba postup
+s oddělenými obrazy a správnými adresami, který tato verze nenabízí.
 
-## Rozsah první verze
+Kontrola ověřuje strukturu obrazu ESP32-S3 a build kontroluje velikost aplikace
+vůči OTA oddílu T-Decku. Není to ověření funkčnosti firmwaru na skutečné desce.
+ESP Web Tools ověřuje rodinu čipu, nikoli konkrétní desku se stejným ESP32-S3.
 
-- Pouze kompletní sloučené obrazy **ESP32-S3**, zápis od adresy `0x0`.
-- Ověří základní hlavičky bootloaderu a aplikace a tabulku oddílů. Jde o
-  kontrolu struktury, nikoliv podpisu, bezchybnosti nebo kompatibility s deskou.
-- ESP Web Tools kontroluje rodinu připojeného čipu. Stejný ESP32-S3 ale používá
-  více desek; správnou desku a variantu rádia musí určit uživatel.
-- **Sloučený obraz přepisuje také mezery mezi oddíly, tedy i NVS.** Může dojít
-  ke ztrátě identity, kontaktů a Wi-Fi nastavení, i když nezaškrtneš úplné
-  vymazání čipu. Toto není režim aktualizace zachovávající nastavení.
-- Samotný `firmware.bin` je odmítnut. Tanmatsu má vlastní AppFS instalační
-  postup; T-Display P4 zatím není součástí tohoto instalátoru.
+## Lokální provoz
 
-Pro zachování NVS použij odpovídající původní postup s oddělenými obrazy a
-správnými adresami pro danou desku. Jednotnou aktualizaci a zálohy doplní
-budoucí Guardian utilita.
+Server poslouchá pouze na `127.0.0.1`. API spouští jen pevně určený T-Deck build;
+nepřijímá příkazy ani cesty od prohlížeče. Ochrana původu požadavku a token brání
+spuštění buildu z cizí webové stránky. Soubory se neposílají na externí server.
+Samotná instalace má JavaScript přibalený a nevyžaduje internet.
 
-Na Linuxu musí uživatel mít přístup k sériovému portu. Pokud je obsazený,
-zavři sériový monitor. Pro jiný port serveru použij `--port 8767`.
+Alternativní spuštění: `python scripts/local-flasher.py --port 8766`.
+Server v terminálu ukončíš `Ctrl+C`. Na Linuxu musí mít uživatel přístup k portu.
+PlatformIO se instaluje do lokálního Python prostředí, nikoli globálně.
 
 Knihovna: [ESP Web Tools](https://esphome.github.io/esp-web-tools/), verze 10.4.0;
 původ a licence jsou v `deploy/flasher/vendor/esp-web-tools/PROVENANCE.md`.

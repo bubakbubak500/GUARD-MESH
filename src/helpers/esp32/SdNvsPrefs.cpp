@@ -11,6 +11,7 @@
 #include <new>
 #include <stddef.h>
 #include <string.h>
+#include "../../ui-touch/platform/StorageAccess.h"
 
 // ----------------------------- backend selection -----------------------------
 // File mode (set by SdNvsPrefs::useFile at boot): every namespace lives in a flat
@@ -353,7 +354,16 @@ static void prefsWriterTask(void*) {
     WriteJob* job = nullptr;
     if (xQueueReceive(s_write_queue, &job, portMAX_DELAY) != pdTRUE || !job) continue;
     const uint32_t started = millis();
-    const bool ok = writeSnapshot(job->fs, job->legacy_path, job->slot, job->generation, job->kv);
+    bool ok = false;
+    // Keep the captured revision queued locally while a lifecycle owner
+    // drains the volume. Admission denial is not an I/O failure and must not
+    // discard the snapshot or start the normal 30-second failure backoff.
+    for (;;) {
+      ui::platform::StorageLease storage;
+      if (!storage.acquired()) { vTaskDelay(pdMS_TO_TICKS(10)); continue; }
+      ok = writeSnapshot(job->fs, job->legacy_path, job->slot, job->generation, job->kv);
+      break;
+    }
     const uint32_t elapsed = millis() - started;
     xSemaphoreTake(s_cache_mutex, portMAX_DELAY);
     if (FileCache* cache = findCacheLocked(job->legacy_path)) {
@@ -530,6 +540,8 @@ bool SdNvsPrefs::sdSet(const char* key, const uint8_t* data, size_t len) {
 }
 
 bool SdNvsPrefs::sdLoad() {
+  ui::platform::StorageLease storage;
+  if (!storage.acquired()) return false;
   fs::FS* fs = activeFs();
   if (!fs) return false;
   if (!fileMode()) {
@@ -608,6 +620,8 @@ bool SdNvsPrefs::sdLoad() {
 bool SdNvsPrefs::sdSave() {
   if (_read_only) return false;
   if (fileMode()) return true;   // sdSet/remove/clear already dirtied the shared cache
+  ui::platform::StorageLease storage;
+  if (!storage.acquired()) return false;
   fs::FS* fs = activeFs();
   if (!fs) return false;
   std::vector<uint8_t> payload;
@@ -751,6 +765,8 @@ static bool loadExplicitNamespace(fs::FS* fs, const char* legacy_path,
 
 bool SdNvsPrefs::readFileBool(fs::FS* fs, const char* dir, const char* ns,
                               const char* key, bool& value) {
+  ui::platform::StorageLease storage;
+  if (!storage.acquired()) return false;
   char legacy_path[40];
   if (!fs || !key || !explicitNamespacePath(dir, ns, legacy_path, sizeof(legacy_path))) return false;
   std::vector<Kv> kv;
@@ -768,6 +784,8 @@ bool SdNvsPrefs::readFileBool(fs::FS* fs, const char* dir, const char* ns,
 
 bool SdNvsPrefs::writeFileBool(fs::FS* fs, const char* dir, const char* ns,
                                const char* key, bool value) {
+  ui::platform::StorageLease storage;
+  if (!storage.acquired()) return false;
   char legacy_path[40];
   if (!fs || !key || key[0] == '\0' || strlen(key) > 15 ||
       !explicitNamespacePath(dir, ns, legacy_path, sizeof(legacy_path))) return false;

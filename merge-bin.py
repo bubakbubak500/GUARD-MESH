@@ -55,17 +55,6 @@ def _copy_to_out(env, src_path, out_suffix):
     _copy_one(src_path, os.path.join(out_dir, stable_name))
     _copy_one(src_path, os.path.join(out_dir, stamped_name))
 
-    # When the project lives in a subfolder (e.g. HeltecV4/MeshCore), also copy to <workspace>/out
-    parent_out = os.path.normpath(os.path.join(project_dir, "..", "out"))
-    if parent_out != os.path.normpath(out_dir):
-        try:
-            os.makedirs(parent_out, exist_ok=True)
-            _copy_one(src_path, os.path.join(parent_out, stable_name))
-            _copy_one(src_path, os.path.join(parent_out, stamped_name))
-        except OSError as exc:
-            print("Note: could not mirror to parent out/: %s" % exc)
-
-
 def copy_app_bin_to_out(target, source, env):
     bin_path = os.path.join(env.subst("$BUILD_DIR"), env.subst("${PROGNAME}") + ".bin")
     _copy_to_out(env, bin_path, "")
@@ -77,10 +66,9 @@ def merge_bin_action(source, target, env):
         "$ESP32_APP_OFFSET",
         source[0].get_abspath(),
     ]
-    merge_cmd = " ".join(
-        [
-            '"$PYTHONEXE"',
-            '"$OBJCOPY"',
+    merge_cmd = [
+            '$PYTHONEXE',
+            '$OBJCOPY',
             "--chip",
             board_config.get("build.mcu", "esp32"),
             "merge_bin",
@@ -94,8 +82,7 @@ def merge_bin_action(source, target, env):
             board_config.get("upload.flash_size", "4MB"),
             *flash_images,
         ]
-    )
-    env.Execute(merge_cmd)
+    return subprocess.call([env.subst(str(arg)) for arg in merge_cmd], cwd=env["PROJECT_DIR"])
 
 
 env.AddPostAction("$BUILD_DIR/${PROGNAME}.bin", copy_app_bin_to_out)

@@ -1,22 +1,20 @@
 #include "i18n.h"
 #include <string.h>
 #include "device_caps.h"
-#if CAP_BUILTIN_LANGS
-#include "i18n_builtin.h"   // generated: baked-in translations
-#endif
+#include "i18n_builtin.h"   // Czech is always available offline
 
 // Native language names shown in the picker. Index order == UiLang.
 const char* const kUiLangNames[LANG_COUNT] = {
   "English", "Magyar","Nederlands", "Deutsch", "Français", "Español", "Italiano",
   "Русский", "Українська", "Български", "Српски", "Ελληνικά",
-  "Português (BR)", "Română",
+  "Português (BR)", "Română", "Čeština",
 };
 
 // File/catalog codes, index order == UiLang. Keep in sync with the enum AND with
 // the deploy/apps/lang/*.lang filenames (the canonical translation source).
 const char* const kUiLangCodes[LANG_COUNT] = {
   "en", "hu", "nl", "de", "fr", "es", "it",
-  "ru", "uk", "bg", "sr", "el", "pt-br", "ro",
+  "ru", "uk", "bg", "sr", "el", "pt-br", "ro", "cs",
 };
 
 static uint8_t s_ui_lang = LANG_EN;
@@ -24,7 +22,7 @@ void    i18nSetLang(uint8_t l) { s_ui_lang = (l < LANG_COUNT) ? l : LANG_EN; }
 uint8_t i18nGetLang() { return s_ui_lang; }
 
 // File-language overlay: sorted key/translation pairs owned by the loader
-// (UITask reads the .lang file into PSRAM at boot). Checked before the table.
+// (LanguageFile reads and owns the .lang bytes at boot). Checked before the table.
 static const I18nPair* s_file_pairs = nullptr;
 static int             s_file_n     = 0;
 void i18nSetFileOverlay(const I18nPair* pairs, int count) {
@@ -37,7 +35,7 @@ bool i18nHasFileOverlay() { return s_file_n > 0; }
 // EXPORTED DATA: deploy/apps/lang/<code>.lang in the repo (canonical, translators
 // PR those files) and served from firmware.wadamesh.com/apps/lang/. The device
 // downloads the active language via the Lua Store's Languages tab and loads it at
-// boot (uiLangFileBootLoad in UITask.cpp) — TR() below consults only that overlay.
+// boot through LanguageFile — TR() consults it before the built-in fallback.
 // scripts/build/i18n-audit.py checks the files cover every TR() key in source.
 
 // Advance *p to just past the next printf conversion and write its type
@@ -101,11 +99,7 @@ static bool i18nFmtSpecsMatch(const char* a, const char* b) {
 
 const char* TR(const char* en) {
   if (!en) return "";
-#if CAP_BUILTIN_LANGS
   if (!s_file_n && s_ui_lang == LANG_EN) return en;
-#else
-  if (!s_file_n) return en;   // no language file loaded: the keys ARE the English UI
-#endif
   // Icon-prefixed labels ("<glyph>  Copy") carry the LVGL symbol's UTF-8 bytes
   // (3-byte private-use sequences, 0xEE/0xEF lead) in the lookup key, but the
   // table is keyed on the plain text — so those labels never matched and the
@@ -129,7 +123,6 @@ const char* TR(const char* en) {
       if (c < 0) hi = mid - 1; else lo = mid + 1;
     }
   }
-#if CAP_BUILTIN_LANGS
   if (!v && s_ui_lang != LANG_EN && kBuiltinLang[s_ui_lang]) {
     const I18nPair* tab = kBuiltinLang[s_ui_lang];
     int lo = 0, hi = kBuiltinLangCount[s_ui_lang] - 1;
@@ -140,7 +133,6 @@ const char* TR(const char* en) {
       if (c < 0) hi = mid - 1; else lo = mid + 1;
     }
   }
-#endif
   if (!v) return en;                       // untranslated: original, prefix intact
   // A translated FORMAT string must read the same varargs as the key, or the
   // caller's snprintf misreads the stack (#258). Only pay for the scan when the

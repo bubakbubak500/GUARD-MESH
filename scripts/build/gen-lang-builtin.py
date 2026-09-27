@@ -23,7 +23,7 @@ OUT = os.path.join(ROOT, 'src/ui-touch/i18n_builtin.h')
 
 # Index order must match the UiLang enum in i18n.h.
 CODES = ["en", "hu", "nl", "de", "fr", "es", "it",
-         "ru", "uk", "bg", "sr", "el", "pt-br", "ro"]
+         "ru", "uk", "bg", "sr", "el", "pt-br", "ro", "cs"]
 
 
 def c_escape(s):
@@ -81,6 +81,7 @@ def main():
     for code in CODES[1:]:
         rows = langs.get(code, {})
         sym = 'kBuiltin_' + code.replace('-', '_')
+        if code != 'cs': w.append('#if CAP_BUILTIN_LANGS')
         w.append('static const I18nPair %s[] = {' % sym)
         # A row whose translation IS the key does nothing: TR() already returns the
         # key when it finds no match. The .lang files carry those deliberately, as
@@ -91,20 +92,25 @@ def main():
                 continue
             w.append('  { "%s", "%s" },' % (c_escape(k), c_escape(rows[k])))
         w.append('};')
+        if code != 'cs': w.append('#endif')
 
     w.append('')
     w.append('static const I18nPair* const kBuiltinLang[LANG_COUNT] = {')
     w.append('  nullptr,')                       # LANG_EN: the key is the English
     for code in CODES[1:]:
         sym = 'kBuiltin_' + code.replace('-', '_')
+        if code != 'cs': w.append('#if CAP_BUILTIN_LANGS')
         w.append('  %s,' % (sym if langs.get(code) else 'nullptr'))
+        if code != 'cs': w.extend(['#else', '  nullptr,', '#endif'])
     w.append('};')
     w.append('static const int kBuiltinLangCount[LANG_COUNT] = {')
     w.append('  0,')
     for code in CODES[1:]:
         sym = 'kBuiltin_' + code.replace('-', '_')
+        if code != 'cs': w.append('#if CAP_BUILTIN_LANGS')
         w.append('  %s,' % (('(int)(sizeof(%s)/sizeof(%s[0]))' % (sym, sym))
                             if langs.get(code) else '0'))
+        if code != 'cs': w.extend(['#else', '  0,', '#endif'])
     w.append('};')
     w.append('')
 

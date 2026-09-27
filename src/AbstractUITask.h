@@ -12,18 +12,10 @@
 #endif
 
 #include "NodePrefs.h"
+#include "UIMessageEvent.h"
 
 // Forward decl — defined in helpers/ContactInfo.h, included by MyMesh.h users.
 struct ContactInfo;
-
-enum class UIEventType {
-    none,
-    contactMessage,
-    channelMessage,
-    roomMessage,
-    newContactMessage,
-    ack
-};
 
 class AbstractUITask {
 protected:
@@ -54,6 +46,24 @@ public:
   void disableBle() { _serial->disableBle(); }
   bool getBlePeerAddress(char* buf, size_t len) const { return _serial->getBlePeerAddress(buf, len); }
   virtual void msgRead(int msgcount) = 0;
+  /** Atomic receive entry point. Touch UI filters the owned event before any
+   *  notification. Legacy UIs keep their existing notify-then-message behavior. */
+  virtual void receiveMessage(const UIMessageEvent& input) {
+    const UIMessageEvent event = input;
+    if (event.kind != UIEventType::contactMessage && event.kind != UIEventType::channelMessage &&
+        event.kind != UIEventType::roomMessage) return;
+    notify(event.kind);
+    const uint8_t* key = event.hasPub ? event.pub : nullptr;
+    if (event.kind == UIEventType::roomMessage) {
+      newRoomMsgFromPubWithMeta(event.pathLen, event.isFlood, key, event.name,
+                               event.author, event.text, event.messageCount, event.snrQ4, event.rssi);
+    } else if (event.hasRx) {
+      newMsgFromPubWithMeta(event.pathLen, event.isFlood, key, event.name,
+                           event.text, event.messageCount, event.snrQ4, event.rssi);
+    } else {
+      newMsgFromPub(event.pathLen, key, event.name, event.text, event.messageCount);
+    }
+  }
   virtual void newMsg(uint8_t path_len, const char* from_name, const char* text, int msgcount) = 0;
   virtual void newMsgFromPub(uint8_t path_len, const uint8_t* from_pub, const char* from_name, const char* text, int msgcount) {
     (void)from_pub;

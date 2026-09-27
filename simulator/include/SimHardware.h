@@ -168,7 +168,7 @@ inline int setenv(const char *k, const char *v, int) {
 }
 #define WL_CONNECTED 3
 #define WIFI_OFF 0
-#define WIFI_CONFIG_SSID_MAX 33
+#define WIFI_CONFIG_SSID_MAX 32 // Match the firmware WifiRuntimeStore contract, including its terminator.
 #define WIFI_CONFIG_PWD_MAX 65
 struct SimIP {
   operator uint32_t() const { return 0; }
