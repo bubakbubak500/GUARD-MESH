@@ -9869,10 +9869,12 @@ static void terminalSink(const char* line) {
 static ui::screens::GuardianScreen guardianScreen;
 static ui::screens::GuardianAppScreen guardianApp;
 static void closeGuardianPage();
+static void backGuardianPage();
 static void releaseToolContents() {
   guardianScreen.detach();
   guardianApp.detach();
   appPageEnd(closeGuardianPage);
+  appPageEnd(backGuardianPage);
   terminalScreen.close();
   MyMesh::setTerminalSink(nullptr);
   ui::screens::files::close();
@@ -9885,6 +9887,7 @@ static ui::screens::FullscreenToolView toolView({
 static void closeFullscreenView() { toolView.close(); }
 static lv_obj_t* openFullscreenView(const char* title) { return toolView.open(title); }
 static void closeGuardianPage() { closeFullscreenView(); }
+static void backGuardianPage() { if (!guardianApp.back()) closeGuardianPage(); }
 static void openGuardianSettings() {
   auto* body = openFullscreenView("Guardian");
   guardianScreen.create(body, [](guardian::Command command) {
@@ -9911,9 +9914,14 @@ static void openGuardianSettings() {
   guardianScreen.refresh(millis());
 }
 static void openGuardianPage() {
-  auto* body = openFullscreenView("Guardian");
-  guardianApp.create(body, [](lv_obj_t* field) { attachSettingsTaEvents(field); }, [] { hideKb(); });
-  appPageBeginSlim("Guardian", closeGuardianPage);
+  auto* body = toolView.open("Guardian", false);
+  guardianApp.create(body, [](lv_obj_t* field) { attachSettingsTaEvents(field); }, [] { hideKb(); }, [] {
+    closeGuardianPage();
+    if (g_lv.tabview) lv_tabview_set_act(g_lv.tabview, HOME_TAB_INDEX, LV_ANIM_OFF);
+  }, [](const char* title) {
+    toolView.setTitle(title);
+    appPageBeginSlim(title, backGuardianPage);
+  });
   guardianApp.refresh(millis());
 }
 // ---- meshcore-cli-style chat commands (to / send / public / list / channels) ----
@@ -30427,6 +30435,13 @@ bool guardSimHomeMessagesRegression(void (*tap)(int,int), void (*pump)(unsigned)
   return true;
 }
 
+// Guardian app regression uses this same shared chrome, never a mock header.
+static void guardSimGuardianBack() {}
+void guardSimGuardianAppTitle(const char* title) {
+  if (title) appPageBeginSlim(title,guardSimGuardianBack);
+  else appPageEnd(guardSimGuardianBack);
+}
+
 bool guardSimHomeChromeRegression(void (*tap)(int,int), void (*pump)(unsigned), void (*capture)(const char*)) {
   auto shot=[&](const char* name) { lv_refr_now(nullptr); capture(name); };
   auto check=[](bool ok,const char* reason) {
@@ -30527,8 +30542,10 @@ bool guardSimHomeChromeRegression(void (*tap)(int,int), void (*pump)(unsigned), 
   const uint8_t progressPacket[] = {'G','P',2,32,64,7,0,0,0};
   if (!check(guardian::progress(progressPacket, sizeof progressPacket) == guardian::Result::Ok, "Guardian progress rejected")) return false;
   pump(400); shot("guardian-live.png");
-  tap(7,10); pump(300);
-  if (!check(home(), "Guardian Back did not return Home")) return false;
+  // A3 has one Home button in the bottom half-row, no floating duplicate.
+  if (!check(lv_obj_get_child_cnt(toolView.root())==1, "Guardian still has floating Home")) return false;
+  tap(290,209); pump(300);
+  if (!check(home(), "Guardian bottom Home did not return Home")) return false;
   refreshGuardianHome(); shot("home-guardian-live.png");
   launch(Action::Guardian);
   guardian::connected();
@@ -32728,9 +32745,9 @@ static const PopupEnt k_popup_registry[] = {
 #endif
   { []{ return ui::screens::files::popupOpen(5); },        nullptr,                             PF_COUNT },   // format progress: block keys, not dismissable
   { []{ return terminalScreen.pickerOpen(); },      []{ terminalScreen.closeTermCmdPicker(); },         PF_COUNT },
-  { []{ return toolView.root() && uiApplication.pageClose() == closeGuardianPage; },
-    closeGuardianPage, PF_COUNT | PF_STATUS },
-  { []{ return toolView.root() != nullptr && uiApplication.pageClose() != closeGuardianPage; },
+  { []{ return toolView.root() && (uiApplication.pageClose() == closeGuardianPage || uiApplication.pageClose() == backGuardianPage); },
+    backGuardianPage, PF_COUNT | PF_STATUS },
+  { []{ return toolView.root() != nullptr && uiApplication.pageClose() != closeGuardianPage && uiApplication.pageClose() != backGuardianPage; },
     []{ closeFullscreenView();
         if (g_lv.tabview) lv_tabview_set_act(g_lv.tabview, HOME_TAB_INDEX, LV_ANIM_OFF); },
                                                                           PF_COUNT },

@@ -7,7 +7,11 @@
 namespace ui { namespace screens {
 using namespace ui::theme;
 using namespace ui::widgets;
-lv_obj_t* FullscreenToolView::open(const char* title) {
+void FullscreenToolView::setTitle(const char* title) {
+  strncpy(_title,title?title:"",sizeof(_title)-1); _title[sizeof(_title)-1]=0;
+  _host.changed();
+}
+lv_obj_t* FullscreenToolView::open(const char* title, bool showHome) {
   close();
   const lv_coord_t sw = lv_disp_get_hor_res(nullptr);
   const lv_coord_t sh = lv_disp_get_ver_res(nullptr);
@@ -34,6 +38,7 @@ lv_obj_t* FullscreenToolView::open(const char* title) {
   lv_obj_set_pos(body, 0, 0);
   lv_obj_set_style_pad_all(body, 6, LV_PART_MAIN);
 
+  if (!showHome) return body;
   // Home button floats as a small overlay over the top-right of the body.
   lv_obj_t* home = lv_btn_create(_root);
   lv_obj_set_size(home, 40, 28);

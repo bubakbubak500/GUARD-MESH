@@ -1362,7 +1362,7 @@ Unconfirmed send	Nepotvrzené odeslání
 Recipient	Příjemce
 Normal\nPriority 1\nPriority 2\nPriority 3	Běžná\nPriorita 1\nPriorita 2\nPriorita 3
 Retry same send	Opakovat odeslání
-Inbox\nOutbox\nSent\nDrafts\nTransit	Inbox\nOutbox\nOdeslané\nKoncepty\nTranzit
+Inbox\nOutbox\nSent\nDrafts\nTransit	Přijaté\nK odeslání\nOdeslané\nKoncepty\nTranzit
 All contacts\nLive contacts\nSaved contacts	Všechny kontakty\nŽivé kontakty\nUložené kontakty
 First page	Začátek
 Waiting for Guardian BLE	Čekám na Guardian BLE
@@ -1396,3 +1396,28 @@ Last RSSI	Poslední RSSI
 Ping · battery estimate (3.3–4.2 V)	Ping · odhad baterie (3,3–4,2 V)
 Uptime	Doba běhu
 Node	Uzel
+Guardian appearance	Vzhled Guardianu
+Blue	Modrý
+Green	Zelený
+Applies only to Guardian.	Platí pouze pro Guardian.
+Saved routes	Uložené trasy
+No items	Žádné položky
+Via	Přes
+Direct	Přímo
+Unapproved	Neschváleno
+New: %lu	Nové: %lu
+Cannot save theme	Motiv se nepodařilo uložit
+Sending...	Odesílání...
+Ready	Připraveno
+Inbox	Přijaté
+Outbox	K odeslání
+Write	Napsat
+All contacts\nLive contacts\nSaved routes	Všechny kontakty\nŽivé kontakty\nUložené trasy
+Receiving (RX)	Příjem (RX)
+Sending (TX)	Odesílání (TX)
+%lu new	%lu nové
+CTRL	Řízení
+Priority	Priorita
+Live routes	Živé
+Drafts	Koncepty
+Transit	Tranzit

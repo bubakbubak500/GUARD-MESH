@@ -17,8 +17,9 @@ public:
   ~FullscreenToolView() { close(); }
   FullscreenToolView(const FullscreenToolView&) = delete;
   FullscreenToolView& operator=(const FullscreenToolView&) = delete;
-  lv_obj_t* open(const char* title);
+  lv_obj_t* open(const char* title, bool showHome = true);
   void close();
+  void setTitle(const char* title);
   lv_obj_t* root() const { return _root; }
   const char* title() const { return _title; }
 private:

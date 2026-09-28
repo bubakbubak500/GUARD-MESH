@@ -27,14 +27,28 @@ Párování už není součástí aplikace Guardian.
   zmizí živé počty, procenta i směry přenosu.
 - Modrý štít v horní liště nahrazuje BLE symbol při autentizovaném připojení PC.
   Znamená spojení; aktuálnost Guardianu ukazuje blok a aplikace.
-- **Aplikace → Guardian**: vlevo živé stavy, vpravo Zprávy, Síť, Nová zpráva,
-  Obnovit. Obnovit vyžádá i jednotlivé přenosy rádia 1/2 přes `status.get`.
+- **Aplikace → Guardian** používá rozložení A3: vlevo jeden aktivní přenos,
+  počty zpráv a CAT/VARA/CTRL; vpravo **Zprávy, Síť, Napsat** a pod nimi vedle
+  sebe ikony **nastavení a Home**. Home vrací na domácí obrazovku Guard Meshe.
+  Při souběhu se bargraf drží jednoho aktivního směru. Systémová lišta zůstává
+  společná s ostatními obrazovkami zařízení.
+- Nastavení aplikace nabízí modrý a zelený motiv, uložený do NVS. Motiv mění
+  pouze Guardian. Párování zůstává v hlavním nastavení zařízení.
 - Zprávy mají složky Inbox, Outbox, Odeslané, Koncepty a Tranzit. Seznam se čte
-  po čtyřech položkách, text po 512 Unicode znacích; používá přesné
+  po třech položkách, text po 512 Unicode znacích; používá přesné
   `revision`/`next_offset`. Změna seznamu/textu obnoví první stránku.
   Prohlížení nemění příznak přečteno na PC. Přílohy se nenačítají.
-- Síť umí všechny, živé a uložené kontakty. Výběr vyplní příjemce nové zprávy.
+- Síť začíná uloženými trasami, přepíná mezi živými a uloženými, po dvou
+  položkách. Uložený `next_hop` se nezaměňuje s `live_next_hop`.
+  Výběr vyplní příjemce nové zprávy.
   Přítomnost kontaktu není zárukou okamžitého doručení.
+- Grafika drží návrh A3: obrysové ikony obálky, sítě, tužky a odesílání,
+  záložky uložených tras, kruhové kontrolky a modré hlavní akce. Ikony se
+  kreslí přímo v LVGL. Zpět a název stránky jsou ve společné systémové liště.
+- Otevřený seznam zpráv nebo sítě se obnovuje automaticky každých pět sekund.
+  Stejný obsah nezpůsobí překreslení; pozdní odpověď nemění jinou stránku ani
+  rozepsaný text. Stránkování má šipky zpět/vpřed. Stavová zpráva zabírá jeden
+  řádek a klepnutím otevře plné vysvětlení.
 - Editor podporuje příjemce, předmět, text do 4096 Unicode znaků a prioritu
   0–3. Koncept se ukládá při odchodu. Před prvním odesláním se text a UUID v4
   atomicky uloží jako jeden NVS blob. Pokud uložení selže, nic se neposílá.
@@ -74,12 +88,16 @@ fragmentaci, UTF-8, meze, timeout a obnovu stejného tokenu.
 
 `python simulator/run.py --test` ověřuje skutečné obrazovky v EN/CS i
 klávesnicovou navigaci. Průchod Guardianem kontroluje seznam,
-změnu revision, 32bitová ID, Unicode text a ztracené potvrzení při odeslání.
+změnu revision, 32bitová ID, Unicode text a ztracené potvrzení při odeslání,
+motivy, uloženou trasu, automatické načítání a ochranu rozpracovaného editoru.
 Knihovny simulátoru včetně ArduinoJson jsou připnuté na konkrétní commity.
 
 `pio run -e LilyGo_TDeck_companion_radio_touch -t mergebin` vytvoří instalační
 merged BIN pro adresu **0x0**; samostatný app BIN je pro OTA.
 
-Fyzické zařízení zatím nebylo v rámci tohoto úkolu flashováno. Na HW zbývá
-ověřit Windows/Bleak párování, skutečné CCCD, obousměrné RPC při souběhu
-heartbeatů a výpadek po uložení zprávy na PC před jejím potvrzením.
+Uživatel potvrdil funkční připojení předchozího sestavení v2 po odebrání starého
+bondu ve Windows a novém spárování přes Guardian. Kompletní merged BIN zapisuje
+i oblast NVS; po jeho instalaci může být nutné staré párování ve Windows odebrat
+a spárovat znovu. Aktualizace aplikačním BIN přes OTA NVS nepřepisuje.
+Rozložení A3 je ověřováno simulátorem a sestavením; fyzické ověření této úpravy
+a výpadku po uložení zprávy na PC před potvrzením zůstává na zařízení.

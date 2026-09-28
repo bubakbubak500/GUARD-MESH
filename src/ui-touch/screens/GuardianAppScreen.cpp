@@ -6,7 +6,7 @@
 #include "../theme/Theme.h"
 #include "../theme/Fonts.h"
 #include "../widgets/Styles.h"
-#include "../widgets/GuardianShield.h"
+#include "../widgets/GuardianIcon.h"
 #include "../i18n.h"
 #include <cstdio>
 #include <cstring>
@@ -25,141 +25,293 @@ const char* errorText(const std::string& code) {
   if (code == "protocol_error") return TR("Invalid Guardian response");
   return TR("Guardian unavailable. Try again after reconnecting.");
 }
-const char* messageStatus(const char* code) {
-  if (!strcmp(code,"queued")) return TR("Queued");
-  if (!strcmp(code,"sending")) return TR("Sending");
-  if (!strcmp(code,"delivered")) return TR("Delivered");
-  if (!strcmp(code,"received")) return TR("Received");
-  if (!strcmp(code,"failed")) return TR("Failed");
-  if (!strcmp(code,"draft")) return TR("Draft");
-  if (!strcmp(code,"waiting")) return TR("Waiting");
-  if (!strcmp(code,"forwarded")) return TR("Forwarded");
-  return "—";
 }
+uint32_t GuardianAppScreen::accent() const { return _appearance==guardian::Appearance::Green?0x15b6a6:0x0087ff; }
+uint32_t GuardianAppScreen::surface() const {
+  return theme::isDay()?(_appearance==guardian::Appearance::Green?0xe5f3ef:0xe7f0fa):
+                        (_appearance==guardian::Appearance::Green?0x102822:0x172936);
 }
-lv_obj_t* GuardianAppScreen::label(const char* value, int x, int y, int w, bool small) {
-  auto* l = lv_label_create(_root.get()); lv_label_set_text(l, value);
-  lv_obj_set_pos(l,x,y); lv_obj_set_width(l,w);
-  lv_obj_set_style_text_font(l, small ? &theme::font12() : &theme::font14(), LV_PART_MAIN);
-  lv_obj_set_style_text_color(l, lv_color_hex(theme::colors().COLOR_TEXT), LV_PART_MAIN);
+void GuardianAppScreen::style(lv_obj_t* object, bool active) {
+  widgets::styleCard(object);
+  lv_obj_set_style_bg_color(object,lv_color_hex(active?accent():surface()),0);
+  lv_obj_set_style_bg_grad_color(object,lv_color_hex(active?accent():theme::isDay()?surface():_appearance==guardian::Appearance::Green?0x0d1c19:0x101e29),0);
+  lv_obj_set_style_bg_grad_dir(object,LV_GRAD_DIR_VER,0);
+  lv_obj_set_style_border_width(object,1,0);
+  lv_obj_set_style_border_color(object,lv_color_hex(active?0x17c5ff:0x456d89),0);
+  lv_obj_set_style_border_opa(object,LV_OPA_COVER,0);
+  lv_obj_set_style_radius(object,7,0);
+  lv_obj_set_style_shadow_width(object,0,0);
+  lv_obj_set_style_text_color(object,lv_color_hex(theme::colors().COLOR_TEXT),0);
+}
+lv_obj_t* GuardianAppScreen::label(const char* value, int x, int y, int w, bool small, lv_obj_t* parent) {
+  auto* l=lv_label_create(parent?parent:_root.get());
+  lv_label_set_text(l,value); lv_obj_set_pos(l,x,y); lv_obj_set_width(l,w);
+  lv_obj_set_style_text_font(l,small?&theme::font12():&theme::font14(),0);
+  lv_obj_set_style_text_color(l,lv_color_hex(theme::colors().COLOR_TEXT),0);
   return l;
 }
-void GuardianAppScreen::button(const char* title, int x, int y, int w, int action, int h) {
-  if (_bindingCount >= 20) return;
-  auto* b = lv_btn_create(_root.get()); widgets::styleButton(b);
+lv_obj_t* GuardianAppScreen::button(const char* title, int x, int y, int w, int action, int h, bool left) {
+  if (_bindingCount>=24) return nullptr;
+  auto* b=lv_btn_create(_root.get()); style(b);
+  lv_obj_set_style_bg_color(b,lv_color_hex(accent()),LV_STATE_PRESSED);
+  lv_obj_set_style_pad_all(b,0,0);
   lv_obj_set_pos(b,x,y); lv_obj_set_size(b,w,h);
-  auto* l = lv_label_create(b); lv_label_set_text(l,title);
-  lv_obj_set_width(l,w-8); lv_label_set_long_mode(l,LV_LABEL_LONG_DOT);
-  lv_obj_set_style_text_font(l,&theme::font12(),LV_PART_MAIN);
-  lv_obj_set_style_text_align(l,LV_TEXT_ALIGN_CENTER,LV_PART_MAIN); lv_obj_center(l);
-  auto& bind = _bindings[_bindingCount++]; bind.owner=this; bind.action=action;
+  auto* l=lv_label_create(b); lv_label_set_text(l,title); lv_obj_set_width(l,w-12);
+  lv_label_set_long_mode(l,LV_LABEL_LONG_DOT);
+  lv_obj_set_style_text_font(l,&theme::font14(),0);
+  lv_obj_set_style_text_align(l,left?LV_TEXT_ALIGN_LEFT:LV_TEXT_ALIGN_CENTER,0); lv_obj_center(l);
+  auto& bind=_bindings[_bindingCount++]; bind.owner=this; bind.action=action;
   lv_obj_add_event_cb(b,clicked,LV_EVENT_CLICKED,&bind);
+  return b;
 }
-void GuardianAppScreen::create(lv_obj_t* parent, void (*attach)(lv_obj_t*), void (*hideKeyboard)()) {
-  _root.set(parent); _attach=attach; _hideKeyboard=hideKeyboard;
+void GuardianAppScreen::create(lv_obj_t* parent, void (*attach)(lv_obj_t*), void (*hideKeyboard)(), void (*home)(), void (*chrome)(const char*)) {
+  _root.set(parent); _attach=attach; _hideKeyboard=hideKeyboard; _home=home; _chrome=chrome;
   if (!_loaded) { guardian::loadDraft(_draft); _loaded=true; }
-  _page=Dashboard; _last=0; render();
+  _appearance=guardian::loadAppearance(); _page=Dashboard; ++_epoch;
+  _info.clear(); _last=0; _lastPoll=millis(); _needPage=false; render();
+}
+bool GuardianAppScreen::back() {
+  if (!_root.get() || _page==Dashboard) return false;
+  if (_page==Info) { action(17); return true; }
+  if (_page==Contacts && _contactPicker) { _contactPicker=false; go(Compose); return true; }
+  go(_page==Text?Messages:Dashboard); return true;
 }
 void GuardianAppScreen::captureDraft() {
-  if (_page != Compose || !_fields[0] || !_root.get() || _draft.pending()) return;
+  if (_page!=Compose || !_fields[0] || !_root.get() || _draft.pending()) return;
   _draft.to=lv_textarea_get_text(_fields[0]); _draft.subject=lv_textarea_get_text(_fields[1]);
   _draft.body=lv_textarea_get_text(_fields[2]); _draft.priority=lv_dropdown_get_selected(_priority);
 }
 void GuardianAppScreen::detach() {
   if (_root.get()) { captureDraft(); if (_loaded) guardian::saveDraft(_draft); }
   if (_hideKeyboard && _root.get()) _hideKeyboard();
-  _root.set(nullptr); _status=_notice=nullptr; for (auto*& f:_fields) f=nullptr;
+  ++_epoch; _root.set(nullptr); _notice=nullptr;
+  for (auto*& f:_fields) f=nullptr;
+}
+void GuardianAppScreen::go(Page page) {
+  captureDraft();
+  if (_page==Compose) guardian::saveDraft(_draft);
+  ++_epoch; _page=page; _info.clear(); _signature.clear(); _lastPoll=millis();
+  _offset=0; _previous.clear(); _hasNext=false; _rows.clear(); _body.clear();
+  _needPage=page==Messages || page==Contacts || page==Text;
+  render();
+  if (_needPage && !_awaiting) requestPage();
 }
 void GuardianAppScreen::render() {
   if (!_root.get()) return;
   if (_hideKeyboard) _hideKeyboard();
-  lv_obj_clean(_root.get()); _bindingCount=0; _status=_notice=nullptr;
+  lv_obj_clean(_root.get()); _bindingCount=0; _notice=nullptr;
+  _activity=_percent=_bar=_inbox=_unread=_outbox=_arrowRx=_arrowTx=nullptr;
   for (auto*& f:_fields) f=nullptr;
-  lv_obj_update_layout(_root.get()); const int w=lv_obj_get_content_width(_root.get());
+  const char* title=_page==Dashboard?"Guardian":_page==Messages?TR("Messages"):
+    _page==Contacts?TR("Network"):_page==Compose?TR("New message"):
+    _page==Settings?TR("Guardian appearance"):_page==Text?TR("Message"):"Guardian";
+  if (_chrome) _chrome(title);
+  lv_obj_set_style_bg_color(_root.get(),lv_color_hex(theme::isDay()?0xe4edf4:0x091721),0);
+  lv_obj_set_style_bg_opa(_root.get(),LV_OPA_COVER,0);
+  lv_obj_update_layout(_root.get());
+  const int w=lv_obj_get_content_width(_root.get());
+  const int h=lv_obj_get_content_height(_root.get());
+  using Icon=widgets::GuardianIcon;
+  auto icon=[&](lv_obj_t* parent,Icon kind,int x,int y,int size,uint32_t color) {
+    auto* o=widgets::guardianIcon(parent,kind,size,color); lv_obj_set_pos(o,x,y); return o;
+  };
+  auto line=[&](lv_obj_t* parent,int x,int y,int width,int height) {
+    auto* o=lv_obj_create(parent); lv_obj_remove_style_all(o); lv_obj_set_pos(o,x,y); lv_obj_set_size(o,width,height);
+    lv_obj_set_style_bg_color(o,lv_color_hex(0x45647b),0); lv_obj_set_style_bg_opa(o,LV_OPA_COVER,0);
+    lv_obj_clear_flag(o,LV_OBJ_FLAG_CLICKABLE|LV_OBJ_FLAG_SCROLLABLE);
+  };
+  auto dot=[&](lv_obj_t* parent,int x,int y,int size,bool on) {
+    auto* o=lv_obj_create(parent); lv_obj_remove_style_all(o); lv_obj_set_pos(o,x,y); lv_obj_set_size(o,size,size);
+    lv_obj_set_style_radius(o,LV_RADIUS_CIRCLE,0); lv_obj_set_style_bg_opa(o,LV_OPA_COVER,0);
+    lv_obj_set_style_bg_color(o,lv_color_hex(on?0x32ed53:0x7395b9),0);
+    lv_obj_clear_flag(o,LV_OBJ_FLAG_CLICKABLE|LV_OBJ_FLAG_SCROLLABLE); return o;
+  };
+  auto sub=[&](lv_obj_t* l) { lv_obj_set_style_text_color(l,lv_color_hex(theme::isDay()?0x45647b:0xa6bfde),0); };
+  auto bare=[&](lv_obj_t* b) { lv_obj_set_style_bg_opa(b,LV_OPA_TRANSP,0); lv_obj_set_style_border_width(b,0,0); };
+  auto iconButton=[&](const char* access,Icon kind,int x,int y,int width,int height,int action,bool active) {
+    auto* b=button(access,x,y,width,action,height); style(b,active);
+    lv_obj_add_flag(lv_obj_get_child(b,0),LV_OBJ_FLAG_HIDDEN);
+    icon(b,kind,(width-23)/2,(height-23)/2,23,accent()); return b;
+  };
   if (_page==Dashboard) {
-    auto* shield=widgets::guardianShield(_root.get(),30); lv_obj_set_pos(shield,0,0);
-    label("Guardian",36,4,w-96);
-    _status=label("",0,38,w-115);
-    const char* titles[]={TR("Messages"),TR("Network"),TR("New message"),TR("Refresh")};
-    for (int i=0;i<4;++i) button(titles[i],w-106,38+i*33,104,i+1);
-    _notice=label(_info.c_str(),0,176,w,true);
-    _last=0;
+    const int right=110, gap=8, left=w-right-gap, usable=h-(_info.empty()?0:18);
+    auto* panel=lv_obj_create(_root.get()); lv_obj_remove_style_all(panel); style(panel);
+    lv_obj_set_style_pad_all(panel,0,0); lv_obj_set_size(panel,left,usable);
+    lv_obj_clear_flag(panel,LV_OBJ_FLAG_SCROLLABLE);
+    const uint32_t cyan=_appearance==guardian::Appearance::Green?0x18d9ad:0x03b4ec;
+    _arrowRx=icon(panel,Icon::Down,10,17,22,cyan);
+    _arrowTx=icon(panel,Icon::Up,10,17,22,0xffbd45);
+    _activity=label("",40,21,left-100,true,panel);
+    lv_label_set_long_mode(_activity,LV_LABEL_LONG_DOT);
+    _percent=label("",left-60,17,52,false,panel);
+    lv_obj_set_style_text_font(_percent,&lv_font_montserrat_20,0);
+    lv_obj_set_style_text_align(_percent,LV_TEXT_ALIGN_RIGHT,0);
+    _bar=lv_bar_create(panel); lv_obj_set_pos(_bar,10,51); lv_obj_set_size(_bar,left-20,12);
+    lv_obj_set_style_bg_color(_bar,lv_color_hex(0x263e50),0); lv_obj_set_style_bg_opa(_bar,LV_OPA_COVER,0);
+    lv_obj_set_style_radius(_bar,LV_RADIUS_CIRCLE,0); lv_obj_set_style_radius(_bar,LV_RADIUS_CIRCLE,LV_PART_INDICATOR);
+    lv_bar_set_range(_bar,0,100);
+    line(panel,10,77,left-20,1);
+    const int half=(left-20)/2, mailY=usable-114;
+    line(panel,10+half,mailY,1,62);
+    icon(panel,Icon::Mail,10,mailY+12,24,accent());
+    icon(panel,Icon::Send,15+half,mailY+12,24,accent());
+    auto* incoming=label(TR("Inbox"),39,mailY+1,half-29,true,panel);
+    auto* outgoing=label(TR("Outbox"),43+half,mailY+1,half-33,true,panel);
+    lv_label_set_long_mode(incoming,LV_LABEL_LONG_CLIP); lv_label_set_long_mode(outgoing,LV_LABEL_LONG_WRAP);
+    _inbox=label("—",39,mailY+28,half-30,false,panel);
+    _outbox=label("—",43+half,mailY+28,half-33,false,panel);
+    lv_label_set_long_mode(_inbox,LV_LABEL_LONG_DOT); lv_label_set_long_mode(_outbox,LV_LABEL_LONG_DOT);
+    _unread=label("",39,mailY+57,half-30,true,panel);
+    line(panel,10,usable-41,left-20,1);
+    const int third=(left-20)/3;
+    const char* links[]={"CAT","VARA",TR("CTRL")};
+    for(int i=0;i<3;++i) {
+      _links[i]=dot(panel,11+i*third,usable-26,10,false);
+      label(links[i],26+i*third,usable-28,third-12,true,panel);
+    }
+    const int footer=32, row=(usable-footer-3*gap)/3;
+    const char* titles[]={TR("Messages"),TR("Network"),TR("Write")};
+    const Icon kinds[]={Icon::Mail,Icon::Network,Icon::Pencil};
+    for(int i=0;i<3;++i) {
+      auto* b=button(titles[i],left+gap,i*(row+gap),right,i+1,row);
+      if(i==2) style(b,true);
+      auto* text=lv_obj_get_child(b,0); lv_obj_set_width(text,right-46);
+      if(lv_txt_get_width(titles[i],strlen(titles[i]),&theme::font14(),0,LV_TEXT_FLAG_NONE)>right-46)
+        lv_obj_set_style_text_font(text,&theme::font12(),0);
+      lv_obj_align(text,LV_ALIGN_LEFT_MID,34,0); lv_obj_set_style_text_align(text,LV_TEXT_ALIGN_LEFT,0);
+      icon(b,kinds[i],8,(row-23)/2,23,accent());
+      icon(b,Icon::Chevron,right-14,(row-12)/2,12,accent());
+    }
+    const int halfButton=(right-gap)/2, footY=usable-footer;
+    iconButton(LV_SYMBOL_SETTINGS,Icon::Gear,left+gap,footY,halfButton,footer,9,false);
+    iconButton(LV_SYMBOL_HOME,Icon::Home,left+gap+halfButton+gap,footY,right-halfButton-gap,footer,10,false);
+    updateDashboard(millis());
+  } else if (_page==Settings) {
+    label(TR("Theme"),0,9,w);
+    auto* blue=button(TR("Blue"),0,40,w,11,48);
+    auto* green=button(TR("Green"),0,98,w,12,48);
+    lv_obj_set_style_border_color(blue,lv_color_hex(0x0087ff),0);
+    lv_obj_set_style_border_color(green,lv_color_hex(0x15b6a6),0);
+    lv_obj_set_style_border_width(_appearance==guardian::Appearance::Blue?blue:green,3,0);
+    label(TR("Applies only to Guardian."),0,164,w,true);
+  } else if (_page==Info) {
+    auto* box=lv_obj_create(_root.get()); lv_obj_remove_style_all(box);
+    lv_obj_set_size(box,w,h); lv_obj_set_scroll_dir(box,LV_DIR_VER);
+    label(_info.c_str(),0,0,w-6,false,box);
   } else if (_page==Compose) {
-    button(LV_SYMBOL_LEFT,0,0,32,0,26);
-    label(_draft.pending()?TR("Unconfirmed send"):TR("New message"),38,4,w-96);
+    const int fieldX=59, fieldW=w-fieldX, bodyY=66, footerY=h-38-(_info.empty()?0:18);
     const char* hints[]={TR("Recipient"),TR("Subject"),TR("Message")};
     const std::string* values[]={&_draft.to,&_draft.subject,&_draft.body};
-    for (int i=0;i<3;++i) {
-      auto* field=_fields[i]=lv_textarea_create(_root.get());
-      widgets::styleCard(field);
-      lv_obj_set_style_text_color(field,lv_color_hex(theme::colors().COLOR_TEXT),LV_PART_MAIN);
-      lv_obj_set_pos(field,0,32+i*33); lv_obj_set_size(field,w,i==2?63:30);
-      lv_obj_set_style_text_font(field,&theme::font12(),LV_PART_MAIN);
+    for(int i=0;i<3;++i) {
+      const int y=i==2?bodyY:i*33;
+      label(hints[i],0,y+7,fieldX-3,true);
+      auto* field=_fields[i]=lv_textarea_create(_root.get()); style(field);
+      lv_obj_set_pos(field,fieldX,y); lv_obj_set_size(field,i==0?fieldW-31:fieldW,i==2?footerY-bodyY-7:27);
+      lv_obj_set_style_text_font(field,&theme::font14(),0); lv_obj_set_style_pad_all(field,5,0);
       lv_textarea_set_one_line(field,i!=2); lv_textarea_set_max_length(field,i==0?16:i==1?256:4096);
-      if (i==0) lv_textarea_set_accepted_chars(field,"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789/-");
-      widgets::taSetPlaceholder(field,hints[i]); lv_textarea_set_text(field,values[i]->c_str());
-      if (_draft.pending()) lv_obj_add_state(field,LV_STATE_DISABLED);
-      else if (_attach) _attach(field);
+      if(i==0) lv_textarea_set_accepted_chars(field,"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789/-");
+      lv_textarea_set_text(field,values[i]->c_str());
+      if(_draft.pending()) lv_obj_add_state(field,LV_STATE_DISABLED); else if(_attach) _attach(field);
     }
-    _priority=lv_dropdown_create(_root.get()); lv_obj_set_pos(_priority,0,166); lv_obj_set_size(_priority,102,30);
-    widgets::styleCard(_priority);
-    lv_obj_set_style_text_color(_priority,lv_color_hex(theme::colors().COLOR_TEXT),LV_PART_MAIN);
-    lv_obj_set_style_text_font(_priority,&theme::font12(),LV_PART_MAIN);
-    lv_dropdown_set_options(_priority,TR("Normal\nPriority 1\nPriority 2\nPriority 3"));
-    lv_dropdown_set_selected(_priority,_draft.priority);
-    if (_draft.pending()) lv_obj_add_state(_priority,LV_STATE_DISABLED);
-    button(_draft.pending()?TR("Retry same send"):TR("Send"),108,166,w-108,5);
-    _notice=label(_info.c_str(),0,200,w,true);
-    if (_draft.pending()) button(_confirmNew?TR("PC checked: start new"):TR("Start new message"),0,270,w,8);
+    auto* contacts=iconButton(LV_SYMBOL_DIRECTORY,Icon::Person,w-27,0,27,27,15,false);
+    if(_draft.pending()) lv_obj_add_state(contacts,LV_STATE_DISABLED);
+    label(TR("Priority"),0,footerY+8,fieldX-3,true);
+    _priority=lv_dropdown_create(_root.get()); lv_obj_set_pos(_priority,fieldX,footerY); lv_obj_set_size(_priority,99,32); style(_priority);
+    lv_obj_set_style_text_font(_priority,&theme::font12(),0); lv_obj_set_style_pad_all(_priority,7,0);
+    lv_dropdown_set_options(_priority,TR("Normal\nPriority 1\nPriority 2\nPriority 3")); lv_dropdown_set_selected(_priority,_draft.priority);
+    if(_draft.pending()) lv_obj_add_state(_priority,LV_STATE_DISABLED);
+    const int sendX=fieldX+106;
+    auto* sendButton=button(_draft.pending()?TR("Retry same send"):TR("Send"),sendX,footerY,w-sendX,5,32); style(sendButton,true);
+    if(!_draft.pending()) {
+      auto* text=lv_obj_get_child(sendButton,0); lv_obj_set_width(text,w-sendX-34); lv_obj_align(text,LV_ALIGN_LEFT_MID,31,0);
+      icon(sendButton,Icon::Send,7,7,20,accent());
+    }
+    if(_draft.pending()) button(_confirmNew?TR("PC checked: start new"):TR("Start new message"),0,h+3,w,8,32);
   } else {
-    button(LV_SYMBOL_LEFT,0,0,32,0,26);
-    if (_page==Text) label(_heading.c_str(),38,2,w-98,true);
-    else {
-      auto* choice=lv_dropdown_create(_root.get()); lv_obj_set_pos(choice,38,0); lv_obj_set_size(choice,w-94,28);
-      widgets::styleCard(choice);
-      lv_obj_set_style_text_color(choice,lv_color_hex(theme::colors().COLOR_TEXT),LV_PART_MAIN);
-      lv_obj_set_style_text_font(choice,&theme::font12(),LV_PART_MAIN);
-      lv_dropdown_set_options(choice,_page==Messages?TR("Inbox\nOutbox\nSent\nDrafts\nTransit"):TR("All contacts\nLive contacts\nSaved contacts"));
-      lv_dropdown_set_selected(choice,_page==Messages?_folder:_source);
-      lv_obj_add_event_cb(choice,selection,LV_EVENT_VALUE_CHANGED,this);
-    }
-    if (_page==Text) {
-      auto* box=lv_obj_create(_root.get()); lv_obj_remove_style_all(box);
-      lv_obj_set_pos(box,0,34); lv_obj_set_size(box,w,128); lv_obj_set_scroll_dir(box,LV_DIR_VER);
-      auto* body=lv_label_create(box); lv_label_set_text(body,_body.c_str()); lv_obj_set_width(body,w-6);
-      lv_obj_set_style_text_font(body,&theme::font14(),LV_PART_MAIN);
-      lv_obj_set_style_text_color(body,lv_color_hex(theme::colors().COLOR_TEXT),LV_PART_MAIN);
-    } else {
-      for (size_t i=0;i<_rows.size() && i<4;++i) {
-        std::string caption=_rows[i].title+"\n"+_rows[i].detail;
-        button(caption.c_str(),0,34+int(i)*32,w,20+int(i),30);
+    int top=0;
+    if(_page==Messages) {
+      auto* choice=lv_dropdown_create(_root.get()); lv_obj_set_pos(choice,0,0); lv_obj_set_size(choice,w-51,31); style(choice);
+      lv_obj_set_style_text_font(choice,&theme::font14(),0); lv_obj_set_style_pad_all(choice,6,0);
+      const char* names[]={TR("Inbox"),TR("Outbox"),TR("Sent"),TR("Drafts"),TR("Transit")};
+      std::string options;
+      const auto state=guardian::snapshot(millis()); const bool fresh=state.session.fresh(millis());
+      for(int i=0;i<5;++i) {
+        if(i) options+='\n'; options+=names[i];
+        if(fresh && (i==0 || i==1)) options+="  "+std::to_string(i==0?state.session.status.inbox:state.session.status.outbox);
       }
+      lv_dropdown_set_options(choice,options.c_str()); lv_dropdown_set_selected(choice,_folder);
+      lv_obj_add_event_cb(choice,selection,LV_EVENT_VALUE_CHANGED,this);
+      iconButton(LV_SYMBOL_EDIT,Icon::Pencil,w-43,0,43,31,3,true); top=38;
+    } else if(_page==Contacts) {
+      const int half=w/2;
+      auto* live=button(TR("Live routes"),0,0,half,13,32); style(live,_source==1);
+      auto* saved=button(TR("Saved routes"),half,0,w-half,14,32); style(saved,_source==2); top=40;
     }
-    button(TR("First page"),0,166,(w-8)/2,6);
-    if (_hasNext) button(TR("Next"),(w+8)/2,166,(w-8)/2,7);
-    _notice=label(_info.c_str(),0,201,w,true);
+    if(_page==Text) {
+      auto* box=lv_obj_create(_root.get()); lv_obj_remove_style_all(box);
+      lv_obj_set_size(box,w,h-29); lv_obj_set_scroll_dir(box,LV_DIR_VER);
+      label((_heading+"\n\n"+_body).c_str(),0,0,w-6,false,box);
+    } else {
+      const int slots=_page==Contacts?2:3, rowHeight=(h-top-29)/slots;
+      for(size_t i=0;i<_rows.size() && i<size_t(slots);++i) {
+        const bool contact=_page==Contacts;
+        auto* b=button("",0,top+int(i)*rowHeight,w,20+int(i),rowHeight-3,true);
+        lv_obj_set_style_border_color(b,lv_color_hex(0x304d61),0);
+        if(contact) icon(b,_rows[i].saved?Icon::Bookmark:Icon::Network,12,(rowHeight-27)/2,23,0x03b4ec);
+        auto* led=dot(b,contact?w-58:12,(rowHeight-13)/2,9,_rows[i].dot);
+        if(!contact && _rows[i].dot) lv_obj_set_style_bg_color(led,lv_color_hex(0x03b4ec),0);
+        const int x=contact?47:37;
+        auto* titleLabel=label(_rows[i].title.c_str(),x,contact?11:6,w-x-36,false,b);
+        lv_label_set_long_mode(titleLabel,LV_LABEL_LONG_DOT);
+        auto* detail=label(_rows[i].detail.c_str(),x,contact?32:25,w-x-28,true,b); sub(detail);
+        lv_obj_set_height(detail,rowHeight-(contact?36:29)); lv_label_set_long_mode(detail,LV_LABEL_LONG_DOT);
+        icon(b,Icon::Chevron,w-23,(rowHeight-18)/2,15,accent());
+      }
+      if(_rows.empty()) label(_needPage||_awaiting?TR("Loading..."):TR("No items"),8,top+20,w-16);
+    }
+    const int footerY=h-27, mid=w/2;
+    auto* prev=button(LV_SYMBOL_LEFT,mid-64,footerY,32,6,26); bare(prev);
+    auto* next=button(LV_SYMBOL_RIGHT,mid+32,footerY,32,7,26); bare(next);
+    if(_previous.empty() || _awaiting) lv_obj_add_state(prev,LV_STATE_DISABLED);
+    if(!_hasNext || _awaiting) lv_obj_add_state(next,LV_STATE_DISABLED);
+    char page[40];
+    if(_page==Text) snprintf(page,sizeof page,"%u",unsigned(_previous.size()+1));
+    else snprintf(page,sizeof page,"%u / %lu",unsigned(_previous.size()+1),(unsigned long)std::max(1u,(_total+(_page==Contacts?1:2))/(_page==Contacts?2:3)));
+    auto* count=label(_info.empty()?page:"",mid-31,footerY+5,62,true); lv_obj_set_style_text_align(count,LV_TEXT_ALIGN_CENTER,0);
+  }
+  if(!_info.empty() && _page!=Info) {
+    const bool list=_page==Messages || _page==Contacts || _page==Text;
+    _notice=button(_info.c_str(),list?40:0,list?h-27:h-17,list?w-80:w,16,list?26:16); bare(_notice);
+    auto* l=lv_obj_get_child(_notice,0); lv_obj_set_style_text_font(l,&theme::font12(),0);
   }
 }
 bool GuardianAppScreen::request(const char* operation,const std::string& json) {
-  if (_awaiting || !guardian::rpcStart(json,millis())) {
-    _info=TR("Waiting for Guardian BLE"); return false;
-  }
-  _operation=operation; _awaiting=true; _info=TR("Loading..."); return true;
+  if (_awaiting || !guardian::rpcStart(json,millis())) return false;
+  _operation=operation; _awaiting=true; _requestPage=_page; _requestEpoch=_epoch;
+  return true;
 }
-void GuardianAppScreen::requestPage(bool next) {
-  if (_awaiting) return;
-  JsonDocument doc;
-  _id="gm"+std::to_string(++_serial); doc["id"]=_id;
+void GuardianAppScreen::requestPage(bool next, bool background, bool keepOffset) {
+  if (_awaiting) { _needPage=!background; return; }
+  if (!(_page==Messages || _page==Contacts || _page==Text)) return;
+  JsonDocument doc; _id="gm"+std::to_string(++_serial); doc["id"]=_id;
   const char* op=_page==Contacts?"contacts.list":_page==Text?"message.get":"messages.list";
   doc["op"]=op;
-  if (next) { _offset=_next; doc["revision"]=_revision; }
-  else { _offset=0; _revision.clear(); }
-  doc["offset"]=_offset; doc["limit"]=_page==Text?512:4;
+  const uint32_t offset=next?_next:(keepOffset?_offset:0);
+  if ((next || keepOffset) && !_revision.empty()) doc["revision"]=_revision;
+  doc["offset"]=offset; doc["limit"]=_page==Text?512:_page==Contacts?2:3;
   if (_page==Contacts) doc["source"]=sources[_source];
   else if (_page==Text) doc["msg_id"]=_message;
   else doc["folder"]=folders[_folder];
-  _rows.clear(); _body.clear(); _hasNext=false;
-  request(op,guardian::jsonText(doc)); render();
+  if (!request(op,guardian::jsonText(doc))) {
+    _needPage=true;
+    if (!background) { _info=TR("Waiting for Guardian BLE"); render(); }
+    return;
+  }
+  _background=background; _needPage=false; _lastPoll=millis();
+  if (next) _previous.push_back(_offset);
+  if (!next && !keepOffset) { _previous.clear(); _revision.clear(); }
+  _offset=offset;
+  if (!background) { _rows.clear(); _body.clear(); _signature.clear(); _hasNext=false; _info.clear(); render(); }
 }
 void GuardianAppScreen::send() {
   if (_awaiting) return;
@@ -168,90 +320,134 @@ void GuardianAppScreen::send() {
   if (!guardian::rpcReady()) { _info=TR("Waiting for Guardian BLE"); render(); return; }
   if (!_draft.pending()) _draft.token=guardian::newToken();
   if (!guardian::saveDraft(_draft)) { _info=TR("Cannot save draft. Nothing sent."); render(); return; }
-  JsonDocument doc; _id="gm"+std::to_string(++_serial);
-  doc["id"]=_id; doc["op"]="message.queue"; doc["token"]=_draft.token;
+  JsonDocument doc; _id="gm"+std::to_string(++_serial); doc["id"]=_id; doc["op"]="message.queue"; doc["token"]=_draft.token;
   doc["to"]=_draft.to; doc["subject"]=_draft.subject; doc["body"]=_draft.body; doc["priority"]=_draft.priority;
-  request("message.queue",guardian::jsonText(doc)); render();
+  request("message.queue",guardian::jsonText(doc)); _info=TR("Sending..."); render();
 }
 void GuardianAppScreen::response(const std::string& raw,const std::string& transportError) {
   if (!_awaiting) return;
   _awaiting=false;
-  JsonDocument doc;
-  std::string error=transportError;
+  const bool visible=_root.get() && _requestEpoch==_epoch && _requestPage==_page;
+  _lastPoll=millis();
+  // A background list reply must never rebuild a different page or erase typing.
+  if (_operation!="message.queue" && !visible) return;
+  JsonDocument doc; std::string error=transportError;
   if (error.empty() && (!guardian::parseObject(doc,raw) || !doc["id"].is<const char*>() ||
-      _id != doc["id"].as<const char*>() || !doc["ok"].is<bool>())) error="protocol_error";
+      _id!=doc["id"].as<const char*>() || !doc["ok"].is<bool>())) error="protocol_error";
   if (error.empty() && !doc["ok"].as<bool>()) error=doc["error"]["code"] | "protocol_error";
   if (!error.empty()) {
     if (error=="protocol_error") guardian::rpcAbort();
     if (_operation=="message.queue") _info=TR("Send unconfirmed. Check PC; retry uses the same token.");
     else if (error=="list_changed" || error=="message_changed") {
-      _rows.clear(); _body.clear(); _revision.clear(); _hasNext=false;
-      if (_root.get() && (_page==Messages || _page==Contacts || _page==Text)) { requestPage(); return; }
-      _info=TR("List changed. Reload the first page.");
+      _revision.clear(); _offset=0; _previous.clear(); _needPage=true;
+      requestPage(); return;
     } else _info=errorText(error);
-    if (_operation=="message.queue" && error!="timeout" && error!="disconnected") _info += std::string("\n")+errorText(error);
-    render(); return;
+    _lastPoll=millis();
+    if (visible) render(); return;
   }
   auto result=doc["result"].as<JsonObjectConst>();
-  if (result.isNull()) { _info=TR("Invalid Guardian response"); render(); return; }
+  if (result.isNull()) { _info=TR("Invalid Guardian response"); if (visible) render(); return; }
   if (_operation=="message.queue") {
     if (result["accepted"].is<bool>() && result["accepted"].as<bool>() && result["msg_id"].is<uint32_t>()) {
       guardian::Draft cleared;
       if (guardian::saveDraft(cleared)) {
-        _draft=cleared; _info=TR("Queued on PC. Delivery is handled by Guardian."); _page=Dashboard;
+        _draft=cleared;
+        if (visible) { _page=Dashboard; ++_epoch; _info=TR("Queued on PC. Delivery is handled by Guardian."); }
       } else _info=TR("PC accepted the message; local confirmation could not be saved.");
     } else _info=TR("Send unconfirmed. Check PC; retry uses the same token.");
-  } else if (_operation=="status.get") {
-    _transfers.clear();
-    for (auto item:result["transfers"].as<JsonArrayConst>()) {
-      char line[48]; const char* dir=item["direction"] | "";
-      snprintf(line,sizeof line,"R%u %s: ",item["radio"].as<unsigned>(),!strcmp(dir,"send")?"TX":"RX");
-      _transfers+=line;
-      if (item["percent"].is<unsigned>() && item["percent"].as<unsigned>()<=100) _transfers+=std::to_string(item["percent"].as<unsigned>())+"%";
-      else _transfers+="—";
-      _transfers+="  ";
-    }
-    _info=_transfers.empty()?TR("No active transfers"):_transfers;
-  } else {
-    if (!result["revision"].is<const char*>() ||
-        (!result["next_offset"].isNull() && !result["next_offset"].is<uint32_t>())) {
+    if (visible) render(); return;
+  }
+  if (!result["revision"].is<const char*>() ||
+      (!result["next_offset"].isNull() && !result["next_offset"].is<uint32_t>())) {
+    _info=TR("Invalid Guardian response"); render(); return;
+  }
+  // A new revision alone must not steal focus from an unchanged list.
+  std::string signature;
+  if (_operation=="message.get") serializeJson(result,signature);
+  else {
+    serializeJson(result["items"],signature);
+    signature+='|'+std::to_string(result["total"] | 0u);
+    signature+='|'+std::to_string(result["next_offset"] | 0u);
+  }
+  _revision=result["revision"].as<const char*>();
+  if (_background && signature==_signature && _info.empty()) return;
+  _signature=signature;
+  _hasNext=!result["next_offset"].isNull(); _next=result["next_offset"] | 0u;
+  if (_hasNext && _next<=_offset) { _hasNext=false; _info=TR("Invalid Guardian response"); render(); return; }
+  _info.clear();
+  if (_operation=="message.get") {
+    if (!result["body"].is<const char*>() || !result["msg_id"].is<uint32_t>() || result["msg_id"].as<uint32_t>()!=_message) {
       _info=TR("Invalid Guardian response"); render(); return;
     }
-    _revision=result["revision"].as<const char*>(); _hasNext=!result["next_offset"].isNull();
-    _next=result["next_offset"] | 0u;
-    if (_hasNext && _next<=_offset) { _hasNext=false; _info=TR("Invalid Guardian response"); render(); return; }
-    if (_operation=="message.get") {
-      if (!result["body"].is<const char*>() || !result["msg_id"].is<uint32_t>() || result["msg_id"].as<uint32_t>()!=_message) {
-        _info=TR("Invalid Guardian response"); render(); return;
-      }
-      _body=result["body"].as<const char*>();
-      _heading=std::string(result["source"] | "")+" > "+(result["final_dest"] | "");
-      _body=std::string(result["subject"] | "")+"\n\n"+_body;
-      _info=TR("Reading does not mark the PC message as read.");
-    } else {
-      _rows.clear();
-      for (auto item:result["items"].as<JsonArrayConst>()) {
-        if (_rows.size()>=4) break;
-        Row row;
-        if (_operation=="contacts.list") {
-          row.call=item["callsign"] | ""; row.title=row.call;
-          row.detail=std::string(item["live"].as<bool>()?TR("Live"):TR("Saved"))+" · "+(item["grid"] | "");
-          const char* via=item["live_next_hop"] | (item["next_hop"] | "");
-          if (*via && row.call!=via) row.detail+=" > "+std::string(via);
-          if (item["approved"].is<bool>() && !item["approved"].as<bool>()) row.detail+=" ?";
-        } else {
-          if (!item["msg_id"].is<uint32_t>()) continue;
-          row.id=item["msg_id"].as<uint32_t>();
-          row.title=std::string(item["read"].as<bool>()?"":"* ")+(item["source"] | "")+" > "+(item["final_dest"] | "");
-          row.detail=std::string(messageStatus(item["status"] | ""))+" · "+(item["subject"] | "");
+    _heading=std::string(result["source"] | "")+" > "+(result["final_dest"] | "");
+    _body=std::string(result["subject"] | "")+"\n\n"+result["body"].as<const char*>();
+  } else {
+    _rows.clear(); _total=result["total"] | 0u;
+    for (auto item:result["items"].as<JsonArrayConst>()) {
+      if (_rows.size()>=size_t(_page==Contacts?2:3)) break;
+      Row row;
+      if (_operation=="contacts.list") {
+        row.call=item["callsign"] | "";
+        const bool live=item["live"] | false, saved=item["saved"] | false;
+        row.title=row.call;
+        row.saved=saved; row.dot=live;
+        auto route=[&](const char* via) { return !*via?std::string("—"):row.call==via?std::string(TR("Direct")):std::string(TR("Via"))+" "+via; };
+        // Saved and live routes are different fields, even for the same callsign.
+        const char* stored=item["next_hop"] | ""; const char* current=item["live_next_hop"] | "";
+        if (_source==2) row.detail=route(stored);
+        else if (_source==1) row.detail=route(current);
+        else {
+          if (saved) row.detail=std::string(TR("Saved"))+": "+route(stored);
+          if (live) { if (!row.detail.empty()) row.detail+="\n"; row.detail+=std::string(TR("Live"))+": "+route(current); }
         }
-        _rows.push_back(row);
+        if (item["approved"].is<bool>() && !item["approved"].as<bool>()) row.detail+=" · "+std::string(TR("Unapproved"));
+      } else {
+        if (!item["msg_id"].is<uint32_t>()) continue;
+        row.id=item["msg_id"].as<uint32_t>();
+        row.dot=!item["read"].as<bool>();
+        row.title=(_folder==1 || _folder==2 || _folder==3)?(item["final_dest"] | ""):(item["source"] | "");
+        row.detail=item["subject"] | "";
       }
-      _info=std::to_string(_offset+(_rows.empty()?0:1))+"–"+std::to_string(_offset+_rows.size())+" / "+std::to_string(result["total"] | 0u);
-      if (_operation=="contacts.list") _info+=" · "+std::string(TR("Contact is not a delivery guarantee."));
+      _rows.push_back(row);
     }
   }
+  const lv_coord_t scroll=lv_obj_get_scroll_y(_root.get());
   render();
+  if (_background && _root.get()) lv_obj_scroll_to_y(_root.get(),scroll,LV_ANIM_OFF);
+}
+void GuardianAppScreen::updateDashboard(uint32_t now) {
+  if (!_activity) return;
+  const auto state=guardian::snapshot(now); const bool online=state.session.fresh(now);
+  const auto& s=state.session.status;
+  const uint8_t active=s.flags&6;
+  if (!online || !active) _direction=0;
+  else if (!(_direction&active)) _direction=(active&4)?4:2;
+  const uint8_t percent=_direction==4?state.session.rxPercent:state.session.txPercent;
+  lv_label_set_text(_activity,!online?TR("Offline"):_direction==4?TR("Receiving (RX)"):_direction==2?TR("Sending (TX)"):TR("Ready"));
+  if (online && _direction==4) lv_obj_clear_flag(_arrowRx,LV_OBJ_FLAG_HIDDEN); else lv_obj_add_flag(_arrowRx,LV_OBJ_FLAG_HIDDEN);
+  if (online && _direction==2) lv_obj_clear_flag(_arrowTx,LV_OBJ_FLAG_HIDDEN); else lv_obj_add_flag(_arrowTx,LV_OBJ_FLAG_HIDDEN);
+  char value[32];
+  if (!online || !_direction) value[0]=0;
+  else if (percent<=100) snprintf(value,sizeof value,"%u %%",percent);
+  else strcpy(value,"—");
+  lv_label_set_text(_percent,value);
+  lv_obj_set_style_text_font(_percent,percent==100?&theme::font16():&lv_font_montserrat_20,0);
+  if (online && _direction && percent<=100) {
+    lv_obj_clear_flag(_bar,LV_OBJ_FLAG_HIDDEN); lv_bar_set_value(_bar,percent,LV_ANIM_OFF);
+    lv_obj_set_style_bg_color(_bar,lv_color_hex(_direction==4?0x10bdea:0xffbd45),LV_PART_INDICATOR);
+  } else lv_obj_add_flag(_bar,LV_OBJ_FLAG_HIDDEN);
+  auto count=[&](lv_obj_t* object,uint32_t number) {
+    if (online) snprintf(value,sizeof value,"%lu",(unsigned long)number); else strcpy(value,"—");
+    lv_label_set_text(object,value);
+    lv_obj_set_style_text_font(object,number>999?&theme::font14():number>99?&lv_font_montserrat_20:&lv_font_montserrat_28,0);
+  };
+  count(_inbox,s.inbox); count(_outbox,s.outbox);
+  if (online) snprintf(value,sizeof value,TR("%lu new"),(unsigned long)s.unread); else value[0]=0;
+  lv_label_set_text(_unread,value); lv_obj_set_style_text_color(_unread,lv_color_hex(accent()),0);
+  for (int i=0;i<3;++i) {
+    const auto color=online&&(s.flags&(8<<i))?0x32ed53:0x7395b9;
+    lv_obj_set_style_bg_color(_links[i],lv_color_hex(color),0);
+  }
 }
 void GuardianAppScreen::refresh(uint32_t now) {
   std::string raw,error;
@@ -259,39 +455,41 @@ void GuardianAppScreen::refresh(uint32_t now) {
   if (!_root.get() || (_last && uint32_t(now-_last)<250)) return;
   _last=now;
   const auto state=guardian::snapshot(now); const bool online=state.session.fresh(now);
-  if (_online && !online) { _rows.clear(); _revision.clear(); _hasNext=false; _body.clear(); _transfers.clear();
-    if (_page!=Compose) { _info=TR("Guardian unavailable. Try again after reconnecting."); render(); }
+  if (_online && !online) {
+    _rows.clear(); _revision.clear(); _hasNext=false; _signature.clear();
+    if (_page==Messages || _page==Contacts || _page==Text) { _body.clear(); _info=TR("Guardian offline"); _needPage=true; render(); }
   }
   _online=online;
-  if (_page==Dashboard && _status) {
-    char text[256];
-    if (!online) snprintf(text,sizeof text,"%s\n\nInbox —\nOutbox —\nCAT —  CTRL —",TR("Guardian offline"));
-    else {
-      char tx[24],rx[24];
-      auto pct=[](char* p,size_t n,bool active,uint8_t value) {
-        if (!active) snprintf(p,n,"%s",TR("Idle"));
-        else if (value<=100) snprintf(p,n,"%u%%",value);
-        else snprintf(p,n,"—");
-      };
-      const auto& s=state.session.status;
-      pct(tx,sizeof tx,s.flags&2,state.session.txPercent); pct(rx,sizeof rx,s.flags&4,state.session.rxPercent);
-      snprintf(text,sizeof text,TR("TX %s   RX %s\nInbox %lu / new %lu\nOutbox %lu\nCAT %s  VARA %s\nCTRL %s"),tx,rx,
-        (unsigned long)s.inbox,(unsigned long)s.unread,(unsigned long)s.outbox,
-        s.flags&8?"+":"—",s.flags&16?"+":"—",s.flags&32?"+":"—");
-    }
-    if (strcmp(lv_label_get_text(_status),text)) lv_label_set_text(_status,text);
+  if (_page==Dashboard) updateDashboard(now);
+  // Passive BLE Status/Progress already updates the dashboard. Only the visible
+  // lists poll RPC; composing and reading text never rebuild under the user.
+  if (online && guardian::rpcReady() && !_awaiting) {
+    if (_needPage) requestPage(false,false,_offset!=0);
+    else if ((_page==Messages || _page==Contacts) && uint32_t(now-_lastPoll)>=5000)
+      requestPage(false,true,true);
   }
 }
 void GuardianAppScreen::action(int a) {
-  if (a==0) { captureDraft(); guardian::saveDraft(_draft); _page=Dashboard; render(); return; }
+  if (a==0) { back(); return; }
+  if (a==10) { captureDraft(); guardian::saveDraft(_draft); if (_home) _home(); return; }
+  if (a==9) { go(Settings); return; }
+  if (a==13 || a==14) { _source=a==13?1:2; go(Contacts); return; }
+  if (a==15 && !_draft.pending()) { _contactPicker=true; go(Contacts); return; }
+  if (a==11 || a==12) {
+    const auto choice=a==11?guardian::Appearance::Blue:guardian::Appearance::Green;
+    if (guardian::saveAppearance(choice)) { _appearance=choice; _info.clear(); }
+    else _info=TR("Cannot save theme");
+    render(); return;
+  }
+  if (a==16) { captureDraft(); _infoReturn=_page; _page=Info; ++_epoch; render(); return; }
+  if (a==17) { _page=_infoReturn; ++_epoch; render(); return; }
+  if (a==1 || a==2) { _contactPicker=false; go(a==1?Messages:Contacts); return; }
+  if (a==3) { go(Compose); _confirmNew=false; _info=_draft.pending()?TR("Check PC before retry if its database or BLE identity changed."):""; render(); return; }
   if (_awaiting) return;
-  if (a==1 || a==2) { _page=a==1?Messages:Contacts; requestPage(); }
-  else if (a==3) { _page=Compose; _confirmNew=false; _info=_draft.pending()?TR("Check PC before retry if its database or BLE identity changed."):""; render(); }
-  else if (a==4) {
-    JsonDocument doc; _id="gm"+std::to_string(++_serial); doc["id"]=_id; doc["op"]="status.get";
-    request("status.get",guardian::jsonText(doc)); render();
-  } else if (a==5) send();
-  else if (a==6 || a==7) requestPage(a==7);
+  if (a==5) send();
+  else if (a==6 && !_previous.empty()) {
+    _offset=_previous.back(); _previous.pop_back(); requestPage(false,false,true);
+  } else if (a==7 && _hasNext) requestPage(true);
   else if (a==8 && _draft.pending()) {
     if (!_confirmNew) { _confirmNew=true; _info=TR("The previous message may be queued on PC. Check it before starting a new message."); }
     else {
@@ -300,24 +498,26 @@ void GuardianAppScreen::action(int a) {
       else _info=TR("Cannot save draft. Nothing sent.");
     }
     render();
-  }
-  else if (a>=20 && size_t(a-20)<_rows.size()) {
+  } else if (a>=20 && size_t(a-20)<_rows.size()) {
     const Row row=_rows[a-20];
-    if (_page==Contacts) {
-      if (!_draft.pending()) _draft.to=row.call;
-      _page=Compose; _info=_draft.pending()?TR("Unconfirmed send"):""; render();
-    } else { _message=row.id; _page=Text; _heading=row.title; requestPage(); }
+    if (_page==Contacts) { _contactPicker=false; if (!_draft.pending()) _draft.to=row.call; go(Compose); }
+    else { _message=row.id; go(Text); _heading=row.title; }
   }
+}
+bool GuardianAppScreen::belongs(lv_obj_t* object, lv_obj_t* root) {
+  if (!root) return false;
+  while (object) { if (object==root) return true; object=lv_obj_get_parent(object); }
+  return false;
 }
 void GuardianAppScreen::clicked(lv_event_t* event) {
   const Binding binding=*static_cast<Binding*>(lv_event_get_user_data(event));
-  if (binding.owner->_root.get()) binding.owner->action(binding.action);
+  if (belongs(lv_event_get_target(event),binding.owner->_root.get())) binding.owner->action(binding.action);
 }
 void GuardianAppScreen::selection(lv_event_t* event) {
   auto* self=static_cast<GuardianAppScreen*>(lv_event_get_user_data(event));
-  if (self->_awaiting) { lv_dropdown_set_selected(lv_event_get_target(event),self->_page==Messages?self->_folder:self->_source); return; }
+  if (!belongs(lv_event_get_target(event),self->_root.get())) return;
   const unsigned selected=lv_dropdown_get_selected(lv_event_get_target(event));
   if (self->_page==Messages) self->_folder=selected; else self->_source=selected;
-  self->requestPage();
+  self->go(self->_page);
 }
 } }

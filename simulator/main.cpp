@@ -510,6 +510,7 @@ int appMain(int argc, char **argv) {
     }
     if (guardianOnly) {
       extern void runGuardianAppRegression(void (*)(const char*));
+      runGuardianAppRegression(nullptr); // Also cover fast replies between frames.
       runGuardianAppRegression([](const char* name) { lv_refr_now(nullptr); saveFrame(name); });
       return 0;
     }
