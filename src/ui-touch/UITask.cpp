@@ -26498,6 +26498,9 @@ void UITask::onThreadsChanged() {
 #endif
 }
 
+#if CAP_CONSOLE
+bool uiConsoleModeActive();
+#endif
 static ui::screens::PingReplyDialog pingReplyDialog({
   []() -> lv_coord_t { return STATUSBAR_H; }, popupClose,
   [](lv_obj_t* object) {
@@ -26518,7 +26521,7 @@ void UITask::onPingReply(const ContactInfo& contact, const uint8_t* data, size_t
   char message[120];
   snprintf(message, sizeof message, "%s: Ping (%u bytes)", name, (unsigned)len);
 #if CAP_CONSOLE
-  if (s_console_mode) {
+  if (uiConsoleModeActive()) {
     char battery[24] = "--", uptime[24] = "--", queue[16] = "--", rssi[16] = "--";
     if (status.hasBattery) snprintf(battery, sizeof battery, "%lu mV", (unsigned long)status.batteryMv);
     if (status.hasUptime) snprintf(uptime, sizeof uptime, "%lu s", (unsigned long)status.uptimeSecs);
