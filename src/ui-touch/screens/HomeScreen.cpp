@@ -254,10 +254,12 @@ void HomeScreen::refreshGuardian(const guardian::Snapshot& state, uint32_t now) 
     _guardianHadStatus = true; _guardianInbox = s.inbox;
     const bool rx = s.flags & 4, tx = s.flags & 2;
     auto progress = [&](int slot, uint8_t percent, bool both) {
+      // Unknown is an active direction with a dash, never an empty 0% meter.
+      if (percent > 100) return;
       auto* bar = _guardianBars[slot];
       lv_obj_set_pos(bar, both ? 111 : 41, both ? (slot ? 26 : 10) : 27);
       lv_obj_set_size(bar, both ? _width - 238 : _width - 171, 6);
-      lv_bar_set_value(bar, percent <= 100 ? percent : 0, LV_ANIM_OFF);
+      lv_bar_set_value(bar, percent, LV_ANIM_OFF);
       lv_obj_clear_flag(bar, LV_OBJ_FLAG_HIDDEN);
     };
     auto line = [](char* out, size_t n, const char* caption, uint8_t p) {
