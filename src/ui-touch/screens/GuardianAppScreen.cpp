@@ -47,7 +47,7 @@ lv_obj_t* GuardianAppScreen::label(const char* value, int x, int y, int w, bool 
   auto* l=lv_label_create(parent?parent:_root.get());
   lv_label_set_text(l,value); lv_obj_set_pos(l,x,y); lv_obj_set_width(l,w);
   lv_obj_set_style_text_font(l,small?&theme::font12():&theme::font14(),0);
-  lv_obj_set_style_text_color(l,lv_color_hex(theme::colors().COLOR_TEXT),0);
+  lv_obj_set_style_text_color(l,lv_obj_get_style_text_color(parent?parent:_root.get(),0),0);
   return l;
 }
 lv_obj_t* GuardianAppScreen::button(const char* title, int x, int y, int w, int action, int h, bool left) {
@@ -106,8 +106,9 @@ void GuardianAppScreen::render() {
     _page==Contacts?TR("Network"):_page==Compose?TR("New message"):
     _page==Settings?TR("Guardian appearance"):_page==Text?TR("Message"):"Guardian";
   if (_chrome) _chrome(title);
-  lv_obj_set_style_bg_color(_root.get(),lv_color_hex(theme::isDay()?0xe4edf4:0x091721),0);
+  lv_obj_set_style_bg_color(_root.get(),lv_color_hex(0x000000),0);
   lv_obj_set_style_bg_opa(_root.get(),LV_OPA_COVER,0);
+  lv_obj_set_style_text_color(_root.get(),lv_color_hex(0xeaf1ff),0);
   lv_obj_update_layout(_root.get());
   const int w=lv_obj_get_content_width(_root.get());
   const int h=lv_obj_get_content_height(_root.get());
