@@ -17,5 +17,16 @@ subprocess.run([*compiler, '-std=c++11', '-Wall', '-Wextra', '-Werror', '-O1', '
                 '-I'+str(ROOT/'test/stubs/guardian_ble'), '-I'+str(ROOT/'src'),
                 str(ROOT/'test/test_guardian_transport.cpp'),
                 str(ROOT/'src/helpers/esp32/GuardianBLEInterface.cpp'),
-                str(ROOT/'src/ui-touch/services/GuardianLink.cpp'), '-o', str(transport)], check=True)
+                str(ROOT/'src/ui-touch/services/GuardianLink.cpp'),
+                str(ROOT/'src/ui-touch/services/GuardianRpcLink.cpp'), '-o', str(transport)], check=True)
 subprocess.run([str(transport)], check=True, timeout=15)
+rpc = OUT / ('guardian-rpc.exe' if os.name == 'nt' else 'guardian-rpc')
+json_include = ROOT/'.sim-cache/arduinojson/src'
+if not json_include.exists():
+    json_include = ROOT/'.pio/libdeps/LilyGo_TDeck_companion_radio_touch/ArduinoJson/src'
+subprocess.run([*compiler, '-std=c++17', '-Wall', '-Wextra', '-Werror', '-O1',
+                '-I'+str(ROOT/'src'),
+                '-I'+str(json_include),
+                str(ROOT/'test/test_guardian_rpc.cpp'),
+                str(ROOT/'src/ui-touch/services/GuardianDraft.cpp'), '-o', str(rpc)], check=True)
+subprocess.run([str(rpc)], check=True, timeout=15)

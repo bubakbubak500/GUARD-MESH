@@ -1346,3 +1346,48 @@ Guardian BLE requires a T-Deck.	Guardian BLE vyžaduje T-Deck.
 Enable	Zapnout
 Disable	Vypnout
 Idle	Neaktivní
+On PC: Settings > Station settings > Guard Mesh. Pairing starts on PC. Phone BLE is paused.	Na PC: Nastavení > Nastavení stanice > Guard Mesh. Párování zahaj na PC. BLE pro telefon je pozastavené.
+New Guardian message	Nová zpráva
+Queued on PC	Ve frontě na PC
+Message not found	Zpráva nenalezena
+Set the callsign in Guardian on PC.	Nastav volací značku v Guardianu na PC.
+Send token conflict. Check Guardian on PC.	Konflikt odeslání. Zkontroluj Guardian na PC.
+Guardian storage unavailable	Úložiště Guardianu není dostupné
+Guardian rejected the request	Guardian odmítl požadavek
+Update Guardian on PC	Aktualizuj Guardian na PC
+Invalid Guardian response	Neplatná odpověď Guardianu
+Guardian unavailable. Try again after reconnecting.	Guardian není dostupný. Po připojení obnov zobrazení.
+Forwarded	Předáno
+Unconfirmed send	Nepotvrzené odeslání
+Recipient	Příjemce
+Normal\nPriority 1\nPriority 2\nPriority 3	Běžná\nPriorita 1\nPriorita 2\nPriorita 3
+Retry same send	Opakovat odeslání
+Inbox\nOutbox\nSent\nDrafts\nTransit	Inbox\nOutbox\nOdeslané\nKoncepty\nTranzit
+All contacts\nLive contacts\nSaved contacts	Všechny kontakty\nŽivé kontakty\nUložené kontakty
+First page	Začátek
+Waiting for Guardian BLE	Čekám na Guardian BLE
+Enter recipient and message (max 4096 characters).	Vyplň příjemce a zprávu (max. 4096 znaků).
+Cannot save draft. Nothing sent.	Koncept nelze uložit. Nic nebylo odesláno.
+Send unconfirmed. Check PC; retry uses the same token.	Odeslání nepotvrzeno. Zkontroluj PC; opakování zachová stejnou zprávu.
+List changed. Reload the first page.	Seznam se změnil. Obnov první stránku.
+Queued on PC. Delivery is handled by Guardian.	Zařazeno do fronty na PC. Doručení zajistí Guardian.
+PC accepted the message; local confirmation could not be saved.	PC přijal zprávu; potvrzení nelze uložit do zařízení.
+No active transfers	Žádný aktivní přenos
+Reading does not mark the PC message as read.	Prohlížení neoznačí zprávu na PC jako přečtenou.
+Contact is not a delivery guarantee.	Kontakt nezaručuje doručení.
+Check PC before retry if its database or BLE identity changed.	Před opakováním zkontroluj PC, pokud se změnila jeho databáze nebo BLE identita.
+PC checked: start new	PC ověřeno: nová zpráva
+TX %s   RX %s\nInbox %lu / new %lu\nOutbox %lu\nCAT %s  VARA %s\nCTRL %s	TX %s   RX %s\nInbox %lu / nové %lu\nOutbox %lu\nCAT %s  VARA %s\nCTRL %s
+Unread: %lu	Nepřečtené: %lu
+Draft	Koncept
+Failed	Selhalo
+Live	Živý
+New message	Nová zpráva
+Queued	Ve frontě
+Received	Přijato
+Receiving	Příjem
+Sending	Odesílání
+Subject	Předmět
+Waiting	Čeká
+Start new message	Začít novou zprávu
+The previous message may be queued on PC. Check it before starting a new message.	Předchozí zpráva už může být ve frontě na PC. Před novou zprávou to ověř.

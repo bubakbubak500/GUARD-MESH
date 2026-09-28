@@ -11,6 +11,12 @@ int main() {
   assert(s.accept(p,20,1) == Result::Disconnected);
   s.connect(); assert(!s.fresh(0));
   assert(s.accept(p,20,100) == Result::Ok);
+  uint8_t progress[]={'G','P',2,72,64,7,0,0,0};
+  assert(s.progress(progress,9)==Result::Ok && s.txPercent==72 && s.rxPercent==64);
+  assert(s.receivedAt==100);
+  progress[3]=101; assert(s.progress(progress,9)==Result::Invalid);
+  progress[3]=255; progress[5]=8; assert(s.progress(progress,9)==Result::Sequence);
+  progress[5]=7; assert(s.progress(progress,9)==Result::Ok && s.txPercent==255);
   assert(s.status.inbox == 5 && s.status.unread == 2 && s.status.outbox == 1 && s.status.flags == 7);
   assert(s.fresh(15099) && !s.fresh(15100));
   assert(s.accept(p,20,15000) == Result::Sequence && s.receivedAt == 100);
@@ -23,6 +29,7 @@ int main() {
   }
   p[3] = 0; assert(s.accept(p,20,200) == Result::Invalid);
   p[3] = 0x3f; assert(s.accept(p,20,15101) == Result::Ok && s.fresh(15101));
+  assert(s.txPercent==255 && s.rxPercent==255);
   s.disconnect(); assert(!s.fresh(15102));
   s.connect(); p[16] = 0; assert(s.accept(p,20,0) == Result::Ok && s.fresh(0));
   s.connect(); memset(p+16,0xff,4);

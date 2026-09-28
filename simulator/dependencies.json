@@ -2,6 +2,12 @@
   "ziglang": "0.14.1",
   "repositories": [
     {
+      "directory": "arduinojson",
+      "url": "https://github.com/bblanchon/ArduinoJson.git",
+      "tag": "v7.4.3",
+      "commit": "77771d3c07668e01d8f52acb03910c1110bb373f"
+    },
+    {
       "directory": "lvgl",
       "url": "https://github.com/lvgl/lvgl.git",
       "tag": "v8.4.0",

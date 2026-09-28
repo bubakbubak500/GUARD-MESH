@@ -13,4 +13,5 @@ void pairingUntil(uint32_t deadline);
 void connected();
 void disconnected();
 Result receive(const uint8_t* bytes, size_t size, uint32_t now);
+Result progress(const uint8_t* bytes, size_t size);
 } // namespace guardian

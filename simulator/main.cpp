@@ -433,9 +433,10 @@ ColorVal UIColor::window_bkg = 0, UIColor::title_bkg = 0, UIColor::title_txt = 0
 
 int appMain(int argc, char **argv) {
   setvbuf(stdout, nullptr, _IONBF, 0);
-  bool czech = argc > 1 && strcmp(argv[1], "--smoke-cs") == 0;
+  bool guardianOnly = argc > 1 && (!strcmp(argv[1], "--guardian-test") || !strcmp(argv[1], "--guardian-test-cs"));
+  bool czech = argc > 1 && (!strcmp(argv[1], "--smoke-cs") || !strcmp(argv[1], "--guardian-test-cs"));
   bool keyboardNav = argc > 1 && strcmp(argv[1], "--smoke-nav") == 0;
-  bool smoke = czech || keyboardNav || (argc > 1 && strcmp(argv[1], "--smoke") == 0);
+  bool smoke = guardianOnly || czech || keyboardNav || (argc > 1 && strcmp(argv[1], "--smoke") == 0);
   WNDCLASSW cls{};
   cls.lpfnWndProc = windowProc;
   cls.hInstance = GetModuleHandle(nullptr);
@@ -496,6 +497,11 @@ int appMain(int argc, char **argv) {
   if (czech && (strcmp(TR("Settings"), "Nastavení") || strcmp(TR("Advert"), "Advert")))
     throw std::runtime_error("Czech translation or preserved Advert term failed");
   if (smoke) {
+    if (guardianOnly) {
+      extern void runGuardianAppRegression(void (*)(const char*));
+      runGuardianAppRegression([](const char* name) { lv_refr_now(nullptr); saveFrame(name); });
+      return 0;
+    }
     if (keyboardNav) {
       lv_group_t* group = nullptr;
       for (auto* input = lv_indev_get_next(nullptr); input; input = lv_indev_get_next(input))

@@ -11,6 +11,7 @@ BUILD = CACHE / 'build'
 BUILD.mkdir(parents=True, exist_ok=True)
 ZIG = CACHE / 'toolchain/ziglang/zig.exe'
 INCLUDES = [ROOT/'simulator/include', ROOT/'src/ui-touch', ROOT/'src', ROOT/'include',
+            CACHE/'arduinojson/src',
             CACHE/'lvgl', CACHE/'meshcore/src', CACHE/'meshcore/examples/companion_radio']
 FLAGS = ['-DGUARD_SIMULATOR=1', '-DHAS_TOUCH_UI=1', '-DHAS_TDECK_GT911=1',
          '-DHAS_TDECK_KEYBOARD=1', '-DHAS_TDECK_TRACKBALL=1',
@@ -68,6 +69,7 @@ def main():
     sources += [ROOT/'simulator/language_file_regression.cpp']
     sources += [ROOT/'simulator/thread_list_regression.cpp']
     sources += [ROOT/'simulator/home_screen_regression.cpp']
+    sources += [ROOT/'simulator/guardian_app_regression.cpp']
     sources += [ROOT/'simulator/thread_menu_regression.cpp']
     sources += [ROOT/'simulator/glyph_picker_regression.cpp']
     sources += [ROOT/'simulator/quick_reply_picker_regression.cpp']

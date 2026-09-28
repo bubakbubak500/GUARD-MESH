@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "GuardianLink.h"
+#include "GuardianRpcLink.h"
 #include <stdio.h>
 #if defined(ESP32) && !defined(GUARD_SIMULATOR)
 #include <freertos/FreeRTOS.h>
@@ -28,7 +29,10 @@ Snapshot snapshot(uint32_t now) {
   result.pairing = pairDeadline && int32_t(pairDeadline - now) > 0;
   result.pairingSeconds = result.pairing ? (pairDeadline - now + 999) / 1000 : 0;
   // Stale numbers are deliberately absent from the UI-facing snapshot.
-  if (!result.session.fresh(now)) result.session.status = Status{};
+  if (!result.session.fresh(now)) {
+    result.session.status = Status{};
+    result.session.txPercent = result.session.rxPercent = 255;
+  }
   return result;
 }
 void request(Command command) { Guard guard; pending = command; }
@@ -40,8 +44,14 @@ void configure(bool enabled, bool radio, bool ready) {
 void pairingUntil(uint32_t deadline) { Guard guard; pairDeadline = deadline; }
 void deviceName(const char* name) { Guard guard; snprintf(state.deviceName, sizeof state.deviceName, "%s", name ? name : ""); }
 void connected() { Guard guard; state.session.connect(); }
-void disconnected() { Guard guard; state.session.disconnect(); }
+void disconnected() {
+  { Guard guard; state.session.disconnect(); }
+  rpcDisconnect();
+}
 Result receive(const uint8_t* bytes, size_t size, uint32_t now) {
   Guard guard; return state.session.accept(bytes, size, now);
+}
+Result progress(const uint8_t* bytes, size_t size) {
+  Guard guard; return state.session.progress(bytes, size);
 }
 }

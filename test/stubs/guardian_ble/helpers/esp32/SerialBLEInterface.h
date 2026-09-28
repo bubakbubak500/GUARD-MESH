@@ -15,6 +15,7 @@
 #define BLE_GATT_CHR_F_WRITE_ENC 0x1000
 #define BLE_GATT_CHR_F_READ 2
 #define BLE_GATT_CHR_F_READ_ENC 0x200
+#define BLE_GATT_CHR_F_NOTIFY 0x10
 #define BLE_GATT_ACCESS_OP_READ_CHR 0
 #define BLE_GATT_ACCESS_OP_WRITE_CHR 2
 #define BLE_ATT_ERR_INSUFFICIENT_AUTHEN 5
@@ -26,11 +27,13 @@ struct ble_uuid128_t { ble_uuid_t u; uint8_t value[16]; };
 struct ble_addr_t { uint8_t type, val[6]; };
 struct ble_gap_conn_desc { uint16_t conn_handle; ble_addr_t peer_id_addr; struct { bool encrypted, bonded; } sec_state; };
 struct os_mbuf { std::vector<uint8_t> data; };
-struct ble_gatt_access_ctxt { int op; os_mbuf* om; };
+struct ble_gatt_chr_def;
+struct ble_gatt_access_ctxt { int op; os_mbuf* om; const ble_gatt_chr_def* chr; };
 struct ble_gatt_chr_def {
   const ble_uuid_t* uuid;
   int (*access_cb)(uint16_t,uint16_t,ble_gatt_access_ctxt*,void*);
   void* arg; uint16_t flags; uint8_t min_key_size;
+  uint16_t* val_handle;
 };
 struct ble_gatt_svc_def { int type; const ble_uuid_t* uuid; ble_gatt_chr_def* characteristics; };
 namespace fake {
@@ -43,7 +46,16 @@ extern const ble_gatt_svc_def* service;
 inline uint32_t millis() { return fake::now; }
 inline void esp_efuse_mac_get_default(uint8_t* mac) { memset(mac,0,6); mac[5]=0xab; }
 inline int ble_gatts_count_cfg(const ble_gatt_svc_def*) { return fake::registerFails ? 1 : 0; }
-inline int ble_gatts_add_svcs(const ble_gatt_svc_def* service) { fake::service=service; return 0; }
+inline int ble_gatts_add_svcs(const ble_gatt_svc_def* service) {
+  fake::service=service;
+  for (int i=0; service->characteristics[i].uuid; ++i)
+    if (service->characteristics[i].val_handle) *service->characteristics[i].val_handle=20+i;
+  return 0;
+}
+inline os_mbuf* ble_hs_mbuf_from_flat(const void* p,size_t n) {
+  auto* m=new os_mbuf; const auto* b=static_cast<const uint8_t*>(p); m->data.assign(b,b+n); return m;
+}
+inline int ble_gatts_notify_custom(uint16_t,uint16_t,os_mbuf* m) { delete m; return 0; }
 inline int ble_gap_conn_find(uint16_t connection, ble_gap_conn_desc* desc) {
   if (connection != fake::desc.conn_handle) return 1;
   *desc=fake::desc; return 0;

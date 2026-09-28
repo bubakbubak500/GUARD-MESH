@@ -1,7 +1,7 @@
 # T-Deck simulátor pro Windows
 
 Spusť `Start-Simulator.cmd`. Potřebuje Windows x64, Python 3.9+ s pip a Git.
-První spuštění stáhne připnuté LVGL, hlavičky MeshCore a přenosný Zig compiler;
+První spuštění stáhne připnuté LVGL, ArduinoJson, hlavičky MeshCore a přenosný Zig compiler;
 další spuštění používají lokální cache. Visual Studio ani deska nejsou potřeba.
 Spouštěč znovu přeloží změněný kód a otevře samostatné okno.
 
@@ -33,6 +33,10 @@ odeslání/ACK, profil, ukládání nastavení a nabídka aplikací. Ověří ta
 otevření a zánik dialogů, kontaktů a nastavení, opožděné callbacky a identitu
 příjemce v rádiovém adaptéru. Snímky jsou v `.sim-cache/test-artifacts/` a
 podadresářích `cs/` a `keyboard-nav/`. `--build-only` pouze sestaví program.
+Přímo sestavený simulátor přijímá také `--guardian-test` a `--guardian-test-cs`:
+krátký průchod BLE V2 modelem, zprávami, kontakty a opakováním nepotvrzeného
+odeslání bez fyzického BLE. Koncepty jsou v tomto testu uložené pouze v paměti;
+firmware používá atomický NVS blob. Test ukládá snímky do pracovního adresáře.
 Další scénáře používají paměťový filesystem pro skutečný segmentový writer,
 migraci historie, kopírování/přesun, krátké čtení a zápis. Asynchronní historie
 prochází stejným vstupem executorů jako firmware. Testy mapy dekódují skutečné

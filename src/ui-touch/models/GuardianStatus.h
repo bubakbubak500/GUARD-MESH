@@ -18,6 +18,7 @@ struct Session {
   Status status{};
   uint32_t receivedAt = 0;
   bool connected = false, received = false;
+  uint8_t txPercent = 255, rxPercent = 255;
   void connect() { *this = Session{}; connected = true; }
   void disconnect() { *this = Session{}; }
   bool fresh(uint32_t now) const { return connected && received && uint32_t(now - receivedAt) < StaleMs; }
@@ -33,7 +34,18 @@ struct Session {
     if (received && (delta == 0 || delta >= 0x80000000u)) return Result::Sequence;
     status.inbox = read32(p + 4); status.unread = read32(p + 8);
     status.outbox = read32(p + 12); status.sequence = sequence; status.flags = p[3];
+    txPercent = rxPercent = 255;
     receivedAt = now; received = true;
+    return Result::Ok;
+  }
+  Result progress(const uint8_t* p, size_t n) {
+    if (!connected) return Result::Disconnected;
+    if (!p || n != 9) return Result::Length;
+    if (p[0] != 'G' || p[1] != 'P' || p[2] != 2 ||
+        (p[3] > 100 && p[3] != 255) || (p[4] > 100 && p[4] != 255)) return Result::Invalid;
+    if (!received || read32(p + 5) != status.sequence) return Result::Sequence;
+    txPercent = (status.flags & 2) ? p[3] : 255;
+    rxPercent = (status.flags & 4) ? p[4] : 255;
     return Result::Ok;
   }
 };

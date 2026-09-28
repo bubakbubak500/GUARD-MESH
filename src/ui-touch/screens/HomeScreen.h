@@ -57,6 +57,9 @@ private:
   lv_obj_t *_empty = nullptr;
   lv_obj_t *_unread = nullptr;
   lv_obj_t *_guardian = nullptr, *_guardianTitle = nullptr, *_guardianStatus = nullptr;
+  lv_obj_t *_guardianShield = nullptr, *_guardianBars[2] = {};
+  uint32_t _guardianInbox = 0, _guardianNoticeUntil = 0;
+  bool _guardianHadStatus = false;
   lv_obj_t *_actions[5] = {};
   Row _rows[3];
   ActionBinding _actionBindings[7];

@@ -69,7 +69,8 @@ void runHomeScreenRegression() {
           !lv_obj_has_flag(third, LV_OBJ_FLAG_HIDDEN), "Home hid a preview row");
     check(lv_obj_get_y(third) + lv_obj_get_height(third) <=
           lv_obj_get_height(lv_obj_get_parent(third)), "Third Home preview exceeds card");
-    check(findLabel(parent, TR("Guardian BLE off")) && findLabel(parent, "TX: —  RX: —"),
+    home.refreshGuardian(guardian::Snapshot{}, 0);
+    check(findLabel(parent, TR("Guardian BLE off")) && findLabel(parent, "Inbox — / outbox —"),
           "Guardian must start unavailable");
     guardian::Snapshot pc;
     pc.enabled = pc.radio = pc.ready = true;
@@ -77,9 +78,9 @@ void runHomeScreenRegression() {
     const uint8_t packet[] = {0x47,0x4d,1,7,5,0,0,0,2,0,0,0,1,0,0,0,7,0,0,0};
     pc.session.accept(packet, sizeof packet, 100);
     home.refreshGuardian(pc, 101);
-    check(findLabel(parent, "Guardian  TX:+ RX:+"), "Home lost concurrent TX/RX");
+    check(findLabel(parent, "RX —") && findLabel(parent, "TX —"), "Home lost concurrent TX/RX");
     home.refreshGuardian(pc, 15100);
-    check(findLabel(parent, TR("Guardian stale")) && findLabel(parent, "TX: —  RX: —"),
+    check(findLabel(parent, TR("Guardian stale")) && findLabel(parent, "Inbox — / outbox —"),
           "Stale Guardian data remained visible on Home");
     pc.session.disconnect();
     home.refreshGuardian(pc, 15101);

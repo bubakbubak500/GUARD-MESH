@@ -2,6 +2,7 @@
 #include "GuardianBLEInterface.h"
 #if defined(LILYGO_TDECK) && defined(BLE_PIN_CODE)
 #include "../../ui-touch/services/GuardianLink.h"
+#include "../../ui-touch/services/GuardianRpcLink.h"
 #include <Preferences.h>
 #include <nimble/nimble/host/include/host/ble_gatt.h>
 #include <nimble/nimble/host/include/host/ble_hs_mbuf.h>
@@ -14,7 +15,11 @@ const ble_uuid128_t statusUuid = BLE_UUID128_INIT(0xbc,0x8a,0xbf,0x45,0xca,0x05,
 const ble_uuid128_t protocolUuid = BLE_UUID128_INIT(0xbc,0x8a,0xbf,0x45,0xca,0x05,0x50,0xba,0x42,0x40,0x00,0xb0,0x02,0x14,0x64,0xf3);
 // NimBLE-Arduino 1.4 callbacks return void, so they cannot reject ATT writes.
 // Register this small service with the host API to return real ATT errors.
-ble_gatt_chr_def characteristics[3]{};
+const ble_uuid128_t progressUuid = BLE_UUID128_INIT(0xbc,0x8a,0xbf,0x45,0xca,0x05,0x50,0xba,0x42,0x40,0x00,0xb0,0x03,0x14,0x64,0xf3);
+const ble_uuid128_t requestUuid = BLE_UUID128_INIT(0xbc,0x8a,0xbf,0x45,0xca,0x05,0x50,0xba,0x42,0x40,0x00,0xb0,0x04,0x14,0x64,0xf3);
+const ble_uuid128_t responseUuid = BLE_UUID128_INIT(0xbc,0x8a,0xbf,0x45,0xca,0x05,0x50,0xba,0x42,0x40,0x00,0xb0,0x05,0x14,0x64,0xf3);
+uint16_t requestHandle = 0;
+ble_gatt_chr_def characteristics[6]{};
 ble_gatt_svc_def services[2]{};
 GuardianBLEInterface* instance = nullptr;
 int accessCallback(uint16_t connection, uint16_t, ble_gatt_access_ctxt* context, void* arg) {
@@ -25,6 +30,13 @@ int accessCallback(uint16_t connection, uint16_t, ble_gatt_access_ctxt* context,
 // Called by the checked build patch before NimBLE discards an existing bond.
 bool guardMeshAllowRepeatPairing(uint16_t connection) {
   return instance && instance->allowRepeatPairing(connection);
+}
+void guardMeshSubscribe(uint16_t connection, uint16_t attribute, bool enabled) {
+  if (instance) instance->subscribed(connection, attribute, enabled);
+}
+void GuardianBLEInterface::subscribed(uint16_t connection, uint16_t attribute, bool enabled) {
+  if (connection == _connection && attribute == requestHandle && _guardian && _authenticated)
+    guardian::rpcSubscribe(enabled);
 }
 bool GuardianBLEInterface::allowRepeatPairing(uint16_t handle) {
   if (!_guardian) return true;
@@ -53,7 +65,14 @@ void GuardianBLEInterface::begin(const char* prefix, char* name, uint32_t pin) {
   characteristics[0].flags = BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_WRITE_ENC;
   characteristics[1].uuid = &protocolUuid.u;
   characteristics[1].flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_READ_ENC;
-  for (int i = 0; i < 2; ++i) {
+  characteristics[2].uuid = &progressUuid.u;
+  characteristics[2].flags = BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_WRITE_ENC;
+  characteristics[3].uuid = &requestUuid.u;
+  characteristics[3].flags = BLE_GATT_CHR_F_NOTIFY | BLE_GATT_CHR_F_READ_ENC;
+  characteristics[3].val_handle = &requestHandle;
+  characteristics[4].uuid = &responseUuid.u;
+  characteristics[4].flags = BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_WRITE_ENC;
+  for (int i = 0; i < 5; ++i) {
     characteristics[i].access_cb = accessCallback;
     characteristics[i].arg = this;
     characteristics[i].min_key_size = 16;
@@ -145,6 +164,15 @@ void GuardianBLEInterface::tickGuardian() {
     NimBLEDevice::getAdvertising()->start();
   }
   guardian::configure(_wanted, _radio, _ready);
+  if (_guardian && _radio && _authenticated && !_switching) {
+    // One 20-byte chunk per loop. Backpressure leaves the cursor unchanged.
+    const bool healthy = guardian::rpcTick(millis(), [](const uint8_t* p, size_t n) {
+      auto* packet = ble_hs_mbuf_from_flat(p, n);
+      if (!packet) return false;
+      return ble_gatts_notify_custom(instance->_connection, requestHandle, packet) == 0;
+    });
+    if (!healthy) server->disconnect(_connection);
+  }
 }
 size_t GuardianBLEInterface::checkRecvFrame(uint8_t* dest) {
   return _guardian || _switching ? 0 : SerialBLEInterface::checkRecvFrame(dest);
@@ -185,7 +213,7 @@ void GuardianBLEInterface::onAuthenticationComplete(ble_gap_conn_desc* desc) {
     guardian::disconnected(); return;
   }
   endPairing();
-  if (!_authenticated.exchange(true)) guardian::connected();
+  if (!_authenticated.exchange(true)) { guardian::connected(); guardian::rpcConnect(); }
 }
 void GuardianBLEInterface::onWrite(NimBLECharacteristic* characteristic) {
   if (!_guardian && !_switching) SerialBLEInterface::onWrite(characteristic);
@@ -196,13 +224,27 @@ int GuardianBLEInterface::access(uint16_t connection, ble_gatt_access_ctxt* cont
       ble_gap_conn_find(connection, &desc) != 0 || !desc.sec_state.encrypted || !desc.sec_state.bonded)
     return BLE_ATT_ERR_INSUFFICIENT_AUTHEN;
   if (context->op == BLE_GATT_ACCESS_OP_READ_CHR) {
-    static const uint8_t protocol[] = {'G','M',1,0};
+    if (context->chr != &characteristics[1]) return BLE_ATT_ERR_UNLIKELY;
+    static const uint8_t protocol[] = {'G','M',2,0};
     return os_mbuf_append(context->om, protocol, sizeof protocol) == 0 ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
   }
   if (context->op != BLE_GATT_ACCESS_OP_WRITE_CHR) return BLE_ATT_ERR_UNLIKELY;
-  if (OS_MBUF_PKTLEN(context->om) != 20) return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;
+  const size_t size = OS_MBUF_PKTLEN(context->om);
+  if (context->chr == &characteristics[4] && (size < 5 || size > 20)) {
+    guardian::rpcDisconnect(); NimBLEDevice::getServer()->disconnect(connection);
+    return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;
+  }
+  if (size > 20) return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;
   uint8_t bytes[20];
   if (ble_hs_mbuf_to_flat(context->om, bytes, sizeof bytes, nullptr) != 0) return BLE_ATT_ERR_UNLIKELY;
-  return guardian::receive(bytes, sizeof bytes, millis()) == guardian::Result::Ok ? 0 : BLE_ATT_ERR_UNLIKELY;
+  if (context->chr == &characteristics[4]) {
+    if (guardian::rpcReceive(bytes, size, millis())) return 0;
+    NimBLEDevice::getServer()->disconnect(connection); return BLE_ATT_ERR_UNLIKELY;
+  }
+  if (context->chr == &characteristics[2])
+    return guardian::progress(bytes, size) == guardian::Result::Ok ? 0 : BLE_ATT_ERR_UNLIKELY;
+  if (context->chr != &characteristics[0]) return BLE_ATT_ERR_UNLIKELY;
+  if (size != 20) return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;
+  return guardian::receive(bytes, size, millis()) == guardian::Result::Ok ? 0 : BLE_ATT_ERR_UNLIKELY;
 }
 #endif

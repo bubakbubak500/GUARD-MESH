@@ -41,7 +41,7 @@ void GuardianScreen::create(lv_obj_t* parent, void (*command)(guardian::Command)
     lv_obj_add_event_cb(button, clicked, LV_EVENT_CLICKED, this);
   }
   auto* hint = label(parent, 169, width,
-    TR("On PC: Guardian > Operations > Guard Mesh - BLE. Pairing starts on PC. Phone BLE is paused."));
+    TR("On PC: Settings > Station settings > Guard Mesh. Pairing starts on PC. Phone BLE is paused."));
   lv_obj_set_style_text_font(hint, &theme::font12(), LV_PART_MAIN);
   lv_obj_set_style_text_color(hint, lv_color_hex(theme::colors().COLOR_SUB), LV_PART_MAIN);
   refresh(0);

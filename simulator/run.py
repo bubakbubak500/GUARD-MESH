@@ -19,9 +19,9 @@ def run_smoke(executable, mode, artifacts):
     # Explicit pipes keep diagnostics available with CREATE_NO_WINDOW on Windows.
     log = artifacts / 'smoke.log'
     try:
-        # The shared scenario now also opens Guardian, simulates its BLE states
-        # and checks real Back gestures. Leave room for Czech rendering on CI.
-        result = subprocess.run([str(executable), mode], cwd=artifacts, timeout=120,
+        # Includes Guardian settings/app navigation, paged RPC and recovery,
+        # followed by all shared screen lifetime checks. Allow slower CI hosts.
+        result = subprocess.run([str(executable), mode], cwd=artifacts, timeout=180,
                                 creationflags=subprocess.CREATE_NO_WINDOW,
                                 capture_output=True, text=True, encoding='utf-8', errors='replace')
     except subprocess.TimeoutExpired as error:

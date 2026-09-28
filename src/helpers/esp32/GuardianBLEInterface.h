@@ -21,6 +21,7 @@ public:
   void drainSendQueue() { if (!_guardian) SerialBLEInterface::drainSendQueue(); }
   int access(uint16_t handle, struct ble_gatt_access_ctxt* context);
   bool allowRepeatPairing(uint16_t handle);
+  void subscribed(uint16_t connection, uint16_t attribute, bool enabled);
 protected:
   void onConnect(NimBLEServer* server, ble_gap_conn_desc* desc) override;
   void onDisconnect(NimBLEServer* server) override;

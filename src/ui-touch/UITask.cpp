@@ -101,6 +101,8 @@ using namespace ui::images;
 #include "screens/SetupWizardScreen.h"
 #include "screens/BluetoothSettingsScreen.h"
 #include "screens/GuardianScreen.h"
+#include "screens/GuardianAppScreen.h"
+#include "widgets/GuardianShield.h"
 #include "screens/AccentColorPicker.h"
 #include "theme/TouchTheme.h"
 #include "screens/QuickRepliesScreen.h"
@@ -233,6 +235,7 @@ struct GlobalStatusBar {
   lv_obj_t* left_label;
   lv_obj_t* conn_icon;       // Wi-Fi glyph
   lv_obj_t* ble_icon;        // Bluetooth glyph (separate from Wi-Fi)
+  lv_obj_t* guardian_icon;
   lv_obj_t* sleep_icon;      // idle light-sleep readiness indicator (T-Deck only)
   lv_obj_t* dnd_icon;        // Do Not Disturb active glyph (moon, all boards)
   lv_obj_t* sd_icon;         // microSD read/write activity LED (left of Wi-Fi)
@@ -5127,6 +5130,9 @@ static inline bool blurFromDelete(lv_event_t* e) {
 }
 
 static void attachSettingsTaEvents(lv_obj_t* ta) {
+  // LVGL can reuse a deleted field's address (for example after leaving an
+  // app). That new field must not inherit the old destructor's blur guard.
+  if (s_ta_deleting == ta) s_ta_deleting = nullptr;
   lv_obj_add_event_cb(ta, settingsFieldFocusCb, LV_EVENT_FOCUSED, nullptr);
   lv_obj_add_event_cb(ta, settingsFieldFocusCb, LV_EVENT_CLICKED, nullptr);
   // PRESSED is used only for the keyboard backlight (see kbActivityPressCb),
@@ -9860,9 +9866,11 @@ static void terminalSink(const char* line) {
 
 
 static ui::screens::GuardianScreen guardianScreen;
+static ui::screens::GuardianAppScreen guardianApp;
 static void closeGuardianPage();
 static void releaseToolContents() {
   guardianScreen.detach();
+  guardianApp.detach();
   appPageEnd(closeGuardianPage);
   terminalScreen.close();
   MyMesh::setTerminalSink(nullptr);
@@ -9876,7 +9884,7 @@ static ui::screens::FullscreenToolView toolView({
 static void closeFullscreenView() { toolView.close(); }
 static lv_obj_t* openFullscreenView(const char* title) { return toolView.open(title); }
 static void closeGuardianPage() { closeFullscreenView(); }
-static void openGuardianPage() {
+static void openGuardianSettings() {
   auto* body = openFullscreenView("Guardian");
   guardianScreen.create(body, [](guardian::Command command) {
 #if defined(LILYGO_TDECK) && defined(ESP32) && !defined(GUARD_SIMULATOR)
@@ -9900,6 +9908,12 @@ static void openGuardianPage() {
   });
   appPageBeginSlim("Guardian", closeGuardianPage);
   guardianScreen.refresh(millis());
+}
+static void openGuardianPage() {
+  auto* body = openFullscreenView("Guardian");
+  guardianApp.create(body, [](lv_obj_t* field) { attachSettingsTaEvents(field); }, [] { hideKb(); });
+  appPageBeginSlim("Guardian", closeGuardianPage);
+  guardianApp.refresh(millis());
 }
 // ---- meshcore-cli-style chat commands (to / send / public / list / channels) ----
 // Transmit `text` to a DM contact (is_channel=false) or a channel slot. Reuses
@@ -16713,7 +16727,7 @@ static void settingsSheetCloseCb(lv_event_t* e) {
 static void openSettingsCategory(int cat) {
   if (cat < 0 || cat >= CAT_COUNT) return;
 #if defined(LILYGO_TDECK) || defined(GUARD_SIMULATOR)
-  if (cat == CAT_GUARDIAN) { openGuardianPage(); return; }
+  if (cat == CAT_GUARDIAN) { openGuardianSettings(); return; }
 #endif
   if (settingsModalIsOpen()) closeSettingsModal();
   closeSettingsCategory();   // close any prior sheet first
@@ -22603,6 +22617,9 @@ static void addAppTile(lv_obj_t* parent, int x, int y, int w, int h,
       lv_obj_set_style_line_width(l, 1, LV_PART_MAIN);
       lv_obj_set_style_line_rounded(l, true, LV_PART_MAIN);
     }
+  } else if (act == APPACT_GUARDIAN) {
+    auto* shield = ui::widgets::guardianShield(chip_o, big ? 38 : 28);
+    lv_obj_center(shield);
   } else if (icon) {
     lv_obj_t* ic = lv_label_create(chip_o);
     lv_label_set_text(ic, icon);
@@ -23675,6 +23692,8 @@ static void buildGlobalStatusBar() {
 
   // Bluetooth glyph (left of the SD LED). Unified offset across all boards (see clock above).
   g_statusbar.ble_icon = lv_label_create(g_statusbar.root);
+  g_statusbar.guardian_icon = ui::widgets::guardianShield(g_statusbar.root, 16);
+  lv_obj_add_flag(g_statusbar.guardian_icon, LV_OBJ_FLAG_HIDDEN);
   lv_label_set_text(g_statusbar.ble_icon, "");
   lv_obj_set_style_text_color(g_statusbar.ble_icon, lv_color_hex(colors().COLOR_ACCENT), LV_PART_MAIN);
   lv_obj_set_style_text_font(g_statusbar.ble_icon, &font12(), LV_PART_MAIN);
@@ -30518,12 +30537,16 @@ bool guardSimHomeChromeRegression(void (*tap)(int,int), void (*pump)(unsigned), 
   guardian::configure(true, true, true);
   guardian::deviceName("GuardMesh-12AB");
   guardian::pairingUntil(millis() + 120000);
+  openGuardianSettings(); pump(250); shot("guardian-pairing.png");
+  tap(7,10); pump(200);
+  if (!check(home(), "Guardian settings Back did not return Home")) return false;
   launch(Action::Guardian);
   if (!check(toolView.root() && !strcmp(toolView.title(), "Guardian"), "Guardian Home card did not open app")) return false;
-  shot("guardian-pairing.png");
   guardian::pairingUntil(0); guardian::connected();
   const uint8_t pcPacket[] = {'G','M',1,0x3f,5,0,0,0,2,0,0,0,1,0,0,0,7,0,0,0};
   if (!check(guardian::receive(pcPacket, sizeof pcPacket, millis()) == guardian::Result::Ok, "Guardian reference rejected")) return false;
+  const uint8_t progressPacket[] = {'G','P',2,32,64,7,0,0,0};
+  if (!check(guardian::progress(progressPacket, sizeof progressPacket) == guardian::Result::Ok, "Guardian progress rejected")) return false;
   pump(400); shot("guardian-live.png");
   tap(7,10); pump(300);
   if (!check(home(), "Guardian Back did not return Home")) return false;
@@ -32199,6 +32222,16 @@ void UITask::loop() {
   serviceLockingCountdown(now);
 #endif
   guardianScreen.refresh(now);
+  guardianApp.refresh(now);
+  if (g_statusbar.guardian_icon && g_statusbar.ble_icon) {
+    const auto pc = guardian::snapshot(now);
+    const bool linked = pc.enabled && pc.radio && pc.session.connected;
+    lv_obj_set_style_opa(g_statusbar.ble_icon, linked ? LV_OPA_TRANSP : LV_OPA_COVER, LV_PART_MAIN);
+    if (linked) {
+      lv_obj_align_to(g_statusbar.guardian_icon, g_statusbar.ble_icon, LV_ALIGN_CENTER, 0, 0);
+      lv_obj_clear_flag(g_statusbar.guardian_icon, LV_OBJ_FLAG_HIDDEN);
+    } else lv_obj_add_flag(g_statusbar.guardian_icon, LV_OBJ_FLAG_HIDDEN);
+  }
 #if CAP_BLE_KEYBOARD
   bleKbdUiTick();   // external Bluetooth keyboard: persist pairing changes, route keys
 #endif

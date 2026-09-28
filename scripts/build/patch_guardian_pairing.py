@@ -21,3 +21,17 @@ if env.subst("$PIOENV") == "LilyGo_TDeck_companion_radio_touch":
         path.write_text(text.replace(needle, replacement), encoding="utf-8")
     elif replacement not in text:
         raise RuntimeError("Guardian pairing patch was modified; refusing an unverified security build")
+    text = path.read_text(encoding="utf-8")
+    needle = "        case BLE_GAP_EVENT_SUBSCRIBE: {"
+    replacement = needle + '''
+            // Guard Mesh: CCCD for the raw Guardian Request characteristic.
+            extern void guardMeshSubscribe(uint16_t, uint16_t, bool);
+            guardMeshSubscribe(event->subscribe.conn_handle, event->subscribe.attr_handle,
+                               event->subscribe.cur_notify != 0);
+'''
+    if "// Guard Mesh: CCCD" not in text:
+        if text.count(needle) != 1:
+            raise RuntimeError("Guardian CCCD patch context drifted")
+        path.write_text(text.replace(needle, replacement), encoding="utf-8")
+    elif replacement not in text:
+        raise RuntimeError("Guardian CCCD patch was modified")

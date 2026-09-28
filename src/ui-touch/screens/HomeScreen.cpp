@@ -3,6 +3,7 @@
 #include "../i18n.h"
 #include "../theme/Fonts.h"
 #include "../theme/Theme.h"
+#include "../widgets/GuardianShield.h"
 #include <cstdio>
 #include <cstring>
 
@@ -126,18 +127,31 @@ bool HomeScreen::create(lv_obj_t *parent, int width, int height) {
   lv_obj_add_event_cb(guardian, actionEvent, LV_EVENT_CLICKED, &_actionBindings[6]);
   lv_obj_set_pos(guardian, 8, 8 + messageH + 8);
   lv_obj_set_size(guardian, leftW, 40);
+  _guardianShield = widgets::guardianShield(guardian, 30);
+  lv_obj_set_pos(_guardianShield, 4, 4);
+  _guardianHadStatus = false; _guardianNoticeUntil = 0;
   auto *guardianTitle = lv_label_create(guardian);
   _guardianTitle = guardianTitle;
   lv_label_set_text(guardianTitle, TR("Guardian BLE off"));
   labelStyle(guardianTitle, &theme::font12(), theme::colors().COLOR_TEXT);
-  lv_obj_set_pos(guardianTitle, 7, 4);
-  lv_obj_set_size(guardianTitle, leftW - 14, 15);
+  lv_obj_set_pos(guardianTitle, 41, 3);
+  lv_obj_set_size(guardianTitle, leftW - 47, 15);
   auto *guardianStatus = lv_label_create(guardian);
   _guardianStatus = guardianStatus;
   lv_label_set_text(guardianStatus, "TX: —  RX: —");
   labelStyle(guardianStatus, &theme::font12(), theme::colors().COLOR_SUB);
-  lv_obj_set_pos(guardianStatus, 7, 20);
-  lv_obj_set_size(guardianStatus, leftW - 14, 15);
+  lv_obj_set_pos(guardianStatus, 41, 20);
+  lv_obj_set_size(guardianStatus, leftW - 47, 15);
+  for (int i = 0; i < 2; ++i) {
+    auto* bar = _guardianBars[i] = lv_bar_create(guardian);
+    lv_obj_remove_style_all(bar); lv_bar_set_range(bar, 0, 100);
+    lv_obj_set_style_bg_color(bar, lv_color_hex(0x26343E), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(bar, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(bar, lv_color_hex(i ? 0xFFD06A : 0x5DD3D5), LV_PART_INDICATOR);
+    lv_obj_set_style_bg_opa(bar, LV_OPA_COVER, LV_PART_INDICATOR);
+    lv_obj_set_style_radius(bar, 2, LV_PART_MAIN); lv_obj_set_style_radius(bar, 2, LV_PART_INDICATOR);
+    lv_obj_add_flag(bar, LV_OBJ_FLAG_HIDDEN);
+  }
 
   static constexpr Action kinds[] = {Action::Advert, Action::Terminal, Action::Discover,
                                      Action::Apps, Action::Control};
@@ -230,16 +244,50 @@ void HomeScreen::refreshGuardian(const guardian::Snapshot& state, uint32_t now) 
   if (!active()) return;
   char title[64], detail[96];
   const bool fresh = state.session.fresh(now);
+  for (auto* bar : _guardianBars) lv_obj_add_flag(bar, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_set_style_opa(_guardianShield, fresh ? LV_OPA_COVER : LV_OPA_40, LV_PART_MAIN);
+  lv_obj_set_style_text_color(_guardianTitle, lv_color_hex(theme::colors().COLOR_TEXT), LV_PART_MAIN);
+  lv_obj_set_style_text_color(_guardianStatus, lv_color_hex(theme::colors().COLOR_SUB), LV_PART_MAIN);
   if (fresh) {
-    snprintf(title, sizeof title, "Guardian  TX:%s RX:%s", state.session.status.flags & 2 ? "+" : "-",
-             state.session.status.flags & 4 ? "+" : "-");
-    snprintf(detail, sizeof detail, TR("Inbox %lu / new %lu"), (unsigned long)state.session.status.inbox,
-             (unsigned long)state.session.status.unread);
+    const auto& s = state.session.status;
+    if (_guardianHadStatus && s.inbox > _guardianInbox) _guardianNoticeUntil = now + 5000;
+    _guardianHadStatus = true; _guardianInbox = s.inbox;
+    const bool rx = s.flags & 4, tx = s.flags & 2;
+    auto progress = [&](int slot, uint8_t percent, bool both) {
+      auto* bar = _guardianBars[slot];
+      lv_obj_set_pos(bar, both ? 111 : 41, both ? (slot ? 26 : 10) : 27);
+      lv_obj_set_size(bar, both ? _width - 238 : _width - 171, 6);
+      lv_bar_set_value(bar, percent <= 100 ? percent : 0, LV_ANIM_OFF);
+      lv_obj_clear_flag(bar, LV_OBJ_FLAG_HIDDEN);
+    };
+    auto line = [](char* out, size_t n, const char* caption, uint8_t p) {
+      if (p <= 100) snprintf(out, n, "%s %u%%", caption, p);
+      else snprintf(out, n, "%s —", caption);
+    };
+    if (rx && tx) {
+      line(title, sizeof title, "RX", state.session.rxPercent);
+      line(detail, sizeof detail, "TX", state.session.txPercent);
+      progress(0, state.session.rxPercent, true); progress(1, state.session.txPercent, true);
+    } else if (rx || tx) {
+      line(title, sizeof title, rx ? TR("Receiving") : TR("Sending"), rx ? state.session.rxPercent : state.session.txPercent);
+      detail[0] = 0; progress(rx ? 0 : 1, rx ? state.session.rxPercent : state.session.txPercent, false);
+    } else if (_guardianNoticeUntil && int32_t(_guardianNoticeUntil - now) > 0) {
+      snprintf(title, sizeof title, "%s", TR("New Guardian message"));
+      snprintf(detail, sizeof detail, TR("Inbox %lu / new %lu"), (unsigned long)s.inbox, (unsigned long)s.unread);
+      lv_obj_set_style_text_color(_guardianTitle, lv_color_hex(0x5DD3D5), LV_PART_MAIN);
+    } else if ((now / 3000) % 2) {
+      snprintf(title, sizeof title, "Outbox: %lu", (unsigned long)s.outbox);
+      snprintf(detail, sizeof detail, "%s", TR("Queued on PC"));
+    } else {
+      snprintf(title, sizeof title, "Inbox: %lu", (unsigned long)s.inbox);
+      snprintf(detail, sizeof detail, TR("Unread: %lu"), (unsigned long)s.unread);
+    }
   } else {
+    _guardianHadStatus = false; _guardianNoticeUntil = 0;
     const char* caption = !state.enabled ? TR("Guardian BLE off") : !state.radio ? TR("Bluetooth off") :
       state.pairing ? TR("Guardian pairing") : state.session.connected ? TR("Guardian stale") : TR("Guardian offline");
     snprintf(title, sizeof title, "%s", caption);
-    snprintf(detail, sizeof detail, "TX: —  RX: —");
+    snprintf(detail, sizeof detail, "Inbox — / outbox —");
   }
   setText(_guardianTitle, title); setText(_guardianStatus, detail);
 }

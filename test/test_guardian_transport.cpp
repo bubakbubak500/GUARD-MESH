@@ -1,6 +1,7 @@
 // Exercise production callbacks and mailbox; fake only NimBLE and NVS.
 #include "helpers/esp32/GuardianBLEInterface.h"
 #include "ui-touch/services/GuardianLink.h"
+#include "ui-touch/services/GuardianRpcLink.h"
 #include <cassert>
 namespace fake {
 uint32_t now=100;
@@ -35,13 +36,21 @@ int main() {
   guardian::request(guardian::Command::Pair); ble.tickGuardian();
   ble.onConnect(&NimBLEDevice::server,&fake::desc);
   assert(ble.allowRepeatPairing(3) && !ble.allowRepeatPairing(4));
-  os_mbuf buffer; ble_gatt_access_ctxt context{BLE_GATT_ACCESS_OP_READ_CHR,&buffer};
+  const auto* chars=fake::service->characteristics;
+  assert(chars[2].flags==(BLE_GATT_CHR_F_WRITE|BLE_GATT_CHR_F_WRITE_ENC));
+  assert(chars[3].flags & BLE_GATT_CHR_F_NOTIFY);
+  assert(chars[4].flags==(BLE_GATT_CHR_F_WRITE|BLE_GATT_CHR_F_WRITE_ENC));
+  os_mbuf buffer; ble_gatt_access_ctxt context{BLE_GATT_ACCESS_OP_READ_CHR,&buffer,&chars[1]};
   assert(ble.access(3,&context)==BLE_ATT_ERR_INSUFFICIENT_AUTHEN);
   fake::desc.sec_state={true,true}; ble.onAuthenticationComplete(&fake::desc);
   assert(!ble.allowRepeatPairing(3));
   assert(guardian::snapshot(fake::now).session.connected && !guardian::snapshot(fake::now).session.fresh(fake::now));
-  assert(ble.access(3,&context)==0 && buffer.data==std::vector<uint8_t>({'G','M',1,0}));
+  assert(ble.access(3,&context)==0 && buffer.data==std::vector<uint8_t>({'G','M',2,0}));
+  assert(!guardian::rpcReady());
+  ble.subscribed(4,23,true); assert(!guardian::rpcReady());
+  ble.subscribed(3,23,true); assert(guardian::rpcReady());
   context.op=BLE_GATT_ACCESS_OP_WRITE_CHR;
+  context.chr=&chars[0];
   buffer.data={'G','M',1,7,5,0,0,0,2,0,0,0,1,0,0,0,7,0,0,0};
   assert(ble.access(3,&context)==0);
   assert(guardian::snapshot(fake::now).session.status.inbox==5);
