@@ -9,8 +9,8 @@ maintained by [@bubakbubak500](https://github.com/bubakbubak500).
   licenses are preserved in [LICENSE](LICENSE), [NOTICE](NOTICE), and the sources.
 - Development is directed by Guardian's needs. Contributions are by invitation;
   see [CONTRIBUTING.md](CONTRIBUTING.md) for the single-owner review policy.
-- The upstream firmware and build instructions below are retained as the starting
-  point. Guardian-specific firmware changes have not yet been applied.
+- T-Deck includes a compact Guardian Home and the [Guardian BLE v1 app](docs/GUARDIAN-BLE.md)
+  for displaying live PC status. The upstream build instructions remain below.
 
 ## Local installation and documentation
 

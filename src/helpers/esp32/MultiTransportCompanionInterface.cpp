@@ -517,6 +517,10 @@ bool MultiTransportCompanionInterface::isWriteBusy() const {
 size_t MultiTransportCompanionInterface::checkRecvFrame(uint8_t dest[]) {
   if (!_isEnabled) return 0;
 
+#if defined(LILYGO_TDECK) && defined(BLE_PIN_CODE)
+  if (_ble_begun) _ble.tickGuardian();
+#endif
+
 #ifdef BLE_PIN_CODE
   // Drain BLE send queue every loop so PC (or any BLE client) gets pushes even when USB/TCP are polled first.
   if (_ble_begun && _ble_enabled)

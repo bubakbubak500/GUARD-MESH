@@ -1,6 +1,8 @@
 # Guardian přes Bluetooth – rozvojový plán
 
-Stav: návrh, 19. 9. 2026. Cíl: pouze LilyGo T-Deck. Zatím bez implementace.
+Historický návrh z 19. 9. 2026. První implementace z 28. 9. 2026 používá
+[Guardian BLE v1](GUARDIAN-BLE.md): PC předává stav a počty do T-Decku.
+Ovládání, obsahy zpráv a most do MeshCore popsané níže zůstávají budoucím plánem.
 
 ## Co chceme
 

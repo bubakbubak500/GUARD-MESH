@@ -19,7 +19,9 @@ def run_smoke(executable, mode, artifacts):
     # Explicit pipes keep diagnostics available with CREATE_NO_WINDOW on Windows.
     log = artifacts / 'smoke.log'
     try:
-        result = subprocess.run([str(executable), mode], cwd=artifacts, timeout=90,
+        # The shared scenario now also opens Guardian, simulates its BLE states
+        # and checks real Back gestures. Leave room for Czech rendering on CI.
+        result = subprocess.run([str(executable), mode], cwd=artifacts, timeout=120,
                                 creationflags=subprocess.CREATE_NO_WINDOW,
                                 capture_output=True, text=True, encoding='utf-8', errors='replace')
     except subprocess.TimeoutExpired as error:
@@ -92,6 +94,7 @@ def main():
         run(sys.executable, ROOT / 'scripts/test_network_executor.py')
         run(sys.executable, ROOT / 'scripts/test_tile_fetch_transport.py')
         run(sys.executable, ROOT / 'scripts/test_ble_command_targets.py')
+        run(sys.executable, ROOT / 'scripts/test_guardian_status.py')
         run(sys.executable, ROOT / 'scripts/test_telemetry_polling.py')
         artifacts = CACHE / 'test-artifacts'
         artifacts.mkdir(exist_ok=True)

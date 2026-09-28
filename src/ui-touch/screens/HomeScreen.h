@@ -3,6 +3,7 @@
 #include "../widgets/ObjectRef.h"
 #include <stddef.h>
 #include <stdint.h>
+#include "../models/GuardianStatus.h"
 
 namespace ui {
 namespace screens {
@@ -10,7 +11,7 @@ namespace screens {
 // Owns only its body tree. The parent supplies the global bar and navigation.
 class HomeScreen {
 public:
-  enum class Action { Inbox, Advert, Terminal, Discover, Apps, Control };
+  enum class Action { Inbox, Advert, Terminal, Discover, Apps, Control, Guardian };
   struct Preview {
     int index = -1;
     bool channel = false;
@@ -35,6 +36,7 @@ public:
   bool create(lv_obj_t *parent, int width, int height);
   void reset() { detach(); }
   void refresh(int totalUnread, const Preview *rows, int count);
+  void refreshGuardian(const guardian::Snapshot& state, uint32_t now);
   lv_obj_t *actionTarget(Action action) const;
   bool active() const { return _root.get() != nullptr; }
 
@@ -54,9 +56,10 @@ private:
   lv_obj_t *_messageCard = nullptr;
   lv_obj_t *_empty = nullptr;
   lv_obj_t *_unread = nullptr;
+  lv_obj_t *_guardian = nullptr, *_guardianTitle = nullptr, *_guardianStatus = nullptr;
   lv_obj_t *_actions[5] = {};
   Row _rows[3];
-  ActionBinding _actionBindings[6];
+  ActionBinding _actionBindings[7];
   RowBinding _rowBindings[3];
   int _width = 0, _height = 0;
 

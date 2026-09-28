@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "screens/HomeScreen.h"
+#include "i18n.h"
 #include <cstdio>
 #include <cstring>
 #include <stdexcept>
@@ -8,7 +9,7 @@ namespace {
 using Home = ui::screens::HomeScreen;
 Home::Preview live[3];
 int selected = -1;
-int actions[6] = {};
+int actions[7] = {};
 
 void check(bool condition, const char *message) {
   if (!condition) throw std::runtime_error(message);
@@ -68,8 +69,21 @@ void runHomeScreenRegression() {
           !lv_obj_has_flag(third, LV_OBJ_FLAG_HIDDEN), "Home hid a preview row");
     check(lv_obj_get_y(third) + lv_obj_get_height(third) <=
           lv_obj_get_height(lv_obj_get_parent(third)), "Third Home preview exceeds card");
-    check(findLabel(parent, "Guardian  [MOCK]") && findLabel(parent, "Link: --   Sync: --"),
-          "Guardian placeholder claims no pending state");
+    check(findLabel(parent, TR("Guardian BLE off")) && findLabel(parent, "TX: —  RX: —"),
+          "Guardian must start unavailable");
+    guardian::Snapshot pc;
+    pc.enabled = pc.radio = pc.ready = true;
+    pc.session.connect();
+    const uint8_t packet[] = {0x47,0x4d,1,7,5,0,0,0,2,0,0,0,1,0,0,0,7,0,0,0};
+    pc.session.accept(packet, sizeof packet, 100);
+    home.refreshGuardian(pc, 101);
+    check(findLabel(parent, "Guardian  TX:+ RX:+"), "Home lost concurrent TX/RX");
+    home.refreshGuardian(pc, 15100);
+    check(findLabel(parent, TR("Guardian stale")) && findLabel(parent, "TX: —  RX: —"),
+          "Stale Guardian data remained visible on Home");
+    pc.session.disconnect();
+    home.refreshGuardian(pc, 15101);
+    check(findLabel(parent, TR("Guardian offline")), "Disconnect did not clear Home");
     auto *focus = lv_group_create();
     lv_group_add_obj(focus, first);
     lv_group_focus_obj(first);
@@ -86,7 +100,7 @@ void runHomeScreenRegression() {
     lv_event_send(second, LV_EVENT_CLICKED, nullptr);
     check(selected == -1 && lv_obj_has_flag(second, LV_OBJ_FLAG_HIDDEN),
           "Missing Home row remained clickable");
-    for (int i = 0; i < 6; ++i) {
+    for (int i = 0; i < 7; ++i) {
       auto *target = home.actionTarget(static_cast<Home::Action>(i));
       check(target != nullptr, "Home action target missing");
       lv_event_send(target, LV_EVENT_CLICKED, nullptr);

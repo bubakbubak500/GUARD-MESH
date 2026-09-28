@@ -1325,3 +1325,24 @@ Advertise	Advertise
 Cmdr	Cmdr
 Apps that may send messages on the mesh. Anything they send goes out under your node name and cannot be told apart from a message you typed. Turn one off to take the permission back.	Aplikace oprávněné odesílat zprávy do mesh. Zprávy odcházejí pod jménem tvého uzlu a nelze je odlišit od tvých. Vypnutím oprávnění odebereš.
 Disconnected	Odpojeno
+Guardian BLE off	Guardian BLE vypnutý
+Guardian BLE unavailable	Guardian BLE nedostupný
+Guardian stale / unavailable	Guardian neaktuální / nedostupný
+Guardian stale	Guardian neaktuální
+Guardian offline	Guardian odpojený
+Guardian pairing	Guardian párování
+PC disconnected	PC odpojeno
+PC connected - %lu s ago	PC připojeno - před %lu s
+Pairing: %lu s	Párování: %lu s
+Pair PC (2 min)	Spárovat PC (2 min)
+Cancel pairing	Zrušit párování
+Inbox %lu / new %lu	Inbox %lu / nové %lu
+TX: %s   RX: %s\nInbox: %lu   Unread: %lu\nOutbox: %lu	TX: %s   RX: %s\nInbox: %lu   Nové: %lu\nOutbox: %lu
+TX: —   RX: —\nInbox: —   Unread: —\nOutbox: —	TX: —   RX: —\nInbox: —   Nové: —\nOutbox: —
+On PC: Guardian > Operations > Guard Mesh - BLE. Pairing starts on PC. Phone BLE is paused.	Na PC: Guardian > Provoz > Guard Mesh - BLE. Párování zahaj PC. BLE pro telefon je pozastavené.
+Disable Guardian BLE first.	Nejprve vypni Guardian BLE.
+Disable Bluetooth keyboard mode first.	Nejprve vypni režim Bluetooth klávesnice.
+Guardian BLE requires a T-Deck.	Guardian BLE vyžaduje T-Deck.
+Enable	Zapnout
+Disable	Vypnout
+Idle	Neaktivní

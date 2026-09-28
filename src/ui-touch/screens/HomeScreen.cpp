@@ -38,6 +38,7 @@ void HomeScreen::detach() {
   // Disarm callbacks before deleting the owned child tree. The parent is borrowed.
   if (auto *root = _root.get()) {
     lv_obj_remove_event_cb_with_user_data(_messageCard, actionEvent, &_actionBindings[0]);
+    lv_obj_remove_event_cb_with_user_data(_guardian, actionEvent, &_actionBindings[6]);
     for (int i = 0; i < 5; ++i)
       lv_obj_remove_event_cb_with_user_data(_actions[i], actionEvent, &_actionBindings[i + 1]);
     for (int i = 0; i < 3; ++i)
@@ -46,6 +47,7 @@ void HomeScreen::detach() {
     lv_obj_del(root);
   }
   _messageCard = _empty = _unread = nullptr;
+  _guardian = _guardianTitle = _guardianStatus = nullptr;
   for (auto &button : _actions) button = nullptr;
   for (auto &row : _rows) row = Row{};
   _width = _height = 0;
@@ -116,16 +118,23 @@ bool HomeScreen::create(lv_obj_t *parent, int width, int height) {
   lv_obj_set_size(_empty, leftW - 14, 18);
 
   auto *guardian = lv_obj_create(root);
+  _guardian = guardian;
   panel(guardian);
+  lv_obj_add_flag(guardian, LV_OBJ_FLAG_CLICKABLE);
+  _actionBindings[6].owner = this;
+  _actionBindings[6].action = Action::Guardian;
+  lv_obj_add_event_cb(guardian, actionEvent, LV_EVENT_CLICKED, &_actionBindings[6]);
   lv_obj_set_pos(guardian, 8, 8 + messageH + 8);
   lv_obj_set_size(guardian, leftW, 40);
   auto *guardianTitle = lv_label_create(guardian);
-  lv_label_set_text(guardianTitle, "Guardian  [MOCK]");
+  _guardianTitle = guardianTitle;
+  lv_label_set_text(guardianTitle, TR("Guardian BLE off"));
   labelStyle(guardianTitle, &theme::font12(), theme::colors().COLOR_TEXT);
   lv_obj_set_pos(guardianTitle, 7, 4);
   lv_obj_set_size(guardianTitle, leftW - 14, 15);
   auto *guardianStatus = lv_label_create(guardian);
-  lv_label_set_text(guardianStatus, "Link: --   Sync: --");
+  _guardianStatus = guardianStatus;
+  lv_label_set_text(guardianStatus, "TX: —  RX: —");
   labelStyle(guardianStatus, &theme::font12(), theme::colors().COLOR_SUB);
   lv_obj_set_pos(guardianStatus, 7, 20);
   lv_obj_set_size(guardianStatus, leftW - 14, 15);
@@ -211,9 +220,28 @@ void HomeScreen::refresh(int totalUnread, const Preview *rows, int count) {
 
 lv_obj_t *HomeScreen::actionTarget(Action action) const {
   if (!active()) return nullptr;
+  if (action == Action::Guardian) return _guardian;
   if (action == Action::Inbox) return _messageCard;
   const int index = static_cast<int>(action) - 1;
   return index >= 0 && index < 5 ? _actions[index] : nullptr;
+}
+
+void HomeScreen::refreshGuardian(const guardian::Snapshot& state, uint32_t now) {
+  if (!active()) return;
+  char title[64], detail[96];
+  const bool fresh = state.session.fresh(now);
+  if (fresh) {
+    snprintf(title, sizeof title, "Guardian  TX:%s RX:%s", state.session.status.flags & 2 ? "+" : "-",
+             state.session.status.flags & 4 ? "+" : "-");
+    snprintf(detail, sizeof detail, TR("Inbox %lu / new %lu"), (unsigned long)state.session.status.inbox,
+             (unsigned long)state.session.status.unread);
+  } else {
+    const char* caption = !state.enabled ? TR("Guardian BLE off") : !state.radio ? TR("Bluetooth off") :
+      state.pairing ? TR("Guardian pairing") : state.session.connected ? TR("Guardian stale") : TR("Guardian offline");
+    snprintf(title, sizeof title, "%s", caption);
+    snprintf(detail, sizeof detail, "TX: —  RX: —");
+  }
+  setText(_guardianTitle, title); setText(_guardianStatus, detail);
 }
 
 void HomeScreen::actionEvent(lv_event_t *event) {

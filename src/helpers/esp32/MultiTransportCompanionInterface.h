@@ -6,6 +6,7 @@
 #include "WebSocketCompanionServer.h"
 #ifdef BLE_PIN_CODE
 #include <helpers/esp32/SerialBLEInterface.h>
+#include "GuardianBLEInterface.h"
 #endif
 
 #ifndef TCP_COMPANION_DEFAULT_PORT
@@ -152,7 +153,11 @@ private:
   bool _ota_ws_suspended;
   bool _ota_ws_listen_paused;
 #ifdef BLE_PIN_CODE
+#if defined(LILYGO_TDECK)
+  GuardianBLEInterface _ble;
+#else
   SerialBLEInterface _ble;
+#endif
   bool _ble_begun;    // beginBle() was called
   bool _ble_phone_paused = false;   // keyboard mode: no phone link, stack still up
   bool _ble_enabled;  // user has BLE on (toggle via UI)

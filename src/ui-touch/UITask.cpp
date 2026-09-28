@@ -100,6 +100,7 @@ using namespace ui::images;
 #include "screens/BlockedUsersScreen.h"
 #include "screens/SetupWizardScreen.h"
 #include "screens/BluetoothSettingsScreen.h"
+#include "screens/GuardianScreen.h"
 #include "screens/AccentColorPicker.h"
 #include "theme/TouchTheme.h"
 #include "screens/QuickRepliesScreen.h"
@@ -3504,6 +3505,9 @@ enum {
   CAT_MQTT,          // MQTT bridge — broker host/port/credentials
   CAT_APPPERMS,      // what each Lua app is allowed to do, and taking it back
   CAT_ABOUT,         // firmware / update / system info / diagnostics
+#if defined(LILYGO_TDECK) || defined(GUARD_SIMULATOR)
+  CAT_GUARDIAN,
+#endif
   CAT_COUNT
 };
 using SettingsCatDef = ui::screens::SettingsScreen::Category;
@@ -3536,6 +3540,9 @@ static const SettingsCatDef kSettingsCats[CAT_COUNT] = {
   { "MQTT bridge",   LV_SYMBOL_UPLOAD },
   { "App permissions", LV_SYMBOL_WARNING },
   { "About",         LV_SYMBOL_LIST },
+#if defined(LILYGO_TDECK) || defined(GUARD_SIMULATOR)
+  { "Guardian BLE",  LV_SYMBOL_BLUETOOTH },
+#endif
 };
 // Which slice of the (formerly monolithic) Device settings a builder emits. One
 // detail page per section; buildDeviceSettings(sec) emits only that section's
@@ -7447,6 +7454,10 @@ static BluetoothPage::Host bluetoothSettingsHost() {
   host.savePin = [](void*, uint32_t pin) -> bool { return the_mesh.setBLEPin(pin); };
   host.setKeyboardMode = [](void*, bool keyboard) -> bool {
 #if CAP_BLE_KEYBOARD
+    if (keyboard && guardian::snapshot(millis()).enabled) {
+      if (g_lv.task) g_lv.task->showAlert(TR("Disable Guardian BLE first."), 2500);
+      return false;
+    }
     touchPrefsSetBleKbdMode(keyboard);
     bleKbdApplyMode();
     return true;
@@ -9848,7 +9859,11 @@ static void terminalSink(const char* line) {
 
 
 
+static ui::screens::GuardianScreen guardianScreen;
+static void closeGuardianPage();
 static void releaseToolContents() {
+  guardianScreen.detach();
+  appPageEnd(closeGuardianPage);
   terminalScreen.close();
   MyMesh::setTerminalSink(nullptr);
   ui::screens::files::close();
@@ -9860,6 +9875,32 @@ static ui::screens::FullscreenToolView toolView({
 });
 static void closeFullscreenView() { toolView.close(); }
 static lv_obj_t* openFullscreenView(const char* title) { return toolView.open(title); }
+static void closeGuardianPage() { closeFullscreenView(); }
+static void openGuardianPage() {
+  auto* body = openFullscreenView("Guardian");
+  guardianScreen.create(body, [](guardian::Command command) {
+#if defined(LILYGO_TDECK) && defined(ESP32) && !defined(GUARD_SIMULATOR)
+    if (command == guardian::Command::Enable || command == guardian::Command::Pair) {
+#if CAP_BLE_KEYBOARD
+      if (touchPrefsGetBleKbdMode()) {
+        if (g_lv.task) g_lv.task->showAlert(TR("Disable Bluetooth keyboard mode first."), 2500);
+        return;
+      }
+#endif
+      if (!g_lv.task || !g_lv.task->enableBle()) {
+        if (g_lv.task) g_lv.task->showAlert(bleEnableFailureText(), 2600);
+        return;
+      }
+    }
+    guardian::request(command);
+#else
+    (void)command;
+    if (g_lv.task) g_lv.task->showAlert(TR("Guardian BLE requires a T-Deck."), 2500);
+#endif
+  });
+  appPageBeginSlim("Guardian", closeGuardianPage);
+  guardianScreen.refresh(millis());
+}
 // ---- meshcore-cli-style chat commands (to / send / public / list / channels) ----
 // Transmit `text` to a DM contact (is_channel=false) or a channel slot. Reuses
 // the same the_mesh send primitives the Chats composer uses; echoes a TX line.
@@ -13371,6 +13412,7 @@ static ui::screens::HomeScreen guardianHome({
       case Home::Action::Discover: openDiscoverPage(); break;
       case Home::Action::Apps: setHomeDrawer(true); break;
       case Home::Action::Control: toggleControlCenter(); break;
+      case Home::Action::Guardian: openGuardianPage(); break;
     }
   },
   [](const ui::screens::HomeScreen::Preview& preview) {
@@ -13409,6 +13451,7 @@ static void refreshGuardianHome() {
     ++used;
   }
   guardianHome.refresh(g_lv.task->getUnreadTotal(),rows,used);
+  guardianHome.refreshGuardian(guardian::snapshot(millis()), millis());
 }
 
 // Reuse the system widgets on every T-Deck screen: one height, font and
@@ -16669,6 +16712,9 @@ static void settingsSheetCloseCb(lv_event_t* e) {
 }
 static void openSettingsCategory(int cat) {
   if (cat < 0 || cat >= CAT_COUNT) return;
+#if defined(LILYGO_TDECK) || defined(GUARD_SIMULATOR)
+  if (cat == CAT_GUARDIAN) { openGuardianPage(); return; }
+#endif
   if (settingsModalIsOpen()) closeSettingsModal();
   closeSettingsCategory();   // close any prior sheet first
 
@@ -22069,6 +22115,7 @@ enum AppDrawerAction {
   APPACT_TERMINAL, APPACT_FILES, APPACT_FILE_TRANSFER, APPACT_SPECTRUM, APPACT_SNAKE, APPACT_VNC, APPACT_REMOTE, APPACT_READER,
   APPACT_DISCOVER, APPACT_STORE,
   APPACT_USB_FILES,
+  APPACT_GUARDIAN,
   APPACT_LUA_BASE = 100,   // APPACT_LUA_BASE + i = installed Lua app appInventory.rows()[i]
 };
 
@@ -22340,6 +22387,7 @@ static void appTileCb(lv_event_t* e) {
   }
 #endif
   switch (act) {
+    case APPACT_GUARDIAN: openGuardianPage(); return;
     case APPACT_MENTIONS:  openMentionsScreen();  return;
     case APPACT_CMDCENTER: setHomeDrawer(false);  return;   // explicit "back to command centre"
     case APPACT_SIGNAL:    openSignalInfoPopup(); return;   // signal/traffic + auto-discover settings
@@ -22850,6 +22898,9 @@ static void openAppDrawer() {
   // rest get a dedicated, meaningful hue so the grid isn't a wall of one colour.
   struct { const char* icon; const char* label; int act; int badge; uint32_t color; } tiles[] = {
     { LV_SYMBOL_HOME,      "Cmdr",      APPACT_CMDCENTER, 0,        colors().COLOR_ACCENT },  // theme
+#if defined(LILYGO_TDECK) || defined(GUARD_SIMULATOR)
+    { LV_SYMBOL_BLUETOOTH, "Guardian",  APPACT_GUARDIAN, 0,        0x48B8DE },
+#endif
     { LV_SYMBOL_ENVELOPE,  "Chats",     APPACT_CHATS,    unread,    0x4F9DF7 },      // messaging blue
     { TOUCH_SYM_PERSON,    "Contacts",  APPACT_CONTACTS, 0,         0xA784E0 },      // people violet
     { LV_SYMBOL_GPS,       "Map",       APPACT_MAP,      0,         0x53C06B },      // location green
@@ -30464,6 +30515,27 @@ bool guardSimHomeChromeRegression(void (*tap)(int,int), void (*pump)(unsigned), 
     if (!geometry()) return false;
   }
   updateCompactStatusBar(0); shot("home.png");
+  guardian::configure(true, true, true);
+  guardian::deviceName("GuardMesh-12AB");
+  guardian::pairingUntil(millis() + 120000);
+  launch(Action::Guardian);
+  if (!check(toolView.root() && !strcmp(toolView.title(), "Guardian"), "Guardian Home card did not open app")) return false;
+  shot("guardian-pairing.png");
+  guardian::pairingUntil(0); guardian::connected();
+  const uint8_t pcPacket[] = {'G','M',1,0x3f,5,0,0,0,2,0,0,0,1,0,0,0,7,0,0,0};
+  if (!check(guardian::receive(pcPacket, sizeof pcPacket, millis()) == guardian::Result::Ok, "Guardian reference rejected")) return false;
+  pump(400); shot("guardian-live.png");
+  tap(7,10); pump(300);
+  if (!check(home(), "Guardian Back did not return Home")) return false;
+  refreshGuardianHome(); shot("home-guardian-live.png");
+  launch(Action::Guardian);
+  guardian::connected();
+  guardian::receive(pcPacket, sizeof pcPacket, millis() - guardian::StaleMs);
+  pump(400); shot("guardian-stale.png");
+  guardian::disconnected(); pump(400); shot("guardian-disconnected.png");
+  tap(7,10); pump(300);
+  if (!check(home(), "Guardian second Back did not return Home")) return false;
+  guardian::configure(false, false, false); guardian::deviceName(""); refreshGuardianHome();
   puts("Home chrome: 3s name/RX-TX, shared geometry, real touch Back, modal shielding and Home routes PASS.");
   return true;
 }
@@ -32126,6 +32198,7 @@ void UITask::loop() {
   serviceLockscreen();
   serviceLockingCountdown(now);
 #endif
+  guardianScreen.refresh(now);
 #if CAP_BLE_KEYBOARD
   bleKbdUiTick();   // external Bluetooth keyboard: persist pairing changes, route keys
 #endif
@@ -32642,7 +32715,9 @@ static const PopupEnt k_popup_registry[] = {
 #endif
   { []{ return ui::screens::files::popupOpen(5); },        nullptr,                             PF_COUNT },   // format progress: block keys, not dismissable
   { []{ return terminalScreen.pickerOpen(); },      []{ terminalScreen.closeTermCmdPicker(); },         PF_COUNT },
-  { []{ return toolView.root() != nullptr; },
+  { []{ return toolView.root() && uiApplication.pageClose() == closeGuardianPage; },
+    closeGuardianPage, PF_COUNT | PF_STATUS },
+  { []{ return toolView.root() != nullptr && uiApplication.pageClose() != closeGuardianPage; },
     []{ closeFullscreenView();
         if (g_lv.tabview) lv_tabview_set_act(g_lv.tabview, HOME_TAB_INDEX, LV_ANIM_OFF); },
                                                                           PF_COUNT },
