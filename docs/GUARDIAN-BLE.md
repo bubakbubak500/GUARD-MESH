@@ -66,3 +66,23 @@ Výstupní merged BIN se zapisuje na adresu `0x0`; samotný app BIN je pro OTA.
 **Dosud neověřeno na fyzickém HW:** Windows/Bleak párování, skutečné bondy po
 restartu, odchod z dosahu, současný mesh provoz a živé TX/RX v Guardianu.
 Host testy a simulátor nenahrazují tento integrační průchod.
+
+## Předaná sestava 28. 9. 2026
+
+- Zdrojový commit implementace: `ad4e113006caecac31a355b83384e1ddd51e4763`.
+- Instalační obraz: `out/Guard-Mesh-TDeck-20260928_075543-Guardian-BLE-v1-merged.bin`
+  a stejně pojmenovaný `.json` pro Guard-Mesh-Flasher; offset `0x0`.
+- App BIN: 3 667 040 bajtů; merged BIN: 3 732 576 bajtů.
+  V OTA oddílu po započtení celého app obrazu zbývá 396 192 bajtů.
+  Statická RAM podle linkeru: 122 752 / 327 680 bajtů.
+- SHA-256 merged BIN: `38d2ef5f9ccc913f2bc796d16c4b6ac75ae69de2da68be94f37fe41653df32cf`.
+- PlatformIO build i `mergebin` prošly. Flasher ověřil ESP obrazy a sidecar;
+  bajty aplikace ve sloučeném obrazu přesně odpovídají novému app BIN.
+  Objekt NimBLEServer odkazuje na ochranu opakovaného párování a výsledný ELF
+  obsahuje její implementaci.
+- Prošly protokolové a transportní testy, katalog češtiny, modely/služby
+  simulátoru i anglický, český a klávesnicový UI scénář. Český scénář s novými
+  přechody překročil původní 90sekundový limit; po jeho navýšení na 120 sekund
+  byl úspěšně dokončen. Anglické a české snímky Guardianu byly vizuálně zkontrolovány.
+- Zařízení nebylo flashováno. Fyzické BLE spojení zůstává k ověření podle výše
+  uvedeného seznamu; sestava není pro jiné modely LilyGo.
