@@ -28,6 +28,9 @@ class FlashRequest:
     port: str
     baud: int
     board: str
+    preserve: bool = False
+    backup_path: str = ""
+    sd_root: str = ""
 
     def validate(self):
         if not self.port or self.port.startswith("-") or any(c in self.port for c in "\r\n\0"):
@@ -36,10 +39,49 @@ class FlashRequest:
             raise ValueError("Vyber desku a podporovanou rychlost.")
         if not re.fullmatch(r"[0-9a-f]{64}", self.sha256):
             raise ValueError("Chybí kontrolní součet vybraného obrazu.")
+        if self.preserve and not self.backup_path:
+            raise ValueError("Chybí cesta k záloze před instalací.")
+
+
+@dataclass(frozen=True)
+class DataRequest:
+    operation: str
+    path: str
+    port: str
+    baud: int
+    board: str
+    sha256: str = ""
+    sd_root: str = ""
+    backup_directory: str = ""
+
+    def validate(self):
+        FlashRequest("", "0" * 64, self.port, self.baud, self.board).validate()
+        if self.operation not in ("backup", "restore") or not self.path:
+            raise ValueError("Neplatná operace zálohy.")
+        if self.operation == "restore" and (not re.fullmatch(r"[0-9a-f]{64}", self.sha256) or not self.backup_directory):
+            raise ValueError("Chybí ověřená záloha nebo složka pro bezpečnostní kopii.")
 
 
 def prepare(request, directory):
     request.validate()
+    directory = Path(directory)
+    if isinstance(request, DataRequest):
+        from .backup import file_hash, load_backup
+        payload = {"operation": request.operation, "port": request.port, "baud": request.baud,
+                   "board": request.board, "sd_root": request.sd_root, "backup_directory": request.backup_directory}
+        if request.operation == "restore":
+            import shutil
+            archive = directory / "restore.gmbak"
+            shutil.copyfile(request.path, archive)
+            if file_hash(archive) != request.sha256:
+                raise ImageError("Záloha se od výběru změnila.")
+            load_backup(archive)
+            payload.update(archive=str(archive), sha256=request.sha256)
+        else:
+            payload["backup_path"] = request.path
+        manifest = directory / "request.json"
+        manifest.write_text(json.dumps(payload), encoding="utf-8")
+        return manifest
     data = read_image(request.path)
     info = inspect_bytes(data)
     if info.kind != "merged":
@@ -50,7 +92,8 @@ def prepare(request, directory):
     image = directory / "image.bin"
     image.write_bytes(data)
     payload = {"image": str(image), "sha256": info.sha256, "port": request.port,
-               "baud": request.baud, "board": request.board}
+               "baud": request.baud, "board": request.board, "operation": "flash",
+               "preserve": request.preserve, "backup_path": request.backup_path, "sd_root": request.sd_root}
     manifest = directory / "request.json"
     manifest.write_text(json.dumps(payload), encoding="utf-8")
     return manifest
@@ -95,6 +138,16 @@ def worker(manifest):
         with redirect_stdout(stream), redirect_stderr(stream):
             try:
                 payload = json.loads(manifest.read_text(encoding="utf-8"))
+                if payload.get("preserve") or payload.get("operation") in ("backup", "restore"):
+                    FlashRequest("", "0" * 64, payload["port"], payload["baud"], payload["board"]).validate()
+                    if payload.get("operation") == "restore":
+                        from .backup import file_hash
+                        if file_hash(payload["archive"]) != payload["sha256"]:
+                            raise ImageError("Pracovní kopie zálohy se změnila.")
+                    from .data_transport import execute
+                    result = execute(payload, stream, manifest.parent)
+                    (manifest.parent / "result.json").write_text(json.dumps(result), encoding="utf-8")
+                    return 0
                 request = FlashRequest(payload["image"], payload["sha256"], payload["port"],
                                        payload["baud"], payload["board"])
                 request.validate()
@@ -165,4 +218,5 @@ def flash(request, emit, log_directory, launcher=subprocess.Popen):
         result = json.loads(result_path.read_text(encoding="utf-8")) if result_path.exists() else {}
         if process.returncode != 0 or result.get("ok") is not True:
             raise RuntimeError(f"{result.get('error') or 'Flashování selhalo; podrobnosti jsou v protokolu.'}\nProtokol: {log_path}")
-        return log_path
+        return {"log": str(log_path), "backup": result.get("backup"),
+                "operation": result.get("operation", "flash")}

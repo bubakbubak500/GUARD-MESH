@@ -33,6 +33,7 @@ def main():
                     shutil.copyfile(source, notices / (name + "-" + file.name))
     shutil.copyfile(PROJECT / "LICENSE", notices / "GUARD-MESH-LICENSE.txt")
     from guard_mesh_flasher.firmware import inspect_file
+    from guard_mesh_flasher import __version__
     command = [sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean", "--windowed", "--onedir",
                "--name", "Guard-Mesh-Flasher", "--distpath", str(CACHE / "dist"),
                "--workpath", str(CACHE / "work"), "--specpath", str(CACHE),
@@ -52,12 +53,13 @@ def main():
     subprocess.run(command, check=True, cwd=ROOT)
     folder = CACHE / "dist/Guard-Mesh-Flasher"
     system = "Windows-x64" if sys.platform == "win32" else sys.platform
-    archive = shutil.make_archive(str(OUTPUT / f"Guard-Mesh-Flasher-1.0.0-{system}-portable"), "zip", folder.parent, folder.name)
+    archive = shutil.make_archive(str(OUTPUT / f"Guard-Mesh-Flasher-{__version__}-{system}-portable"), "zip", folder.parent, folder.name)
     outputs = [Path(archive)]
     if args.iscc:
         subprocess.run([str(args.iscc.resolve()), f"/DAppSource={folder}", f"/DOutputPath={OUTPUT}",
+                        f"/DAppVersion={__version__}",
                         str(ROOT / "packaging/windows.iss")], check=True)
-        outputs.append(OUTPUT / "Guard-Mesh-Flasher-1.0.0-Windows-x64-Setup.exe")
+        outputs.append(OUTPUT / f"Guard-Mesh-Flasher-{__version__}-Windows-x64-Setup.exe")
     checksums = {path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in outputs}
     (OUTPUT / "SHA256SUMS.json").write_text(json.dumps(checksums, indent=2), encoding="utf-8")
     print("Build ready:", OUTPUT)

@@ -5,10 +5,13 @@
 #ifndef OutputPath
   #error OutputPath is required
 #endif
+#ifndef AppVersion
+  #error AppVersion is required
+#endif
 [Setup]
 AppId={{CA117386-CE29-4D36-B696-F31B05273F14}
 AppName=Guard-Mesh-Flasher
-AppVersion=1.0.0
+AppVersion={#AppVersion}
 AppPublisher=GUARD-MESH
 DefaultDirName={localappdata}\Programs\Guard-Mesh-Flasher
 DefaultGroupName=Guard-Mesh-Flasher
@@ -18,7 +21,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
 OutputDir={#OutputPath}
-OutputBaseFilename=Guard-Mesh-Flasher-1.0.0-Windows-x64-Setup
+OutputBaseFilename=Guard-Mesh-Flasher-{#AppVersion}-Windows-x64-Setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern

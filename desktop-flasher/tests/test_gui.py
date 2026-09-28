@@ -79,6 +79,50 @@ class GuiTests(unittest.TestCase):
         self.assertEqual(str(a.flash_button["state"]), "disabled")
         self.assertEqual(float(a.progress["value"]), 0)
 
+    def test_preservation_default_and_flash_request(self):
+        a = self.app
+        self.assertTrue(a.preserve.get())
+        a.confirm.set(True)
+        a.controls()
+        with patch("guard_mesh_flasher.app.messagebox.askokcancel", return_value=True), patch.object(a, "begin_job") as start:
+            a.start_flash()
+        request = start.call_args.args[0]
+        self.assertTrue(request.preserve)
+        self.assertEqual(Path(request.backup_path).parent, a.library.home / "backups")
+        a.preserve.set(False)
+        self.assertFalse(a.confirm.get())
+
+    def test_data_actions_without_firmware_and_busy_disabled(self):
+        a = self.app
+        a.search.set("nothing matches")
+        self.assertIsNone(a.selected)
+        self.assertEqual(str(a.backup_button["state"]), "normal")
+        with patch("guard_mesh_flasher.app.filedialog.asksaveasfilename", return_value=""), patch.object(a, "begin_job") as start:
+            a.start_backup()
+            start.assert_not_called()
+        a.flashing = True
+        a.controls()
+        for widget in (a.backup_button, a.restore_button, a.sd_button, a.preserve_box):
+            self.assertEqual(str(widget["state"]), "disabled")
+
+    def test_restore_requires_sd_and_cancel_does_not_start(self):
+        a = self.app
+        meta = {"sd_included": True, "mac": "80:b5:4e:f0:7d:89", "created": "2026-09-28"}
+        with patch("guard_mesh_flasher.app.filedialog.askopenfilename", return_value="example.gmbak"), \
+             patch("guard_mesh_flasher.app.file_hash", return_value="0" * 64), \
+             patch("guard_mesh_flasher.app.load_backup", return_value=(meta, b"", {})), \
+             patch("guard_mesh_flasher.app.messagebox.showerror") as error, \
+             patch("guard_mesh_flasher.app.messagebox.askokcancel", return_value=False) as confirm, \
+             patch.object(a, "begin_job") as start:
+            a.start_restore()
+            error.assert_called_once()
+            confirm.assert_not_called()
+            start.assert_not_called()
+            a.sd_root.set(self.tmp.name)
+            a.start_restore()
+            confirm.assert_called_once()
+            start.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

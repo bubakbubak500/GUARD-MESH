@@ -1,7 +1,11 @@
 # Lokální instalace GUARD-MESH
 
 Pro provoz bez prohlížeče je k dispozici [Guard-Mesh-Flasher](../desktop-flasher/README.md)
-s nativním oknem, knihovnou místních verzí a instalátorem Windows. Níže je původní webová varianta.
+s nativním oknem, knihovnou místních verzí a instalátorem Windows. Od verze 1.1.0
+umí zálohu a obnovu nastavení a interních zpráv GUARD-MESH / WadaMesh na T-Decku,
+volitelně také profil z SD karty připojené k PC. Podmínky a postup jsou v jeho
+[návodu](../desktop-flasher/README.md#záloha-a-obnova-od-110).
+Níže je původní webová varianta; její omezení zachování dat se tím nemění.
 
 Potřeba: Python 3.9+, Git a desktopový Chrome nebo Edge s Web Serial.
 

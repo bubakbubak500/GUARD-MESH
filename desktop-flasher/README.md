@@ -6,7 +6,7 @@ Python, Tk, pySerial a esptool. Firmware se vybírá z místních souborů.
 
 ## Windows
 
-Spusť `Guard-Mesh-Flasher-1.0.0-Windows-x64-Setup.exe`. Instalace je pro aktuálního
+Spusť `Guard-Mesh-Flasher-1.1.0-Windows-x64-Setup.exe`. Instalace je pro aktuálního
 uživatele, bez požadavku na administrátora, se zástupcem v nabídce Start a
 odinstalátorem. Alternativně rozbal portable ZIP a spusť `Guard-Mesh-Flasher.exe`;
 ponech u něj celou složku `_internal`. Balíček není digitálně podepsaný.
@@ -20,13 +20,14 @@ ponech u něj celou složku `_internal`. Balíček není digitálně podepsaný.
 3. Ověř desku. T-Deck / T-Deck Plus není T-Deck Pro. Připoj datový USB kabel,
    obnov porty a vyber port. Při potížích zkus 115200 baud nebo bootloader režim
    podle návodu desky; zavři ostatní programy používající daný port.
-4. Zálohuj data, potvrď volbu a stiskni **Nahrát firmware**. Finální dialog
+4. Nech zapnuté **Před instalací zálohovat a automaticky obnovit nastavení a interní zprávy**,
+   potvrď volbu a stiskni **Nahrát firmware**. Finální dialog
    ukáže konkrétní verzi, desku a port. Během zápisu neodpojuj kabel.
 5. Aplikace zkontroluje čip i kapacitu flash, zapíše obraz, esptool ověří data
    a resetuje zařízení. Chyba se nezobrazuje jako úspěch. Protokol se ukládá.
 
-**Kompletní obraz se zapisuje od adresy 0 a může přepsat identitu a nastavení
-i bez celkového mazání flash. Tato verze neslibuje zachování dat.** Nepoužívá
+**Bez zapnutého zachování dat může kompletní obraz od adresy 0 přepsat identitu
+a nastavení i bez celkového mazání flash.** Nepoužívá
 `erase_flash`, `--force`, zápis eFuse ani obcházení ochran zabezpečeného zařízení.
 ESP32-S3 samo neurčuje model desky; výběr správného obrazu/desky je nutný.
 
@@ -35,6 +36,42 @@ na 0x8000 a úplnou factory/OTA0 aplikací. Kontroluje se rozsah a překryv odd�
 MD5 tabulky, segmentové checksumy, SHA-256 obrazu a případné SHA-256 v metadatech.
 Nejde o ověření autora ani digitální podpis. ESP32 (bez S3), ESP8266, P4 a
 Tanmatsu nejsou podporované. Nejde o stahovač internetových vydání ani IDE.
+
+## Záloha a obnova (od 1.1.0)
+
+Pro **T-Deck / T-Deck Plus, 16 MiB, GUARD-MESH nebo WadaMesh**:
+
+- Zapnutá volba zachování dat před instalací načte a ověří NVS a SPIFFS,
+  uloží samostatný `.gmbak`, zapíše firmware, obnoví datové oddíly a ověří je.
+  Rádio se spustí až po dokončení. Bez platné a uložené zálohy se zápis nespustí.
+- **Zálohovat data…** uloží stav rádia bez instalace firmwaru.
+- **Obnovit zálohu…** importuje `.gmbak` do stejného rádia. Nejdříve uloží aktuální
+  stav do nové bezpečnostní zálohy. Obnoví se identita, nastavení, kontakty,
+  kanály a interně uložené zprávy; nezapisuje se firmware, výběr OTA ani mapový oddíl.
+- Při chybě po zahájení zápisu zůstává záloha uložená a její cesta je v protokolu.
+  Po opětovném připojení lze použít **Obnovit zálohu…**. Pokud je poškozený i firmware,
+  nejdříve nahraj správný kompletní obraz s vypnutým zachováním dat, pak obnov původní zálohu.
+
+Kontroluje se MAC stejného rádia, velikost flash, typ, umístění a velikost NVS/SPIFFS,
+MD5 tabulky oddílů a SHA-256 souborů. Rozdílné datové oddíly, šifrovaná flash,
+Secure Boot nebo poškozená záloha se odmítnou před zápisem. Rozložení dat bylo
+porovnáno se současným firmwarem a starším WadaMesh `beta_83`; libovolné jiné
+rozložení nebo přenos identity na jiné rádio nejsou podporované. Obnova vrací
+celý uložený stav, neslučuje nové zprávy se starými. Jiné desky mohou nadále
+použít instalaci bez zachování dat. Přenos přes skutečné USB rádio je třeba
+ověřit na zařízení; automatické testy používají simulovanou flash a skutečné soubory.
+
+**Zprávy na SD:** USB flasher neumí kartu v rádiu přečíst. Chceš-li ji zahrnout,
+připoj ji čtečkou k PC a přes **Připojit SD složku…** vyber její kořen.
+Zálohuje se složka `meshcomod`, nikoli celá karta či mapy. Bez této volby
+zůstanou SD data na kartě, ale nejsou v záloze. Archiv se SD daty při importu
+vyžaduje připojenou cílovou kartu. Původní složka se zachová vedle obnovené jako
+`meshcomod-before-restore-…`. Po operaci kartu vrať do rádia a restartuj jej.
+Limit zálohy je 544 MiB a 10 000 datových souborů. Během zálohy neměň SD soubory.
+
+Automatické a bezpečnostní zálohy jsou v `backups/` v adresáři dat aplikace
+(na Windows `%LOCALAPPDATA%\Guard-Mesh-Flasher\backups`). **Záloha není šifrovaná,
+obsahuje soukromou identitu rádia, zprávy a případná hesla. Nesdílej ji veřejně.**
 
 ## Samotné aplikace a lokální sestavení
 
@@ -65,8 +102,8 @@ Volitelná metadata mají stejný název jako obraz s příponou `.json`:
 - Linux: `$XDG_DATA_HOME/Guard-Mesh-Flasher` nebo `~/.local/share/Guard-Mesh-Flasher`
 - macOS: `~/Library/Application Support/Guard-Mesh-Flasher`
 
-`library.json` obsahuje jen odkazy na soubory/složky, `logs/` protokoly instalací.
-Odinstalátor osobní knihovnu, protokoly ani vlastní firmware nemaže. Před zápisem
+`library.json` obsahuje jen odkazy na soubory/složky, `logs/` protokoly instalací,
+`backups/` automatické zálohy. Odinstalátor knihovnu, protokoly, zálohy ani vlastní firmware nemaže. Před zápisem
 se obraz znovu ověří a zkopíruje do dočasného pracovního adresáře, takže změna
 původního souboru během zápisu nezmění běžící instalaci.
 
