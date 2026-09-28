@@ -1391,3 +1391,8 @@ Subject	Předmět
 Waiting	Čeká
 Start new message	Začít novou zprávu
 The previous message may be queued on PC. Check it before starting a new message.	Předchozí zpráva už může být ve frontě na PC. Před novou zprávou to ověř.
+TX queue	Fronta TX
+Last RSSI	Poslední RSSI
+Ping · battery estimate (3.3–4.2 V)	Ping · odhad baterie (3,3–4,2 V)
+Uptime	Doba běhu
+Node	Uzel

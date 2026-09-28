@@ -433,10 +433,11 @@ ColorVal UIColor::window_bkg = 0, UIColor::title_bkg = 0, UIColor::title_txt = 0
 
 int appMain(int argc, char **argv) {
   setvbuf(stdout, nullptr, _IONBF, 0);
+  bool pingOnly = argc > 1 && (!strcmp(argv[1], "--ping-test") || !strcmp(argv[1], "--ping-test-cs"));
   bool guardianOnly = argc > 1 && (!strcmp(argv[1], "--guardian-test") || !strcmp(argv[1], "--guardian-test-cs"));
-  bool czech = argc > 1 && (!strcmp(argv[1], "--smoke-cs") || !strcmp(argv[1], "--guardian-test-cs"));
+  bool czech = argc > 1 && (!strcmp(argv[1], "--ping-test-cs") || !strcmp(argv[1], "--smoke-cs") || !strcmp(argv[1], "--guardian-test-cs"));
   bool keyboardNav = argc > 1 && strcmp(argv[1], "--smoke-nav") == 0;
-  bool smoke = guardianOnly || czech || keyboardNav || (argc > 1 && strcmp(argv[1], "--smoke") == 0);
+  bool smoke = pingOnly || guardianOnly || czech || keyboardNav || (argc > 1 && strcmp(argv[1], "--smoke") == 0);
   WNDCLASSW cls{};
   cls.lpfnWndProc = windowProc;
   cls.hInstance = GetModuleHandle(nullptr);
@@ -497,6 +498,16 @@ int appMain(int argc, char **argv) {
   if (czech && (strcmp(TR("Settings"), "Nastavení") || strcmp(TR("Advert"), "Advert")))
     throw std::runtime_error("Czech translation or preserved Advert term failed");
   if (smoke) {
+    if (pingOnly) {
+      extern void runPingReplyRegression(void (*)(unsigned), void (*)(const char*));
+      runPingReplyRegression(pump, [](const char* name) { lv_refr_now(nullptr); saveFrame(name); });
+      ContactInfo contact{}; strcpy(contact.name, "Heltec V4 · OK7PS");
+      uint8_t stats[56]{}; stats[0] = 0x7c; stats[1] = 0x10; stats[2] = 3;
+      stats[6] = 0xa5; stats[7] = 0xff; stats[20] = 0x10; stats[21] = 0x0e;
+      uiTask.onPingReply(contact, stats, sizeof stats);
+      pump(50); lv_refr_now(nullptr); saveFrame("ping-reply-integrated.png");
+      return 0;
+    }
     if (guardianOnly) {
       extern void runGuardianAppRegression(void (*)(const char*));
       runGuardianAppRegression([](const char* name) { lv_refr_now(nullptr); saveFrame(name); });

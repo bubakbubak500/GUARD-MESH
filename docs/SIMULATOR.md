@@ -139,6 +139,12 @@ během čtení. Skutečný ESP32 heap ani FAT kapacita se v desktopu neměří.
 Režim `--smoke-nav` navíc ověří skutečně naplněnou skupinu a posun fokusu
 klávesou přes vstupní cestu firmwaru; poté projde běžný integrační scénář.
 Samostatné modely a služby: `python scripts/test_ui_models.py`.
+Dialog odpovědi Ping lze ověřit také samostatně přepínačem `--ping-test`
+nebo `--ping-test-cs` sestaveného simulátoru. Testuje skutečný model a modal:
+binární/JSON odpověď, správný offset uptime (20, nikoli TX airtime na 16),
+chybějící hodnoty, odhad baterie 3,3–4,2 V, zavírání a životnost nahrazeného
+dialogu. Ukládá snímky `ping-reply*.png` do pracovního adresáře. Procenta jsou
+označená `~`; Ping přenáší napětí, ne kapacitu ani kalibraci vzdáleného uzlu.
 Detail překladače: `.sim-cache/build/errors.txt`; běhový log: `.sim-cache/simulator.log`.
 Každý automatický UI scénář ukládá stdout/stderr do svého `smoke.log`
 v `.sim-cache/test-artifacts/`, `cs/` nebo `keyboard-nav/`; při chybě se zobrazí

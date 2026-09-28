@@ -107,6 +107,7 @@ using namespace ui::images;
 #include "theme/TouchTheme.h"
 #include "screens/QuickRepliesScreen.h"
 #include "screens/ConfirmDialog.h"
+#include "screens/PingReplyDialog.h"
 #include "services/ConfigurationService.h"
 #include "platform/UiPlatform.h"
 #include "application/UiApplication.h"
@@ -26497,64 +26498,39 @@ void UITask::onThreadsChanged() {
 #endif
 }
 
+static ui::screens::PingReplyDialog pingReplyDialog({
+  []() -> lv_coord_t { return STATUSBAR_H; }, popupClose,
+  [](lv_obj_t* object) {
+#if CAP_KEYPAD_NAV
+    ui::focus::requestFocus(object);
+    navMarkDirty();
+#else
+    (void)object;
+#endif
+  }
+});
 void UITask::onPingReply(const ContactInfo& contact, const uint8_t* data, size_t len) {
-  s_ui_ping_deadline_ms = 0;  // reply arrived, cancel timeout
-
-  unsigned batt_mv = 0;
-  unsigned uptime_s = 0;
-  unsigned queue_len = 0;
-  int16_t  last_rssi = 0;
-  bool parsed = false;
-
-  /* Repeaters reply with a packed binary RepeaterStats struct:
-   *   u16 batt_mv, u16 queue_len, i16 noise_floor, i16 last_rssi,
-   *   u32 n_recv, u32 n_sent, u32 air_secs, u32 uptime_secs, ...
-   * Room servers and sensors reply with a JSON blob via StatsFormatHelper. */
-  if (len >= 20) {
-    batt_mv   = (unsigned)(data[0] | (data[1] << 8));
-    queue_len = (unsigned)(data[2] | (data[3] << 8));
-    last_rssi = (int16_t)(data[6] | (data[7] << 8));
-    // uptime_secs is at offset 16 (after 2+2+2+2 + 4+4 = 16)
-    uptime_s  = (unsigned)(data[16] | (data[17] << 8) | (data[18] << 16) | (data[19] << 24));
-    if (batt_mv >= 2000 && batt_mv <= 5500) parsed = true;
+  s_ui_ping_deadline_ms = 0;
+  const auto status = ui::PingStatus::parse(data, len);
+  char name[sizeof contact.name + 1];
+  copyUtf8ReplacingMissingGlyphs(&font16(), name, sizeof name,
+                                contact.name[0] ? contact.name : "node");
+  char message[120];
+  snprintf(message, sizeof message, "%s: Ping (%u bytes)", name, (unsigned)len);
+#if CAP_CONSOLE
+  if (s_console_mode) {
+    char battery[24] = "--", uptime[24] = "--", queue[16] = "--", rssi[16] = "--";
+    if (status.hasBattery) snprintf(battery, sizeof battery, "%lu mV", (unsigned long)status.batteryMv);
+    if (status.hasUptime) snprintf(uptime, sizeof uptime, "%lu s", (unsigned long)status.uptimeSecs);
+    if (status.hasQueue) snprintf(queue, sizeof queue, "%lu", (unsigned long)status.queueLength);
+    if (status.hasRssi) snprintf(rssi, sizeof rssi, "%d", int(status.rssi));
+    snprintf(message, sizeof message, "%s: %s up %s q=%s rssi=%s", name, battery, uptime, queue, rssi);
+    showAlert(message, 5000);
+    return;
   }
-  if (!parsed) {
-    // JSON fallback for non-repeater nodes
-    char body[160];
-    size_t copy_len = len < sizeof(body) - 1 ? len : sizeof(body) - 1;
-    memcpy(body, data, copy_len);
-    body[copy_len] = '\0';
-    const char* p;
-    if ((p = strstr(body, "\"battery_mv\":")) != nullptr) {
-      sscanf(p + 13, "%u", &batt_mv);
-    }
-    if ((p = strstr(body, "\"uptime_secs\":")) != nullptr) {
-      sscanf(p + 14, "%u", &uptime_s);
-    }
-    if ((p = strstr(body, "\"queue_len\":")) != nullptr) {
-      sscanf(p + 12, "%u", &queue_len);
-    }
-    if (batt_mv > 0 || uptime_s > 0) parsed = true;
-  }
-
-  char nm[24];
-  copyUtf8ReplacingMissingGlyphs(&font14(), nm, sizeof(nm),
-                                 contact.name[0] ? contact.name : "node");
-  char msg[120];
-  if (parsed) {
-    if (uptime_s >= 3600) {
-      snprintf(msg, sizeof(msg), "%s: %u.%02uV  up %uh%02um  q=%u  rssi=%d",
-               nm, batt_mv / 1000, (batt_mv % 1000) / 10,
-               uptime_s / 3600, (uptime_s % 3600) / 60, queue_len, (int)last_rssi);
-    } else {
-      snprintf(msg, sizeof(msg), "%s: %u.%02uV  up %um  q=%u  rssi=%d",
-               nm, batt_mv / 1000, (batt_mv % 1000) / 10,
-               uptime_s / 60, queue_len, (int)last_rssi);
-    }
-  } else {
-    snprintf(msg, sizeof(msg), "%s: reply (%u bytes)", nm, (unsigned)len);
-  }
-  showAlert(msg, 5000);
+#endif
+  pushDiagLine(message);
+  pingReplyDialog.show(name, status);
 }
 
 // Telemetry response window — a dismissible card (same style as the map-options
@@ -32727,6 +32703,7 @@ static constexpr uint8_t PF_BASE  = 4;
 static constexpr uint8_t PF_STATUS = ui::UiApplication::StatusPage; // uses the bar for Back
 #define P_OPEN(root) []{ return (root) != nullptr; }
 static const PopupEnt k_popup_registry[] = {
+  { []{ return pingReplyDialog.isOpen(); }, []{ pingReplyDialog.dismiss(); }, PF_COUNT },
   { ui::screens::releasePicker::isOpen, ui::screens::releasePicker::close, PF_COUNT },
   { []{return ui::screens::timeline::urlQrOpen();},            []{ closeUrlQr(); },                 PF_COUNT },   // chat URL -> QR
   { []{return ui::screens::timeline::urlMenuOpen();},          []{ closeUrlMenu(); },               PF_COUNT },   // chat URL -> action menu
