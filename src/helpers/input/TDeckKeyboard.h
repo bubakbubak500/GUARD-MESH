@@ -29,6 +29,11 @@ void tdeckKeyboardPoll();
 /** Pop the next buffered key (ASCII), or 0 if none. Safe from the UI thread. */
 int tdeckKeyboardReadKey();
 
+/** Snapshot of a held letter from a recent raw frame. Legacy controllers expose
+ * only characters, so cannot report release/hold duration. No I2C from UI. */
+bool tdeckKeyboardHasKeyState();
+bool tdeckKeyboardKeyDown(char key);
+
 /** Cancel one-shot/locked modifiers and suppress a later release from a
  * currently held modifier. Call when queued input is intentionally discarded. */
 void tdeckKeyboardDiscardModifiers();

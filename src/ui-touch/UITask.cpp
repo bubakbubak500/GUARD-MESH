@@ -30437,6 +30437,9 @@ bool guardSimHomeMessagesRegression(void (*tap)(int,int), void (*pump)(unsigned)
 
 // Guardian app regression uses this same shared chrome, never a mock header.
 static void guardSimGuardianBack() {}
+void guardSimGuardianOpen(bool open) {
+  if (open) openGuardianPage(); else closeGuardianPage();
+}
 void guardSimGuardianAppTitle(const char* title) {
   if (title) appPageBeginSlim(title,guardSimGuardianBack);
   else appPageEnd(guardSimGuardianBack);
@@ -31992,6 +31995,8 @@ void UITask::loop() {
 #if defined(HAS_TDECK_KEYBOARD)
   if (_screen.screenOff() || _screen.manualLocked() || s_remote_mode) tdeckKeyboardDiscardModifiers();
   else                                              tdeckKeyboardAllowModifiers();
+  guardianApp.refreshKey(!_screen.screenOff() && !_screen.manualLocked() && !s_remote_mode &&
+                        tdeckKeyboardKeyDown('r'),now);
   // Drain physical-keyboard presses buffered by the touch task into the field.
   for (int kbi = 0; kbi < 12; ++kbi) {
     int key = tdeckKeyboardReadKey();
@@ -31999,6 +32004,11 @@ void UITask::loop() {
     if (!_screen.screenOff()) s_kb_last_key_ms = now;   // a keypress while locked must not light the kb
     if (s_remote_mode) { tdeckKeyboardDiscardModifiers(); remotePhysicalKey(key); continue; } // remote mode: physical keys are the exit
     if (_screen.screenOff()) tdeckKeyboardDiscardModifiers();
+    if (!_screen.screenOff() && !_screen.manualLocked() && guardianApp.acceptsRefreshKey() && (key=='r' || key=='R')) {
+      // Old C3 firmware has no release events: a single R is its explicit fallback.
+      if (!tdeckKeyboardHasKeyState()) guardianApp.manualRefresh();
+      noteUserInput(); continue;
+    }
     handleHwKey(key);
   }
   // Focusing a text field (cursor starts blinking — tapped or auto-focused)

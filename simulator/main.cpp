@@ -8,6 +8,8 @@
 #include "SimReceiveTask.h"
 #include "ui_regression.h"
 #include "i18n.h"
+#include "services/GuardianLink.h"
+#include "services/GuardianRpcLink.h"
 #include <vector>
 #include <deque>
 #include <filesystem>
@@ -29,6 +31,7 @@ HWND window = nullptr;
 bool running = true, pressed = false, dirty = false;
 uint16_t pointerX = 0, pointerY = 0;
 std::deque<int> keys;
+uint32_t heldLetters = 0;
 int ballX = 0, ballY = 0;
 bool ballHeld = false;
 bool injectRequested = false, snapshotRequested = false;
@@ -74,6 +77,7 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
   case WM_KILLFOCUS:
     pressed = false;
     ballHeld = false;
+    heldLetters = 0;
     break;
   case WM_SIZE:
     dirty = true;
@@ -83,6 +87,7 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       keys.push_back((int)wp);
     return 0;
   case WM_KEYDOWN:
+    if (wp>='A' && wp<='Z') heldLetters |= uint32_t(1) << (wp-'A');
     if (wp == VK_F1)
       MessageBoxW(hwnd,
                   L"Mouse: T-Deck touchscreen (drag to scroll)\nKeyboard: type into firmware "
@@ -107,6 +112,7 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       ballHeld = true;
     return 0;
   case WM_KEYUP:
+    if (wp>='A' && wp<='Z') heldLetters &= ~(uint32_t(1) << (wp-'A'));
     if (wp == VK_F6)
       ballHeld = false;
     return 0;
@@ -362,6 +368,11 @@ void heltecV4CapTouchGetRaw(uint16_t *x, uint16_t *y) {
 void tdeckKeyboardBegin() {}
 void tdeckKeyboardForceLegacy(bool) {}
 void tdeckKeyboardPoll() {}
+bool tdeckKeyboardHasKeyState() { return true; }
+bool tdeckKeyboardKeyDown(char key) {
+  if (key>='A' && key<='Z') key+='a'-'A';
+  return key>='a' && key<='z' && (heldLetters & (uint32_t(1) << (key-'a')));
+}
 int tdeckKeyboardReadKey() {
   if (keys.empty())
     return 0;
@@ -510,8 +521,23 @@ int appMain(int argc, char **argv) {
     }
     if (guardianOnly) {
       extern void runGuardianAppRegression(void (*)(const char*));
+      extern void runGuardianPolishRegression(void (*)(const char*));
       runGuardianAppRegression(nullptr); // Also cover fast replies between frames.
       runGuardianAppRegression([](const char* name) { lv_refr_now(nullptr); saveFrame(name); });
+      runGuardianPolishRegression([](const char* name) { lv_refr_now(nullptr); saveFrame(name); });
+      // Exercise the real UITask keyboard path, not just the screen's hold timer.
+      extern void guardSimGuardianOpen(bool);
+      guardian::configure(true,true,true); guardian::connected(); guardian::rpcConnect(); guardian::rpcSubscribe(true);
+      guardSimGuardianOpen(true); pump(50);
+      SendMessageW(window,WM_KEYDOWN,'R',0); SendMessageW(window,WM_CHAR,'r',0);
+      pump(1850);
+      if (findLabel(lv_layer_top(),TR("Cancel"))) throw std::runtime_error("Guardian R fired early through UITask");
+      pump(350);
+      if (!findLabel(lv_layer_top(),TR("Cancel"))) throw std::runtime_error("Guardian R hold did not reach UITask");
+      SendMessageW(window,WM_KEYUP,'R',0); clickLabel(TR("Cancel")); pump(50);
+      if (findLabel(lv_layer_top(),TR("Cancel"))) throw std::runtime_error("Guardian refresh cancel did not respond to touch");
+      guardSimGuardianOpen(false); guardian::disconnected(); guardian::configure(false,false,false);
+      puts("Guardian physical R hold and modal touch: UITask integration PASS");
       return 0;
     }
     if (keyboardNav) {

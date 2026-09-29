@@ -3,6 +3,7 @@
 #include "../widgets/ObjectRef.h"
 #include "../services/GuardianDraft.h"
 #include "../services/GuardianAppearance.h"
+#include "../models/GuardianStatus.h"
 #include <string>
 #include <vector>
 namespace ui { namespace screens {
@@ -12,11 +13,22 @@ public:
   bool back();
   void detach();
   void refresh(uint32_t now);
+  bool acceptsRefreshKey() const;
+  void refreshKey(bool down, uint32_t now);
+  void manualRefresh();
 private:
   enum Page { Dashboard, Messages, Contacts, Text, Compose, Settings, Info };
   struct Row { uint32_t id = 0; std::string title, detail, call; bool dot = false, saved = false; };
   struct Binding { GuardianAppScreen* owner; int action; };
+  struct CachedPage {
+    std::string key, revision, signature, body, heading;
+    std::vector<Row> rows;
+    uint32_t next = 0, total = 0;
+    bool hasNext = false;
+    size_t bytes() const;
+  };
   widgets::ObjectRef _root;
+  widgets::ObjectRef _refreshModal;
   lv_obj_t *_notice = nullptr, *_fields[3] = {}, *_priority = nullptr;
   lv_obj_t *_activity = nullptr, *_percent = nullptr, *_bar = nullptr;
   lv_obj_t *_inbox = nullptr, *_unread = nullptr, *_outbox = nullptr, *_links[3] = {};
@@ -34,10 +46,15 @@ private:
   bool _hasNext = false, _loaded = false, _online = false, _awaiting = false;
   bool _confirmNew = false, _needPage = false, _background = false;
   bool _contactPicker = false;
+  bool _pageLoaded = false, _cached = false, _refreshing = false, _refreshStatus = false, _refreshPage = false;
+  bool _requestRefresh = false, _rDown = false, _rFired = false;
+  uint32_t _rAt = 0, _refreshAt = 0;
+  guardian::Session _queriedStatus;
   uint8_t _direction = 0;
   std::string _operation, _id, _revision, _body, _heading, _info, _signature;
   std::vector<Row> _rows;
   std::vector<uint32_t> _previous;
+  std::vector<CachedPage> _cache;
   guardian::Draft _draft;
   void render();
   void updateDashboard(uint32_t now);
@@ -48,6 +65,13 @@ private:
   bool request(const char* operation, const std::string& json);
   void response(const std::string& raw, const std::string& error);
   void action(int action);
+  std::string cacheKey() const;
+  bool restoreCache();
+  void saveCache();
+  void invalidateCache();
+  void showRefresh();
+  void finishRefresh();
+  const char* noticeText() const;
   uint32_t accent() const;
   uint32_t surface() const;
   void style(lv_obj_t* object, bool active = false);

@@ -9,7 +9,7 @@ void draw(lv_event_t* e) {
   lv_area_t area; lv_obj_get_coords(obj,&area);
   const int size=lv_obj_get_width(obj);
   const auto blue=lv_obj_get_style_text_color(obj,0);
-  const auto white=lv_color_hex(0xeaf1ff);
+  const auto white=lv_obj_get_style_line_color(obj,0);
   auto point=[&](int x,int y) { return lv_point_t{lv_coord_t(area.x1+x*(size-1)/32),lv_coord_t(area.y1+y*(size-1)/32)}; };
   auto path=[&](std::initializer_list<lv_point_t> points,lv_color_t color,int width=2) {
     lv_draw_line_dsc_t d; lv_draw_line_dsc_init(&d); d.color=color; d.width=width; d.round_start=d.round_end=1;
@@ -58,10 +58,11 @@ void draw(lv_event_t* e) {
   }
 }
 }
-lv_obj_t* guardianIcon(lv_obj_t* parent,GuardianIcon kind,int size,uint32_t accent) {
+lv_obj_t* guardianIcon(lv_obj_t* parent,GuardianIcon kind,int size,uint32_t accent,lv_color_t foreground) {
   auto* obj=lv_obj_create(parent); lv_obj_remove_style_all(obj); lv_obj_set_size(obj,size,size);
   lv_obj_clear_flag(obj,LV_OBJ_FLAG_CLICKABLE|LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_style_text_color(obj,lv_color_hex(accent),0);
+  lv_obj_set_style_line_color(obj,foreground,0);
   lv_obj_add_event_cb(obj,draw,LV_EVENT_DRAW_MAIN,reinterpret_cast<void*>(static_cast<uintptr_t>(kind)));
   return obj;
 }

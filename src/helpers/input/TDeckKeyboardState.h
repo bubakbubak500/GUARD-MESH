@@ -9,6 +9,10 @@
 class TDeckKeyboardState {
  public:
   static constexpr size_t COLS = 5;
+  bool keyDown(char key) const {
+    if (key >= 'A' && key <= 'Z') key += 'a'-'A';
+    return key >= 'a' && key <= 'z' && (held_letters_ & (uint32_t(1) << (key-'a')));
+  }
 
   size_t update(const uint8_t current[COLS], uint32_t now_ms,
                 uint8_t* out, size_t out_capacity, bool modifiers_enabled = true) {
@@ -51,11 +55,14 @@ class TDeckKeyboardState {
     // Held OR latched: a tap arms it for the next key, a double tap locks it.
     const bool shift = modifiers_enabled && (down(1, 6) || down(2, 3) || shift_.latched());
     size_t written = 0;
+    held_letters_ = 0;
     auto emit = [&](uint8_t key) {
       if (written < out_capacity) out[written++] = key;
     };
     for (uint8_t row = 0; row < 7; ++row) {
       for (size_t col = 0; col < COLS; ++col) {
+        const char letter=base[col][row];
+        if (down(col,row) && letter>='a' && letter<='z') held_letters_ |= uint32_t(1) << (letter-'a');
         if (!pressed(col, row)) continue;
         if ((col == 0 && (row == 2 || row == 4)) ||
             (col == 1 && row == 6) || (col == 2 && row == 3)) continue;
@@ -99,6 +106,7 @@ class TDeckKeyboardState {
   }
 
   void baseline(const uint8_t current[COLS]) {
+    held_letters_ = 0; // mode transition never arms a hold shortcut
     symbol_.baseline((current[0] & (uint8_t)(1U << 2)) != 0);
     alt_.baseline((current[0] & (uint8_t)(1U << 4)) != 0);
     for (size_t col = 0; col < COLS; ++col) previous_[col] = current[col] & 0x7F;
@@ -110,6 +118,7 @@ class TDeckKeyboardState {
   }
 
  private:
+  uint32_t held_letters_ = 0;
   uint8_t previous_[COLS] = {};
   LatchedModifier symbol_;
   LatchedModifier alt_;

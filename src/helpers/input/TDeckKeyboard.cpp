@@ -29,6 +29,8 @@ static TDeckKeyboardState s_raw_state;
 static bool               s_modifier_input_allowed = true; // guarded by s_keyboard_mux
 static uint32_t           s_modifier_mode_generation = 0;   // guarded by s_keyboard_mux
 static uint32_t           s_modifier_generation_applied = 0; // core-0 owner only
+static uint32_t           s_raw_frame_at = 0;
+static bool               s_has_raw_frame = false;
 
 // Backlight: the UI thread requests a level; the actual I2C write happens in the
 // poll (core 0). The keyboard's C3 firmware sets the backlight on an I2C write.
@@ -62,6 +64,7 @@ static void processRawFrame(const uint8_t frame[TDeckKeyboardState::COLS], uint3
   uint8_t keys[16];
   portENTER_CRITICAL(&s_keyboard_mux);
   const uint32_t generation = s_modifier_mode_generation;
+  s_raw_frame_at = now_ms; s_has_raw_frame = true;
   if (generation != s_modifier_generation_applied) {
     // Transition frame: establish current physical state, publish nothing.
     // The mode setter already cleared older queued bytes under this same lock.
@@ -98,6 +101,7 @@ static bool looksLikeAscii(const uint8_t frame[TDeckKeyboardState::COLS]) {
 
 static void processLegacyKey(uint8_t key) {
   portENTER_CRITICAL(&s_keyboard_mux);
+  s_has_raw_frame = false;
   const uint32_t generation = s_modifier_mode_generation;
   if (generation != s_modifier_generation_applied) {
     // No raw modifier state exists, and the C3 exposes one latest-byte mailbox
@@ -122,6 +126,7 @@ void tdeckKeyboardBegin() {
   s_raw_state = TDeckKeyboardState{};
   portENTER_CRITICAL(&s_keyboard_mux);
   s_head = s_tail = 0;
+  s_has_raw_frame = false;
   // Keep any desired mode the UI published immediately after starting this
   // task. Setting applied one generation behind forces the first response to
   // baseline (or drain the legacy controller's one-byte mailbox).
@@ -270,6 +275,20 @@ int tdeckKeyboardReadKey() {
   s_tail = (uint8_t)((s_tail + 1) & 15);
   portEXIT_CRITICAL(&s_keyboard_mux);
   return key;
+}
+
+bool tdeckKeyboardHasKeyState() {
+  portENTER_CRITICAL(&s_keyboard_mux);
+  const bool available=s_has_raw_frame;
+  portEXIT_CRITICAL(&s_keyboard_mux);
+  return available;
+}
+bool tdeckKeyboardKeyDown(char key) {
+  portENTER_CRITICAL(&s_keyboard_mux);
+  const bool down=s_has_raw_frame && s_modifier_input_allowed &&
+    s_modifier_generation_applied==s_modifier_mode_generation && uint32_t(millis()-s_raw_frame_at)<250 && s_raw_state.keyDown(key);
+  portEXIT_CRITICAL(&s_keyboard_mux);
+  return down;
 }
 
 void tdeckKeyboardDiscardModifiers() {

@@ -33,7 +33,11 @@ Párování už není součástí aplikace Guardian.
   Při souběhu se bargraf drží jednoho aktivního směru. Systémová lišta zůstává
   společná s ostatními obrazovkami zařízení.
 - Nastavení aplikace nabízí modrý a zelený motiv, uložený do NVS. Motiv mění
-  pouze Guardian. Párování zůstává v hlavním nastavení zařízení.
+  pouze Guardian. Oba mají tmavé výplně s 70% krytím, jemný obrys a oranžové
+  hlavní/vybrané akce s černým textem i ikonami. Párování zůstává v hlavním
+  nastavení zařízení. Neznámé počty a procenta v aplikaci používají `-`, který
+  mají i velké číselné fonty. Klepnutí na Přijaté otevře Inbox, na K odeslání
+  Outbox (frontu na PC; odeslané jsou samostatnou složkou).
 - Zprávy mají složky Inbox, Outbox, Odeslané, Koncepty a Tranzit. Seznam se čte
   po třech položkách, text po 512 Unicode znacích; používá přesné
   `revision`/`next_offset`. Změna seznamu/textu obnoví první stránku.
@@ -43,12 +47,24 @@ Párování už není součástí aplikace Guardian.
   Výběr vyplní příjemce nové zprávy.
   Přítomnost kontaktu není zárukou okamžitého doručení.
 - Grafika drží návrh A3: obrysové ikony obálky, sítě, tužky a odesílání,
-  záložky uložených tras, kruhové kontrolky a modré hlavní akce. Ikony se
+  záložky uložených tras, kruhové kontrolky a oranžové hlavní akce. Ikony se
   kreslí přímo v LVGL. Zpět a název stránky jsou ve společné systémové liště.
 - Otevřený seznam zpráv nebo sítě se obnovuje automaticky každých pět sekund.
   Stejný obsah nezpůsobí překreslení; pozdní odpověď nemění jinou stránku ani
   rozepsaný text. Stránkování má šipky zpět/vpřed. Stavová zpráva zabírá jeden
   řádek a klepnutím otevře plné vysvětlení.
+- Navštívené stránky zpráv, textu a kontaktů se drží v RAM: nejvýše 12 stránek
+  s rozpočtem 24 KiB pro započítaný obsah a objekty (bez režie alokátoru).
+  Návrat zobrazí obsah ihned a ověří jej na pozadí. Cache rozlišuje složku,
+  zprávu, zdroj kontaktů a stránku; při odpojení zůstává, po restartu zmizí.
+- Přehled kontroluje stav každých 250 ms. PC podle kontraktu vytváří snímek
+  po 500 ms a posílá heartbeat nejpozději po 5 s; po 15 s bez něj je stav
+  neaktuální. Obrazovka textu se automaticky nepřekresluje během čtení.
+- Podržení **R na 2 s** otevře zrušitelný načítací modal a vyžádá `status.get`
+  i aktuální seznam/text. Jeden stisk spustí jedinou obnovu. V editoru R normálně
+  píše. Starý firmware klávesnice bez matice a událostí uvolnění neumí délku
+  stisku: tam stejné obnovení spustí krátké R. Zrušení zavře modal; rozběhnutá
+  odpověď RPC se bezpečně dočte. Obnovení neposílá zprávy ani znovu nepáruje BLE.
 - Editor podporuje příjemce, předmět, text do 4096 Unicode znaků a prioritu
   0–3. Koncept se ukládá při odchodu. Před prvním odesláním se text a UUID v4
   atomicky uloží jako jeden NVS blob. Pokud uložení selže, nic se neposílá.
@@ -75,6 +91,12 @@ Zpracování JSON probíhá až po END; velikost je omezená na 32768 bajtů.
 Pořadí fragmentů, ID a časové limity 30/60 sekund se kontrolují. Chyba rámcování
 ukončí spojení, odpojení zahodí neúplná data. RPC ani Progress neomlazují Status.
 BLE callbacky nekreslí UI a neukládají koncepty; sdílený RPC model chrání mutex.
+
+Po ztrátě spojení T-Deck obnovuje advertising (kontrola každou sekundu).
+PC jako Central musí spojení znovu zahájit, obnovit odběr Request CCCD a posílat
+Status/Progress. Aplikace po obnovení transportu a čerstvého stavu sama obnoví
+otevřený seznam. Podrobnosti a požadavky pro PC jsou v
+[reportu úprav 2026-09-29](GUARDIAN-POLISH-2026-09-29.md).
 
 Ověřený build patch NimBLE 1.4.3 chrání výměnu bondů a předává událost CCCD
 surově registrované charakteristiky Request. Při změně kontextu knihovny build

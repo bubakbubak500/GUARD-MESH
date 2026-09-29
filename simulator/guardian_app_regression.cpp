@@ -5,6 +5,7 @@
 #include "services/GuardianJson.h"
 #include "i18n.h"
 #include "theme/Theme.h"
+#include "theme/Fonts.h"
 #include "services/GuardianAppearance.h"
 #include <Arduino.h>
 #include <stdexcept>
@@ -175,4 +176,128 @@ void runGuardianAppRegression(void (*capture)(const char*)) {
   guardSimGuardianAppTitle(nullptr);
   check(lv_obj_get_child_cnt(lv_layer_top())==roots,"Guardian leaked UI roots");
   puts("Guardian app: A3 actions/themes, saved routes, automatic refresh/typing, paging, Unicode, durable send/retry PASS");
+}
+
+void runGuardianPolishRegression(void (*capture)(const char*)) {
+  const auto roots=lv_obj_get_child_cnt(lv_layer_top());
+  auto* parent=lv_obj_create(lv_layer_top()); lv_obj_remove_style_all(parent);
+  lv_obj_set_size(parent,320,218); lv_obj_set_pos(parent,0,22); lv_obj_set_style_pad_all(parent,6,0);
+  guardian::configure(true,true,true); guardian::connected(); guardian::rpcConnect(); guardian::rpcSubscribe(true);
+  uint8_t state[]={'G','M',1,1,5,0,0,0,2,0,0,0,1,0,0,0,0,0,0,0};
+  auto heartbeat=[&]() { ++state[16]; check(guardian::receive(state,sizeof state,millis())==guardian::Result::Ok,"Heartbeat rejected"); };
+  heartbeat();
+  ui::screens::GuardianAppScreen app; app.create(parent,nullptr,nullptr,nullptr,guardSimGuardianAppTitle);
+  auto visible=[&](const char* text) { lv_obj_update_layout(parent); return find(parent,text); };
+  auto shot=[&](const char* name) { lv_obj_update_layout(parent); if(capture) capture(name); };
+  auto listReply=[&](JsonDocument& req,const char* title) {
+    JsonDocument doc; doc["id"]=req["id"]; doc["ok"]=true;
+    auto result=doc["result"].to<JsonObject>(); result["revision"]="rev-1"; result["total"]=1; result["next_offset"]=nullptr;
+    auto row=result["items"].to<JsonArray>().add<JsonObject>();
+    row["msg_id"]=101; row["source"]=title; row["final_dest"]=title; row["subject"]="Cached message"; row["read"]=true;
+    row["callsign"]=title; row["saved"]=true; row["live"]=false; row["next_hop"]=title;
+    reply(doc,app);
+  };
+  auto statusReply=[&](JsonDocument& req) {
+    JsonDocument doc; doc["id"]=req["id"]; doc["ok"]=true;
+    auto result=doc["result"].to<JsonObject>(); result["inbox"]=6; result["outbox"]=2; result["unread"]=1;
+    for (auto key:{"tx","rx","radio_connected","vara_connected","control_active"}) result[key]=false;
+    reply(doc,app);
+  };
+  // Appearance is independent of the global day/night preference.
+  for (auto name:{"Blue","Green"}) {
+    click(parent,LV_SYMBOL_SETTINGS); click(parent,TR(name)); app.back();
+    auto* write=visible(TR("Write")); check(write,"Write action missing");
+    auto* button=lv_obj_get_parent(write);
+    check(lv_color_to32(lv_obj_get_style_bg_color(button,0))==lv_color_to32(lv_color_hex(0xf29d38)),"Primary action not orange");
+    check(lv_color_to32(lv_obj_get_style_text_color(write,0))==lv_color_to32(lv_color_hex(0x1b1b1b)),"Primary action text not dark");
+    for (unsigned i=1;i<lv_obj_get_child_cnt(button);++i) {
+      auto* icon=lv_obj_get_child(button,i);
+      check(lv_color_to32(lv_obj_get_style_line_color(icon,0))==lv_color_to32(lv_color_hex(0x1b1b1b)),"Orange button icon outline not dark");
+      check(lv_color_to32(lv_obj_get_style_text_color(icon,0))==lv_color_to32(lv_color_hex(0x1b1b1b)),"Orange button icon fill not dark");
+    }
+    auto* panel=lv_obj_get_child(parent,0);
+    check(lv_obj_get_style_bg_opa(panel,0)<=LV_OPA_70,"Panel still opaque");
+    shot(!strcmp(name,"Blue")?"guardian-muted-blue.png":"guardian-muted-green.png");
+  }
+  // Count blocks, including the icon area, are actionable.
+  puts("Guardian polish: count targets");
+  auto* panel=lv_obj_get_child(parent,0);
+  lv_obj_t* countTargets[2]{}; unsigned n=0;
+  for (unsigned i=0;i<lv_obj_get_child_cnt(panel);++i) {
+    auto* child=lv_obj_get_child(panel,i);
+    if (lv_obj_check_type(child,&lv_btn_class) && n<2) countTargets[n++]=child;
+  }
+  check(n==2,"Dashboard count hit targets missing");
+  lv_event_send(countTargets[1],LV_EVENT_CLICKED,nullptr); auto req=request();
+  check(!strcmp(req["folder"],"outbox"),"Outgoing count opened wrong folder"); listReply(req,"OUTBOX");
+  app.back(); panel=lv_obj_get_child(parent,0);
+  for (unsigned i=0;i<lv_obj_get_child_cnt(panel);++i) if (lv_obj_check_type(lv_obj_get_child(panel,i),&lv_btn_class)) {
+    lv_event_send(lv_obj_get_child(panel,i),LV_EVENT_CLICKED,nullptr); break;
+  }
+  req=request(); check(!strcmp(req["folder"],"inbox"),"Incoming count opened wrong folder"); listReply(req,"INBOX");
+  app.back(); click(parent,TR("Messages"));
+  puts("Guardian polish: cached messages");
+  check(visible("INBOX") && !visible(TR("Loading...")),"Cached messages not shown before RPC");
+  req=request(); listReply(req,"INBOX UPDATED");
+  check(visible("INBOX UPDATED") && !visible("INBOX"),"Background reply failed to update cache view");
+  click(parent,"INBOX UPDATED"); req=request();
+  auto textReply=[&]() {
+    JsonDocument doc; doc["id"]=req["id"]; doc["ok"]=true;
+    auto result=doc["result"].to<JsonObject>(); result["revision"]="body-1"; result["next_offset"]=nullptr;
+    result["msg_id"]=101; result["body"]="Cached body"; result["subject"]="Test";
+    reply(doc,app);
+  };
+  textReply(); app.back(); req=request(); listReply(req,"INBOX UPDATED");
+  click(parent,"INBOX UPDATED");
+  check(visible(" > \n\nTest\n\nCached body"),"Cached message body missing before RPC");
+  req=request(); textReply(); app.back(); req=request(); listReply(req,"INBOX UPDATED");
+  app.back(); click(parent,TR("Network")); req=request(); listReply(req,"SAVED");
+  puts("Guardian polish: cached contacts");
+  auto* live=lv_obj_get_parent(visible(TR("Live routes")));
+  auto* saved=lv_obj_get_parent(visible(TR("Saved routes")));
+  lv_area_t a,b; lv_obj_get_coords(live,&a); lv_obj_get_coords(saved,&b);
+  check(b.x1-a.x2>=8,"Network buttons have no gap"); shot("guardian-network-gap.png");
+  click(parent,TR("Live routes")); req=request(); listReply(req,"LIVE");
+  click(parent,TR("Saved routes"));
+  check(visible("SAVED") && !visible("LIVE"),"Saved/live contact caches mixed");
+  req=request(); listReply(req,"SAVED");
+  guardian::disconnected(); app.refresh(millis()+300);
+  puts("Guardian polish: disconnected");
+  check(visible("SAVED") && visible(TR("Offline")),"Link loss erased cached contacts");
+  shot("guardian-cached-offline.png");
+  // Reconnection requires CCCD and a fresh PC heartbeat; UI then retries without a tap.
+  guardian::connected(); guardian::rpcConnect(); guardian::rpcSubscribe(true); heartbeat();
+  app.refresh(millis()+600); req=request(); check(!strcmp(req["op"],"contacts.list"),"Reconnect did not refresh contacts");
+  listReply(req,"RECONNECTED"); check(visible("RECONNECTED"),"Reconnected data missing");
+  // Hold boundaries, one request per hold, status first and current page second.
+  puts("Guardian polish: manual hold");
+  const uint32_t start=millis(); app.refreshKey(true,start); app.refreshKey(true,start+1999);
+  check(!visible(TR("Cancel")) && !guardian::rpcBusy(),"R fired before two seconds");
+  app.refreshKey(true,start+2000); check(visible(TR("Cancel")),"Refresh modal missing");
+  shot("guardian-refresh-modal.png"); app.refresh(millis()+900); req=request();
+  check(!strcmp(req["op"],"status.get"),"Manual refresh did not query current status"); statusReply(req);
+  app.refresh(millis()+1200); req=request(); check(!strcmp(req["op"],"contacts.list"),"Manual refresh skipped visible list");
+  listReply(req,"MANUALLY UPDATED"); lv_timer_handler();
+  app.refreshKey(true,start+4000); check(!guardian::rpcBusy(),"Held R repeated refresh");
+  app.refreshKey(false,start+4100);
+  // Cancelling a modal must allow its in-flight RPC to finish safely, without
+  // starting the second refresh request or blocking navigation afterwards.
+  app.manualRefresh(); app.refresh(millis()+1600); req=request();
+  click(parent,TR("Cancel")); statusReply(req); lv_timer_handler();
+  check(!visible(TR("Cancel")) && !guardian::rpcBusy(),"Cancelled refresh restarted or leaked");
+  app.back(); guardian::disconnected(); app.refresh(millis()+300);
+  check(visible("-"),"Offline counts not replaced with ASCII placeholder");
+  lv_font_glyph_dsc_t glyph{};
+  check(lv_font_get_glyph_dsc(&lv_font_montserrat_28,&glyph,'-',0) && !glyph.is_placeholder,"Offline placeholder missing from large font");
+  shot("guardian-offline-counts.png");
+  app.manualRefresh(); app.refresh(millis()+1500); lv_timer_handler();
+  check(visible(TR("Offline")),"Offline manual refresh did not finish");
+  auto* footer=visible(TR("Offline"));
+  check(lv_obj_get_height(footer)<=16,"Footer wrapped to a second line");
+  click(parent,TR("Write")); app.refreshKey(true,start+5000); app.refreshKey(true,start+8000);
+  check(!visible(TR("Cancel")),"R refresh intercepted composer input");
+  app.detach(); lv_obj_del(parent); lv_timer_handler(); guardian::disconnected(); guardian::configure(false,false,false);
+  guardSimGuardianAppTitle(nullptr);
+  check(lv_obj_get_child_cnt(lv_layer_top())==roots,"Guardian refresh modal leaked");
+  puts("Guardian polish: themes, count actions, cached lists, network gap, reconnect, R hold/modal and offline glyph PASS");
 }

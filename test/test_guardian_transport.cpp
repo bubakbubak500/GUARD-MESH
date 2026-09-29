@@ -71,8 +71,17 @@ int main() {
   assert(guardian::snapshot(fake::now).session.connected); // rejected second PC cannot clear first
   ble.onDisconnect(&NimBLEDevice::server,&fake::desc);
   assert(!guardian::snapshot(fake::now).session.connected);
+  NimBLEDevice::adv.running=false; NimBLEDevice::server.count=0;
+  fake::now+=1001; ble.tickGuardian();
+  assert(NimBLEDevice::adv.running && !guardian::rpcReady());
   fake::bonded=true; ble.onConnect(&NimBLEDevice::server,&fake::desc);
   ble.onAuthenticationComplete(&fake::desc);
+  assert(!guardian::rpcReady()); // each connection must subscribe again on the PC
+  ble.subscribed(3,23,true); assert(guardian::rpcReady());
+  NimBLEDevice::adv.running=false; NimBLEDevice::server.count=1;
+  fake::now+=1001; ble.tickGuardian();
+  assert(!NimBLEDevice::adv.running); // no reconnect churn while a PC is connected
+  NimBLEDevice::server.count=0;
   buffer.data={'G','M',1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
   assert(ble.access(3,&context)==0); // bonded reconnect resets sequence
   ble.disable(); assert(!guardian::snapshot(fake::now).session.connected && !NimBLEDevice::adv.running);

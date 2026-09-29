@@ -160,5 +160,14 @@ int main() {
   setKey(baseline, 0, 1, true);              // transition frame produces no edge later
   keyboard.baseline(baseline);
   assert(keyboard.update(baseline, 710, out, 8) == 0);
+  uint8_t held[5] = {};
+  setKey(held,2,0,true); // R: held state is independent of the one-shot ASCII queue
+  keyboard.update(held,800,out,8);
+  assert(keyboard.keyDown('r') && keyboard.keyDown('R') && !keyboard.keyDown('q'));
+  assert(keyboard.update(held,2800,out,8)==0 && keyboard.keyDown('r'));
+  held[2]=0; keyboard.update(held,2810,out,8);
+  assert(!keyboard.keyDown('r') && !keyboard.keyDown('1'));
+  setKey(held,2,0,true); keyboard.update(held,2820,out,8); keyboard.baseline(held);
+  assert(!keyboard.keyDown('r'));
   return 0;
 }
