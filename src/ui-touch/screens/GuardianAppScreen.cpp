@@ -648,7 +648,7 @@ void GuardianAppScreen::action(int a) {
   } else if (a>=20 && size_t(a-20)<_rows.size()) {
     const Row row=_rows[a-20];
     if (_page==Contacts) { _contactPicker=false; if (!_draft.pending()) _draft.to=row.call; go(Compose); }
-    else { _message=row.id; go(Text); _heading=row.title; }
+    else { _message=row.id; _heading=row.title; go(Text); }
   }
 }
 bool GuardianAppScreen::belongs(lv_obj_t* object, lv_obj_t* root) {

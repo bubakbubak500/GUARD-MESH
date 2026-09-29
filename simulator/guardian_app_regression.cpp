@@ -251,6 +251,9 @@ void runGuardianPolishRegression(void (*capture)(const char*)) {
   click(parent,"INBOX UPDATED");
   check(visible(" > \n\nTest\n\nCached body"),"Cached message body missing before RPC");
   req=request(); textReply(); app.back(); req=request(); listReply(req,"INBOX UPDATED");
+  click(parent,"INBOX UPDATED");
+  check(visible(" > \n\nTest\n\nCached body"),"Unchanged background reply corrupted cached message heading");
+  req=request(); textReply(); app.back(); req=request(); listReply(req,"INBOX UPDATED");
   app.back(); click(parent,TR("Network")); req=request(); listReply(req,"SAVED");
   puts("Guardian polish: cached contacts");
   auto* live=lv_obj_get_parent(visible(TR("Live routes")));

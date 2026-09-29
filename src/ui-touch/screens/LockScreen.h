@@ -27,6 +27,8 @@ public:
     const uint8_t *pixels = nullptr;
     uint16_t width = 0, height = 0;
     bool owned = false; // decoded buffer; borrowed embedded RGB565 stays with Host
+    uint16_t fitHeight = 0; // zero: cover wallpaper; otherwise fit an emblem without cropping
+    int16_t centerOffsetY = 0;
   };
   struct Host {
     void *context = nullptr;

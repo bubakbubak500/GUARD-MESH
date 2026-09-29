@@ -10,6 +10,9 @@
   patička nepřekrývá šipky stránkování.
 - Neznámé počty/procenta zobrazují ASCII `-`. Dřívější dlouhá pomlčka chyběla
   ve velkém číselném fontu a vykreslila obdélník.
+- Výchozí zamykací obrazovka T-Decku používá existující startovní štít Guard Mesh.
+  Hodiny, nepřečtené zprávy a nápověda k podržení trackballu zůstaly beze změny.
+  Vlastní zvolená tapeta se nepřepisuje.
 - Celé bloky Přijaté a K odeslání jsou klikatelné, včetně ikon. Otevírají Inbox
   a Outbox. Outbox je fronta čekající na doručení, ne historie Odeslané.
 - RAM cache uchovává navštívené stránky seznamů i textů. Při návratu se zobrazí
@@ -91,5 +94,8 @@ nepotvrzuje chování Windows Bluetooth adaptéru ani skutečného PC klienta.
 - Skutečná vstupní cesta UITask: WM_KEYDOWN/WM_CHAR/WM_KEYUP, držení R a dotyk
   tlačítka Zrušit. Ochrana rozepsaného editoru zůstává pokrytá regresí.
 - Vizuální kontrola screenshotů českého i anglického prostředí.
+- Širší průchod obrazovkami EN/CS a klávesnicovou navigací prošel. Po následné
+  opravě záhlaví cache a výměně loga znovu prošly cílené EN/CS testy Guardianu
+  a existující regrese zamykací obrazovky včetně vlastních tapet a odemykání.
 
-Výsledky širšího průchodu a sestavení firmware budou doplněny po dokončení.
+Identifikace finálního sestavení a jeho kontrolní součty budou doplněny po dokončení.

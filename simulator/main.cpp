@@ -538,6 +538,13 @@ int appMain(int argc, char **argv) {
       if (findLabel(lv_layer_top(),TR("Cancel"))) throw std::runtime_error("Guardian refresh cancel did not respond to touch");
       guardSimGuardianOpen(false); guardian::disconnected(); guardian::configure(false,false,false);
       puts("Guardian physical R hold and modal touch: UITask integration PASS");
+      uiTask.lockScreen(); uiTask.lockscreenReveal(); pump(50);
+      if (!uiTask.isManualLocked() || !findLabel(lv_layer_top(),TR("hold the trackball to unlock")))
+        throw std::runtime_error("Lock screen lost trackball unlock hint");
+      lv_refr_now(nullptr); saveFrame("guardian-lock-screen.png");
+      uiTask.unlockScreen();
+      extern void runLockScreenRegression(void (*)(unsigned));
+      runLockScreenRegression(pump);
       return 0;
     }
     if (keyboardNav) {

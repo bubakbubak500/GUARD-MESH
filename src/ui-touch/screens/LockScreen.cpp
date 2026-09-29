@@ -188,12 +188,12 @@ void LockScreen::show() {
     lv_img_set_pivot(image, incoming.width / 2, incoming.height / 2);
     lv_obj_clear_flag(image, LV_OBJ_FLAG_CLICKABLE);
     uint32_t zx = static_cast<uint32_t>(sw) * 256u / incoming.width;
-    uint32_t zy = static_cast<uint32_t>(sh) * 256u / incoming.height;
-    uint32_t zoom = zx > zy ? zx : zy;
+    uint32_t zy = static_cast<uint32_t>(incoming.fitHeight ? incoming.fitHeight : sh) * 256u / incoming.height;
+    uint32_t zoom = incoming.fitHeight ? (zx < zy ? zx : zy) : (zx > zy ? zx : zy);
     if (zoom < 1) zoom = 1;
     if (zoom > 2048) zoom = 2048;
     lv_img_set_zoom(image, static_cast<uint16_t>(zoom));
-    lv_obj_align(image, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_align(image, LV_ALIGN_CENTER, 0, incoming.centerOffsetY);
   }
   if (!still(generation) || _root.get() != root) return;
 

@@ -123,6 +123,7 @@ static ui::screens::ContactActionSheet::Host contactActionSheetHost();
 static ui::screens::ContactActionSheet s_contact_action_sheet(contactActionSheetHost());
 #endif
 #include "platform/UiDevice.h"
+#include "../guardian_logo.h"
 #if defined(ESP32)
 #include "assets/lockscreen_placeholder_jpg.h"
 #if CAP_LOCK_SCREEN
@@ -18401,6 +18402,13 @@ static ui::screens::LockScreen::Host lockScreenHost() {
       out.pixels = reinterpret_cast<const uint8_t*>(lockscreen_wallpaper_pager_rgb565);
       out.width = LOCKSCREEN_WALLPAPER_PAGER_W;
       out.height = LOCKSCREEN_WALLPAPER_PAGER_H;
+#elif defined(LILYGO_TDECK) || defined(GUARD_SIMULATOR)
+      // Reuse the boot artwork, leaving the clock, unread count and unlock hint in place.
+      out.pixels = reinterpret_cast<const uint8_t*>(GUARDIAN_LOGO_RGB565);
+      out.width = GUARDIAN_LOGO_W;
+      out.height = GUARDIAN_LOGO_H;
+      out.fitHeight = 96;
+      out.centerOffsetY = 20;
 #else
       out.pixels = reinterpret_cast<const uint8_t*>(lockscreen_wallpaper_rgb565);
       out.width = LOCKSCREEN_WALLPAPER_W;
@@ -24914,7 +24922,6 @@ static void refreshStatusLabels() {
 // ============================================================
 // Boot splash: static Guardian shield, shared with the early hardware boot frame.
 // ============================================================
-#include "../guardian_logo.h"
 static lv_obj_t* s_splash_root = nullptr;
 static lv_timer_t* s_splash_timer = nullptr;
 static void splashRemove() {
