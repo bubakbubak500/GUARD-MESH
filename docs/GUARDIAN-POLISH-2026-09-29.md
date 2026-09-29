@@ -101,13 +101,14 @@ nepotvrzuje chování Windows Bluetooth adaptéru ani skutečného PC klienta.
 ## Finální firmware
 
 Sestaveno **2026-09-29 09:10**, zdrojový commit **`1d95dee`** (navazuje na
-`445fcdc`). Lokální commity; bez push a bez flashování připojeného rádia.
+`445fcdc`). Vydání **`guardian-2026.09.29`** publikuje stejné ověřené binární
+soubory; následné commity doplňují pouze report.
 
-- Aktualizace: [app BIN](../out/LilyGo_TDeck_companion_radio_touch-20260929_091032-1d95dee.bin),
+- Aktualizace: [app BIN](https://github.com/bubakbubak500/GUARD-MESH/releases/download/guardian-2026.09.29/Guard-Mesh-TDeck-Guardian-2026.09.29-app-ota.bin),
   3 573 872 bajtů. Pro běžný update použít tuto aplikaci přes OTA nebo odpovídající
   režim Guard-Mesh-Flasheru.
-- Plná instalace: [merged BIN](../out/Guard-Mesh-TDeck-20260929_091032-guardian-polish-merged.bin)
-  a [metadata](../out/Guard-Mesh-TDeck-20260929_091032-guardian-polish-merged.json),
+- Plná instalace: [merged BIN](https://github.com/bubakbubak500/GUARD-MESH/releases/download/guardian-2026.09.29/Guard-Mesh-TDeck-Guardian-2026.09.29-merged.bin)
+  a [metadata](https://github.com/bubakbubak500/GUARD-MESH/releases/download/guardian-2026.09.29/Guard-Mesh-TDeck-Guardian-2026.09.29-merged.json),
   3 639 408 bajtů, zápis od `0x0`. Tento obraz zahrnuje i oblast NVS; pro běžný
   update se zachováním nastavení a bondů použít app BIN, ne plnou instalaci.
 
@@ -127,4 +128,6 @@ a shody všech čtyř částí s aktuálním buildem na offsetech `0`, `0x8000`,
 souborů se mezi zachycením a zabalením nezměnil. Důkazy lokálně:
 `.sim-cache/guardian-polish-20260929-final-r2/`.
 
-Na fyzickém rádiu ani s PC Guardianem se toto sestavení zatím netestovalo.
+Uživatel dne 2026-09-29 potvrdil, že sestavení na jeho zařízení funguje dobře,
+a schválil publikování. To nenahrazuje samostatný test automatického návratu
+BLE spojení po ztrátě dosahu a po uspání Windows popsaný výše.
