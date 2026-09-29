@@ -23,7 +23,7 @@ void runMapRegression() {
   const auto roots = lv_obj_get_child_cnt(lv_layer_top());
   auto* parent = lv_obj_create(lv_layer_top());
   Layer layer({load, [](uint8_t, int32_t, int32_t, bool corrupt) { ++retries; if (corrupt) ++repairs; }, nullptr, nullptr});
-  Layer::View view{50, 14, 14, 240, 226, 4, 0, false, false};
+  Layer::View view{50, 14, 14, 240, 226, 4, 0, false, true};
   auto result = layer.render(parent, view);
   check(result.placed > 0 && result.placed == result.wanted && !result.missing, "Map failed to decode PNG tiles");
   check(layer.buffers() <= 4, "Map exceeded buffer budget");
@@ -84,9 +84,54 @@ void runMapScreenRegression(void (*pump)(unsigned)) {
   const auto roots = lv_obj_get_child_cnt(lv_layer_top());
   const auto surfaces = lv_obj_get_child_cnt(lv_scr_act());
   auto* page = lv_obj_create(lv_layer_top());
+  lv_obj_set_size(page, 320, 240);
   map::makeMapTab(page);
   map::setCenter(50, 14);
   map::renderMapTiles(); map::renderMapMarkers();
+  check(map::missingTiles() == 0, "Map loaded tiles before the LVGL callback stack unwound");
+  pump(30); // exercises the actual UITask drain after lv_timer_handler
+  check(map::missingTiles() > 0, "Deferred map render did not process missing tiles");
+  // A burst of input keeps the newest viewport and waits for the UI loop.
+  map::setCenter(0, 0);
+  map::renderMapTiles();
+  check(map::missingTiles() > 0, "Map synchronously rendered an intermediate viewport");
+  map::setCenter(50, 14);
+  for (int i = 0; i < 24; ++i) {
+    map::setCenter(50, 14 + i * 0.01);
+    map::renderMapTiles();
+  }
+  const auto finalView = map::view();
+  map::processPendingRender();
+  check(map::view().lat == finalView.lat && map::view().lon == finalView.lon,
+        "Deferred map render restored a stale viewport");
+  check(map::missingTiles() > 0, "Coalesced map request lost the final viewport");
+  lv_indev_drv_t driver;
+  lv_indev_drv_init(&driver);
+  driver.type = LV_INDEV_TYPE_POINTER;
+  lv_indev_data_t pointer{};
+  driver.user_data = &pointer;
+  driver.read_cb = [](lv_indev_drv_t* d, lv_indev_data_t* data) {
+    *data = *static_cast<lv_indev_data_t*>(d->user_data);
+  };
+  auto* input = lv_indev_drv_register(&driver);
+  check(input, "Map test could not create a pointer");
+  lv_obj_update_layout(page);
+  for (int i = 0; i < 24; ++i) {
+    const auto before = map::view();
+    pointer.point = {140, 110}; pointer.state = LV_INDEV_STATE_PRESSED;
+    lv_indev_read_timer_cb(input->driver->read_timer);
+    pointer.point = {static_cast<lv_coord_t>(i % 2 ? 190 : 90), 130};
+    lv_indev_read_timer_cb(input->driver->read_timer);
+    pointer.state = LV_INDEV_STATE_RELEASED;
+    lv_indev_read_timer_cb(input->driver->read_timer);
+    check(map::view().lon != before.lon, "Touch drag did not move the map");
+    pump(25);
+    const auto oldZoom = map::zoom();
+    mapClick(page, i % 2 ? "-" : "+");
+    check(map::zoom() != oldZoom, "Map zoom button did not change zoom");
+    pump(25);
+  }
+  lv_indev_delete(input);
   mapClick(page, LV_SYMBOL_SETTINGS);
   check(map::optionsOpen(), "Map options did not open");
   auto* oldOptions = lv_obj_get_child(lv_layer_top(), -1);
@@ -108,9 +153,13 @@ void runMapScreenRegression(void (*pump)(unsigned)) {
   pump(30);
   check(!map::contactsOpen(), "Map rebuild retained contact popup");
   check(lv_obj_get_child_cnt(lv_scr_act()) == surfaces + 1, "Map rebuild leaked a canvas");
-  lv_obj_del(page); // external owner teardown must release the separate canvas too
+  map::renderMapTiles();
+  lv_obj_del(page); // a queued render must not outlive its page/canvas
+  map::processPendingRender();
+  check(map::missingTiles() == 0, "Deleted map retained a queued redraw");
   pump(50);
   map::destroy();
   check(lv_obj_get_child_cnt(lv_layer_top()) == roots && lv_obj_get_child_cnt(lv_scr_act()) == surfaces,
         "Map screen teardown leaked roots or canvas");
+  puts("Map: deferred UITask render, coalesced viewports, 24 touch drags/zooms and pending teardown passed.");
 }

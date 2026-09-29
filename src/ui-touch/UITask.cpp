@@ -32553,6 +32553,7 @@ void UITask::loop() {
 #endif
   uiCp("ui:lvgl");
   lv_timer_handler();
+  ui::screens::map::processPendingRender(); // tile decode/repaint on a shallow stack
 #if defined(HAS_TDECK_PRO)
   display.serviceRefresh();   // one coalesced e-paper update after all LVGL bands
 #endif
