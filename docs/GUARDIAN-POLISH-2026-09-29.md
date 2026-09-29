@@ -98,4 +98,33 @@ nepotvrzuje chování Windows Bluetooth adaptéru ani skutečného PC klienta.
   opravě záhlaví cache a výměně loga znovu prošly cílené EN/CS testy Guardianu
   a existující regrese zamykací obrazovky včetně vlastních tapet a odemykání.
 
-Identifikace finálního sestavení a jeho kontrolní součty budou doplněny po dokončení.
+## Finální firmware
+
+Sestaveno **2026-09-29 09:10**, zdrojový commit **`1d95dee`** (navazuje na
+`445fcdc`). Lokální commity; bez push a bez flashování připojeného rádia.
+
+- Aktualizace: [app BIN](../out/LilyGo_TDeck_companion_radio_touch-20260929_091032-1d95dee.bin),
+  3 573 872 bajtů. Pro běžný update použít tuto aplikaci přes OTA nebo odpovídající
+  režim Guard-Mesh-Flasheru.
+- Plná instalace: [merged BIN](../out/Guard-Mesh-TDeck-20260929_091032-guardian-polish-merged.bin)
+  a [metadata](../out/Guard-Mesh-TDeck-20260929_091032-guardian-polish-merged.json),
+  3 639 408 bajtů, zápis od `0x0`. Tento obraz zahrnuje i oblast NVS; pro běžný
+  update se zachováním nastavení a bondů použít app BIN, ne plnou instalaci.
+
+SHA-256 aplikace:
+`bcebb66572579a5d310f7dff34008098477ce5f4dd843358231e5e6f871634e0`
+
+SHA-256 merged:
+`26f41cfe2e6c0528774770e14136d015a2131ebcdcaa307217170beda088c370`
+
+PlatformIO `LilyGo_TDeck_companion_radio_touch`: **SUCCESS**, flash 87,9 %,
+statická RAM 37,8 %. Znovupoužití startovního loga dovolilo linkeru vynechat
+původní 320×240 bitmapu zamykací obrazovky z tohoto sestavení.
+
+Balíček prošel kontrolou formátu ESP32-S3 / 16 MiB, tabulky oddílů, SHA-256
+a shody všech čtyř částí s aktuálním buildem na offsetech `0`, `0x8000`,
+`0xE000`, `0x10000`. Manifest 956 zdrojových, konfiguračních a testovacích
+souborů se mezi zachycením a zabalením nezměnil. Důkazy lokálně:
+`.sim-cache/guardian-polish-20260929-final-r2/`.
+
+Na fyzickém rádiu ani s PC Guardianem se toto sestavení zatím netestovalo.
