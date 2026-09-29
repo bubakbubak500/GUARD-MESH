@@ -28,6 +28,7 @@ static void mapStorageToggleCb(lv_event_t* event) {
 }
 static void rootDeleted(lv_event_t* event);
 static MapTileLayer mapTileLayer({});
+static bool s_map_render_pending = false;
 static void* allocateZeroed(size_t size) {
   void* value = lvglPsramAlloc(size);
   if (value) memset(value, 0, size);
@@ -203,10 +204,17 @@ static uint8_t bestAvailableZoom(double lat, double lon) {
 #endif
 }
 
-// Build the visible tile grid for the current center+zoom. Cheap: only
-// runs on tab activation or pan/zoom (not on every refresh tick).
+// Coalesce map changes until UITask has unwound the LVGL input/timer stack.
+// Tile decoding and progressive lv_refr_now() calls from RELEASED overflowed
+// the T-Deck loopTask stack while dragging the map (field crash 2026-09-29).
 void renderMapTiles() {
+  if (s_map_canvas) s_map_render_pending = true;
+}
+
+static void renderMapTilesNow() {
   if (!s_map_canvas) return;
+  if (s_map_pan_layer) lv_obj_set_pos(s_map_pan_layer, 0, 0);
+  renderMapMarkers();
 
   // Fall back to placeholder when no usable GPS center.
   if (s_map_center_lat == 0.0 && s_map_center_lon == 0.0) {
@@ -227,8 +235,6 @@ void renderMapTiles() {
   // the buttons.)
 
   mapComputeGridRadius();
-  if (s_map_pan_layer) lv_obj_set_pos(s_map_pan_layer, 0, 0);
-  renderMapMarkers();
   const size_t psram = host.externalTotal();
   const bool lowMemory = psram && psram < 4u * 1024 * 1024;
   const auto rendered = mapTileLayer.render(s_map_pan_layer ? s_map_pan_layer : s_map_canvas,
@@ -548,6 +554,7 @@ static void openMapPicker(const int* idxs, int n);
 // tiles are re-rendered (pan, zoom, recenter, tab open) so markers stay
 // pinned to the right pixel for the current center.
 void renderMapMarkers() {
+  if (s_map_render_pending) return; // rebuilt with the final tile viewport
   freeMapMarkers();
   if (!s_map_canvas) return;
   if (s_map_center_lat == 0.0 && s_map_center_lon == 0.0) return;
@@ -1942,7 +1949,9 @@ static void mapCanvasEventCb(lv_event_t* e) {
     // hits (overlapping markers) → open a picker so the user can choose.
     // 16 px is a finger-forgiveness radius, larger than the 14-px marker
     // diameter so an off-center tap still scores.
-    int hits[k_map_markers_max];
+    // The picker shows at most six contacts. Do not reserve 1 KiB on every
+    // drag callback's stack for markers that the picker would discard.
+    int hits[6];
     int n_hits = 0;
     const int R2 = 16 * 16;
     for (auto& m : s_map_markers) {
@@ -1954,7 +1963,7 @@ static void mapCanvasEventCb(lv_event_t* e) {
       const int ddx = mx - p.x;
       const int ddy = my - p.y;
       if (ddx * ddx + ddy * ddy <= R2) {
-        if (n_hits < k_map_markers_max) hits[n_hits++] = m.mesh_idx;
+        if (n_hits < 6) hits[n_hits++] = m.mesh_idx;
       }
     }
     if (n_hits == 1) {
@@ -2614,7 +2623,14 @@ void refreshMapInfoLabel() {
 }
 
 
-void configure(Host value) { host = value; mapTileLayer.configure(value.tiles); }
+void configure(Host value) { s_map_render_pending = false; host = value; mapTileLayer.configure(value.tiles); }
+void processPendingRender() {
+  if (!s_map_render_pending) return;
+  s_map_render_pending = false;
+  if (!s_map_canvas) return;
+  renderMapTilesNow();
+  refreshMapInfoLabel();
+}
 View view() { return {s_map_center_lat, s_map_center_lon, s_map_grid_rx, s_map_grid_ry}; }
 uint8_t zoom() { return s_map_zoom.load(std::memory_order_relaxed); }
 void setCenter(double lat, double lon) { s_map_center_lat = lat; s_map_center_lon = lon; }
@@ -2627,6 +2643,7 @@ bool pickerOpen() { return s_map_picker_root != nullptr; }
 bool contactsOpen() { return s_map_contacts_root != nullptr; }
 bool hasTiles() { return s_map_has_pack; }
 void showSurface(bool on) {
+  if (!on) s_map_render_pending = false;
   if (s_map_canvas) {
     if (on) { lv_obj_clear_flag(s_map_canvas, LV_OBJ_FLAG_HIDDEN); lv_obj_move_background(s_map_canvas); }
     else lv_obj_add_flag(s_map_canvas, LV_OBJ_FLAG_HIDDEN);
@@ -2660,6 +2677,7 @@ static void rootDeleted(lv_event_t* event) {
   *root = nullptr;
   if (root == &s_map_page) destroy();
   else if (root == &s_map_canvas) {
+    s_map_render_pending = false;
     freeMapMarkers(); mapTileLayer.clear();
     s_map_pan_layer = s_map_status_lbl = nullptr;
     s_route_active = false;
@@ -2672,6 +2690,7 @@ static void watchRoot(lv_obj_t** root) {
   if (*root) lv_obj_add_event_cb(*root, rootDeleted, LV_EVENT_DELETE, root);
 }
 void destroy() {
+  s_map_render_pending = false;
   s_route_active = false;
   clearRouteReplay();
   if (s_map_zoomval_hide) { lv_timer_del(s_map_zoomval_hide); s_map_zoomval_hide = nullptr; }

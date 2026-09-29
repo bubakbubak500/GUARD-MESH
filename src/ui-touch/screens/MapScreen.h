@@ -82,6 +82,8 @@ void mapNudge(int dir);
 bool navMapZoomIfActive(bool zoom_in);
 void refreshMapInfoLabel();
 void renderMapTiles();
+// renderMapTiles queues a coalesced redraw; drain only outside LVGL callbacks.
+void processPendingRender();
 void renderMapMarkers();
 void freeMapTiles();
 void onMapTabActivated();
