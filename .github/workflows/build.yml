@@ -7,6 +7,10 @@ on:
         description: Version label embedded in local build artifacts
         default: guardian-dev
         required: true
+      targets:
+        description: Space-separated PlatformIO environments to build
+        default: heltec_v4_tft_companion_radio_usb_tcp_touch LilyGo_TDeck_companion_radio_touch
+        required: true
 
 permissions:
   contents: read
@@ -16,14 +20,21 @@ jobs:
     runs-on: ubuntu-latest
     env:
       BUILD_LABEL: ${{ inputs.version }}
-      ENVS: heltec_v4_tft_companion_radio_usb_tcp_touch LilyGo_TDeck_companion_radio_touch
+      ENVS: ${{ inputs.targets }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - name: Validate label
-        run: '[[ "$BUILD_LABEL" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]'
+        run: |
+          [[ "$BUILD_LABEL" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]
+          for environment in $ENVS; do
+            case "$environment" in
+              heltec_v4_tft_companion_radio_usb_tcp_touch|LilyGo_TDeck_companion_radio_touch) ;;
+              *) exit 1 ;;
+            esac
+          done
       - name: Install PlatformIO
         run: pip install platformio
       - name: Build complete images
