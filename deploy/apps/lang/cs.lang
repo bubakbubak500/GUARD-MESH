@@ -813,6 +813,8 @@ Sort	Řazení
 Sound	Zvuk
 Sound off	Zvuk vypnut
 Sound on	Zvuk zapnut
+Two beeps: off	Dvojité pípnutí: vypnuto
+Two beeps: on	Dvojité pípnutí: zapnuto
 Sound: %s	Zvuk: %s
 Start time	Čas zahájení
 Step 1 of 3	Krok 1 ze 3
@@ -1407,6 +1409,7 @@ Direct	Přímo
 Unapproved	Neschváleno
 New: %lu	Nové: %lu
 Cannot save theme	Motiv se nepodařilo uložit
+Cannot save setting	Nastavení se nepodařilo uložit
 Sending...	Odesílání...
 Ready	Připraveno
 Inbox	Přijaté

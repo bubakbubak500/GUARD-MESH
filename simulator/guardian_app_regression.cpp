@@ -60,6 +60,7 @@ void runGuardianAppRegression(void (*capture)(const char*)) {
   guardian::configure(true,true,true); guardian::connected(); guardian::rpcConnect(); guardian::rpcSubscribe(true);
   guardian::saveDraft(guardian::Draft{});
   guardian::saveAppearance(guardian::Appearance::Blue);
+  guardian::saveMessageAlert(false);
   const uint8_t state[]={'G','M',1,0x3f,5,0,0,0,2,0,0,0,1,0,0,0,7,0,0,0};
   const uint8_t progress[]={'G','P',2,32,64,7,0,0,0};
   guardian::receive(state,sizeof state,millis()); guardian::progress(progress,sizeof progress);
@@ -68,6 +69,12 @@ void runGuardianAppRegression(void (*capture)(const char*)) {
   check(!find(parent,TR("Pair PC (2 min)")) && !find(parent,TR("Refresh")),"App still contains pairing/refresh");
   check(find(parent,"64 %") && !find(parent,"32 %"),"Dashboard must show one dominant transfer");
   click(parent,LV_SYMBOL_SETTINGS);
+  click(parent,TR("Two beeps: off"));
+  lv_obj_update_layout(lv_layer_top());
+  check(guardian::loadMessageAlert() && find(parent,TR("Two beeps: on")),"Guardian alert setting did not enable");
+  click(parent,TR("Two beeps: on"));
+  lv_obj_update_layout(lv_layer_top());
+  check(!guardian::loadMessageAlert() && find(parent,TR("Two beeps: off")),"Guardian alert setting did not disable");
   const auto globalAccent=ui::theme::colors().COLOR_ACCENT;
   click(parent,TR("Green"));
   check(guardian::loadAppearance()==guardian::Appearance::Green && globalAccent==ui::theme::colors().COLOR_ACCENT,"App theme changed global chrome or failed persistence");
@@ -136,6 +143,10 @@ void runGuardianAppRegression(void (*capture)(const char*)) {
   guardian::disconnected(); app.refresh(millis()); app.detach(); lv_obj_clean(parent);
   guardian::connected(); guardian::rpcConnect(); guardian::rpcSubscribe(true);
   ui::screens::GuardianAppScreen reopened; reopened.create(parent,nullptr,nullptr,nullptr,guardSimGuardianAppTitle);
+  click(parent,LV_SYMBOL_SETTINGS);
+  lv_obj_update_layout(lv_layer_top());
+  check(find(parent,TR("Two beeps: off")),"Guardian alert setting did not survive reopening");
+  reopened.back();
   click(parent,TR("Write")); click(parent,TR("Retry same send")); req=request();
   check(token==req["token"].as<const char*>() && !strcmp(req["body"],"Ahoj 😀"),"Retry changed token or content");
   response.clear(); response["id"]=req["id"]; response["ok"]=true;

@@ -1420,6 +1420,10 @@ void status(uint32_t owner, char* state, size_t state_cap,
 bool notificationActive() {
 #if defined(HAS_TDECK_GT911) || defined(TLORA_PAGER)
   return s_notify_playing;
+#elif defined(HAS_TDISPLAY_P4)
+  return s_p4_snd_playing;
+#elif defined(HELTEC_V4_BUZZER_PIN) || defined(THINKNODE_M9_BUZZER_PIN)
+  return s_v4_beep_playing;
 #else
   return false;
 #endif

@@ -76,6 +76,7 @@ using namespace ui::images;
 #include "application/LuaIntegration.h"
 #include "screens/AppPermissionsScreen.h"
 #include "services/AudioService.h"
+#include "services/GuardianAppearance.h"
 #include "screens/SettingsScreen.h"
 #include "screens/ContactsScreen.h"
 #include "models/ContactModel.h"
@@ -32236,6 +32237,33 @@ void UITask::loop() {
 #endif
   guardianScreen.refresh(now);
   guardianApp.refresh(now);
+#if defined(HAS_UI_SOUND) || defined(HAS_TANMATSU)
+  // The first fresh heartbeat establishes a baseline; reconnecting must not
+  // announce mail that arrived while this device was offline.
+  {
+    static bool hadBaseline = false, secondBeep = false;
+    static uint32_t previousInbox = 0, firstBeepAt = 0;
+    const auto pc = guardian::snapshot(now);
+    const bool enabled = guardian::loadMessageAlert();
+    if (!pc.session.fresh(now)) { hadBaseline = false; secondBeep = false; }
+    else {
+      const uint32_t inbox = pc.session.status.inbox;
+      if (hadBaseline && inbox > previousInbox && enabled) {
+        const bool played = soundSettings.preview(TOUCH_SND_MSG) == ui::SoundSettings::Preview::Played;
+        firstBeepAt = now;
+        secondBeep = played;
+      }
+      previousInbox = inbox;
+      hadBaseline = true;
+      if (!enabled) secondBeep = false;
+      if (secondBeep && uint32_t(now - firstBeepAt) >= 350 &&
+          !ui::audio::notificationActive()) {
+        secondBeep = false;
+        if (uint32_t(now - firstBeepAt) < 5000) soundSettings.preview(TOUCH_SND_MSG);
+      }
+    }
+  }
+#endif
   if (g_statusbar.guardian_icon && g_statusbar.ble_icon) {
     const auto pc = guardian::snapshot(now);
     const bool linked = pc.enabled && pc.radio && pc.session.connected;

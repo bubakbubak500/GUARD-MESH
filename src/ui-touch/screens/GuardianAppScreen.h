@@ -39,6 +39,7 @@ private:
   void (*_chrome)(const char*) = nullptr;
   Page _page = Dashboard, _requestPage = Dashboard, _infoReturn = Dashboard;
   guardian::Appearance _appearance = guardian::Appearance::Blue;
+  bool _messageAlert = false;
   Binding _bindings[24]{};
   unsigned _bindingCount = 0, _folder = 0, _source = 2;
   uint32_t _last = 0, _serial = 0, _offset = 0, _next = 0, _message = 0, _total = 0;
