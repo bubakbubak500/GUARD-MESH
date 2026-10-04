@@ -103,6 +103,13 @@ void runChatTimelineRegression() {
   timeline::chatVirtJumpToOldest(&direct);
   drain();
   check(timeline::snapshot().firstVisible == 0, "Oldest jump missed first message");
+  auto *firstRow = lv_obj_get_parent(label(direct.msgs, "Message 0"));
+  lv_event_send(firstRow, LV_EVENT_CLICKED, nullptr);
+  lv_event_send(firstRow, LV_EVENT_CLICKED, nullptr);
+  drain();
+  check(timeline::snapshot().lastVisible == 239, "Double tap did not jump to latest");
+  timeline::chatVirtJumpToOldest(&direct);
+  drain();
   timeline::chatVirtJumpToLatest(&direct);
   drain();
   check(timeline::snapshot().lastVisible == 239, "Latest jump missed last message");

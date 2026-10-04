@@ -69,7 +69,7 @@ lv_obj_t* GuardianAppScreen::button(const char* title, int x, int y, int w, int 
 void GuardianAppScreen::create(lv_obj_t* parent, void (*attach)(lv_obj_t*), void (*hideKeyboard)(), void (*home)(), void (*chrome)(const char*)) {
   _root.set(parent); _attach=attach; _hideKeyboard=hideKeyboard; _home=home; _chrome=chrome;
   if (!_loaded) { guardian::loadDraft(_draft); _loaded=true; }
-  _appearance=guardian::loadAppearance(); _page=Dashboard; ++_epoch;
+  _appearance=guardian::loadAppearance(); _messageAlert=guardian::loadMessageAlert(); _page=Dashboard; ++_epoch;
   _info.clear(); _last=0; _lastPoll=millis(); _needPage=false; render();
 }
 bool GuardianAppScreen::back() {
@@ -201,13 +201,15 @@ void GuardianAppScreen::render() {
     iconButton(LV_SYMBOL_HOME,Icon::Home,left+gap+halfButton+gap,footY,right-halfButton-gap,footer,10,false);
     updateDashboard(millis());
   } else if (_page==Settings) {
-    label(TR("Theme"),0,9,w);
-    auto* blue=button(TR("Blue"),0,40,w,11,48);
-    auto* green=button(TR("Green"),0,98,w,12,48);
+    label(TR("Theme"),0,2,w);
+    auto* blue=button(TR("Blue"),0,25,w,11,38);
+    auto* green=button(TR("Green"),0,69,w,12,38);
     lv_obj_set_style_border_color(blue,lv_color_hex(0x0087ff),0);
     lv_obj_set_style_border_color(green,lv_color_hex(0x15b6a6),0);
     lv_obj_set_style_border_width(_appearance==guardian::Appearance::Blue?blue:green,3,0);
-    label(TR("Applies only to Guardian."),0,164,w,true);
+    label(TR("New Guardian message"),0,112,w,true);
+    button(_messageAlert?TR("Two beeps: on"):TR("Two beeps: off"),0,136,w,27,40);
+    label(TR("Applies only to Guardian."),0,184,w,true);
   } else if (_page==Info) {
     auto* box=lv_obj_create(_root.get()); lv_obj_remove_style_all(box);
     lv_obj_set_size(box,w,h); lv_obj_set_scroll_dir(box,LV_DIR_VER);
@@ -624,6 +626,11 @@ void GuardianAppScreen::action(int a) {
     const auto choice=a==11?guardian::Appearance::Blue:guardian::Appearance::Green;
     if (guardian::saveAppearance(choice)) { _appearance=choice; _info.clear(); }
     else _info=TR("Cannot save theme");
+    render(); return;
+  }
+  if (a==27) {
+    if (guardian::saveMessageAlert(!_messageAlert)) { _messageAlert=!_messageAlert; _info.clear(); }
+    else _info=TR("Cannot save setting");
     render(); return;
   }
   if (a==16) { captureDraft(); _infoReturn=_page; _page=Info; ++_epoch; render(); return; }

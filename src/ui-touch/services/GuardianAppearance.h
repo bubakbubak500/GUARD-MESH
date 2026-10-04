@@ -5,4 +5,6 @@ namespace guardian {
 enum class Appearance : uint8_t { Blue, Green };
 Appearance loadAppearance();
 bool saveAppearance(Appearance value);
+bool loadMessageAlert();
+bool saveMessageAlert(bool enabled);
 }

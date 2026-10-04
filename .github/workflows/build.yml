@@ -37,10 +37,11 @@ jobs:
           for environment in $ENVS; do
             cp ".pio/build/$environment/firmware.bin" "dist/$environment.bin"
             cp ".pio/build/$environment/firmware-merged.bin" "dist/$environment-merged.bin"
+            zip -j "dist/$environment-debug-elf.zip" ".pio/build/$environment/firmware.elf"
           done
       - uses: actions/upload-artifact@v4
         with:
           name: guardian-firmware
-          path: dist/*.bin
+          path: dist/*
           retention-days: 7
           if-no-files-found: error

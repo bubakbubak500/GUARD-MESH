@@ -59,6 +59,27 @@ static void trace(const char *format, ...) {
   } while (0)
 #endif
 static uint16_t s_unread_at_open = 0;
+static LvChatPanel *s_last_tap_panel = nullptr;
+static uint32_t s_last_tap_ms = 0;
+static lv_point_t s_last_tap_point{};
+static bool chatTapToLatest(LvChatPanel *p) {
+  if (!p || !p->detail_open || !p->msgs) return false;
+  lv_indev_t *indev = lv_indev_get_act();
+  lv_point_t point{};
+  if (indev) lv_indev_get_point(indev, &point);
+  const uint32_t now = ui::platform::milliseconds();
+  const bool second = s_last_tap_panel == p && uint32_t(now - s_last_tap_ms) <= 350 &&
+      abs(point.x - s_last_tap_point.x) <= 40 && abs(point.y - s_last_tap_point.y) <= 40;
+  s_last_tap_panel = second ? nullptr : p;
+  s_last_tap_ms = now;
+  s_last_tap_point = point;
+  if (second) chatVirtJumpToLatest(p);
+  return second;
+}
+static void chatBackgroundTap(lv_event_t *event) {
+  if (lv_event_get_code(event) == LV_EVENT_CLICKED)
+    chatTapToLatest(static_cast<LvChatPanel *>(lv_event_get_user_data(event)));
+}
 
 static bool s_chat_just_opened = false;
 
@@ -91,8 +112,6 @@ static lv_coord_t chatMeasureMessageRowHeight(const MessageTypes::UIMessage &m, 
                                               int logical_i);
 static lv_coord_t chatVirtCreateMessageRow(LvChatPanel *p, int logical_i, int ring_idx, lv_coord_t vp_y,
                                            lv_coord_t *out_jump_y);
-static lv_coord_t chatVirtMsgContentY(int logical_i);
-static lv_coord_t chatVirtMsgContentBottom(int logical_i);
 static lv_coord_t chatVirtMsgViewportY(int logical_i, int32_t virt_top);
 
 void chatVirtRefreshScrollArea(LvChatPanel *p);
@@ -129,6 +148,7 @@ struct ChatVirtLayout {
   int32_t virt_total_h = 0;
   lv_coord_t lv_total_h = 0;
   lv_obj_t *spacer = nullptr;
+  lv_coord_t spacer_w = 0, spacer_h = 0;
   lv_obj_t *divider = nullptr;
   bool pending_scroll = false;
   bool pending_scroll_bottom = false;
@@ -323,14 +343,9 @@ static int chatVirtFindMsgAtVirtTop(int32_t virt_top) {
     return 0;
   if (virt_top <= 0)
     return 0;
-  int i = 0;
-  for (int j = 1; j < s_chat_virt.n; ++j) {
-    if (s_chat_virt.offsets[j] <= virt_top)
-      i = j;
-    else
-      break;
-  }
-  return i;
+  const int32_t *first = s_chat_virt.offsets;
+  const int32_t *last = first + s_chat_virt.n;
+  return static_cast<int>(std::upper_bound(first, last, virt_top) - first) - 1;
 }
 
 static lv_coord_t chatVirtMeasuredHeightAt(LvChatPanel *p, int logical_i) {
@@ -942,10 +957,15 @@ static void chatVirtEnsureSpacer(LvChatPanel *p, lv_coord_t total_h) {
     lv_obj_clear_flag(s_chat_virt.spacer, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_width(s_chat_virt.spacer, s_chat_virt.content_w > 0 ? s_chat_virt.content_w : 1);
     lv_obj_move_background(s_chat_virt.spacer);
+    s_chat_virt.spacer_w = s_chat_virt.spacer_h = 0;
   }
-  lv_obj_set_size(s_chat_virt.spacer, s_chat_virt.content_w > 0 ? s_chat_virt.content_w : 1,
-                  total_h > 0 ? total_h : 1);
-  lv_obj_set_pos(s_chat_virt.spacer, 0, 0);
+  const lv_coord_t width = s_chat_virt.content_w > 0 ? s_chat_virt.content_w : 1;
+  const lv_coord_t height = total_h > 0 ? total_h : 1;
+  if (s_chat_virt.spacer_w != width || s_chat_virt.spacer_h != height) {
+    lv_obj_set_size(s_chat_virt.spacer, width, height);
+    s_chat_virt.spacer_w = width;
+    s_chat_virt.spacer_h = height;
+  }
 }
 
 void chatVirtRefreshScrollArea(LvChatPanel *p) {
@@ -1536,6 +1556,7 @@ static void rowActionEvent(lv_event_t *event) {
   MessageTypes::UIMessage message;
   if (!host.messageAt(action->ringIndex, message) || message.seq != action->sequence)
     return;
+  if (code == LV_EVENT_CLICKED && chatTapToLatest(s_chat_virt.panel)) return;
   if (code == LV_EVENT_LONG_PRESSED)
     host.longPressMessage(action->ringIndex);
   else if (code == LV_EVENT_CLICKED && action->retry)
@@ -1799,14 +1820,6 @@ static lv_coord_t chatVirtCreateMessageRow(LvChatPanel *p, int logical_i, int ri
   return chatVirtCreateBubble(p, logical_i, ring_idx, vp_y, out_jump_y);
 }
 
-static lv_coord_t chatVirtMsgContentY(int logical_i) {
-  if (logical_i < 0 || logical_i >= s_chat_virt.n || !s_chat_virt.offsets)
-    return 0;
-  if (chatVirtCompressCoords())
-    return chatVirtVirtToLv(s_chat_virt.offsets[logical_i]);
-  return static_cast<lv_coord_t>(s_chat_virt.offsets[logical_i]);
-}
-
 // Viewport Y for a message top: layout-space px relative to virt_top (1:1). Smooth
 // sub-message scroll even when LVGL scroll_y is compressed; spacing stays correct
 // because offsets[] use real measured bubble heights.
@@ -1829,12 +1842,6 @@ int32_t chatVirtMsgVirtBottom(int logical_i) {
   return s_chat_virt.virt_total_h;
 }
 
-static lv_coord_t chatVirtMsgContentBottom(int logical_i) {
-  if (chatVirtCompressCoords())
-    return chatVirtVirtToLv(chatVirtMsgVirtBottom(logical_i));
-  return static_cast<lv_coord_t>(chatVirtMsgVirtBottom(logical_i));
-}
-
 static void chatVirtFindVisibleRange(LvChatPanel *p, lv_coord_t lv_scroll_y, lv_coord_t lv_view_h,
                                      int &out_i0, int &out_i1) {
   const int n = s_chat_virt.n;
@@ -1843,46 +1850,17 @@ static void chatVirtFindVisibleRange(LvChatPanel *p, lv_coord_t lv_scroll_y, lv_
     return;
   }
 
-  if (!chatVirtCompressCoords()) {
-    const lv_coord_t y0 = (lv_scroll_y > kChatVirtOverscanPx) ? (lv_scroll_y - kChatVirtOverscanPx) : 0;
-    const lv_coord_t y1 = lv_scroll_y + lv_view_h + kChatVirtOverscanPx;
-    out_i0 = n - 1;
-    for (int i = 0; i < n; ++i) {
-      if (chatVirtMsgContentBottom(i) > y0) {
-        out_i0 = i;
-        break;
-      }
-    }
-    out_i1 = out_i0;
-    for (int i = out_i0; i < n; ++i) {
-      if (chatVirtMsgContentY(i) < y1)
-        out_i1 = i;
-      else
-        break;
-    }
-    return;
-  }
-
-  // Compressed scroll coords pack message tops tightly (~15 px apart) but bubbles
-  // are stacked at full measured heights. Use virt offsets for visibility instead.
-  const int32_t overscan_virt = kChatVirtOverscanPx;
-  const int32_t virt_top = chatVirtEffectiveVirtTop(p) - overscan_virt;
-  const int32_t virt_bot = chatVirtEffectiveVirtTop(p) + lv_view_h + overscan_virt;
-
-  out_i0 = n - 1;
-  for (int i = 0; i < n; ++i) {
-    if (chatVirtMsgVirtBottom(i) > virt_top) {
-      out_i0 = i;
-      break;
-    }
-  }
-  out_i1 = out_i0;
-  for (int i = out_i0; i < n; ++i) {
-    if (s_chat_virt.offsets[i] < virt_bot)
-      out_i1 = i;
-    else
-      break;
-  }
+  // Layout offsets are sorted, including when LVGL compresses scroll coords.
+  const int32_t top = chatVirtEffectiveVirtTop(p);
+  const int32_t y0 = std::max<int32_t>(0, top - kChatVirtOverscanPx);
+  const int32_t y1 = top + lv_view_h + kChatVirtOverscanPx;
+  const int32_t *first = s_chat_virt.offsets;
+  const int32_t *last = first + n;
+  out_i0 = static_cast<int>(std::upper_bound(first, last, y0) - first) - 1;
+  if (out_i0 < 0) out_i0 = 0;
+  out_i1 = static_cast<int>(std::lower_bound(first, last, y1) - first) - 1;
+  if (out_i1 < out_i0) out_i1 = out_i0;
+  if (out_i1 >= n) out_i1 = n - 1;
 }
 
 static void chatVirtRenderWindow(LvChatPanel *p, lv_coord_t scroll_y, lv_coord_t *out_jump_y) {
@@ -2340,6 +2318,8 @@ static void watchMessages(ChatPanel &panel) {
     return;
   if (watch.object)
     lv_obj_remove_event_cb(watch.object, messagesDeleted);
+  if (watch.object)
+    lv_obj_remove_event_cb(watch.object, chatBackgroundTap);
   if (s_chat_virt.panel == &panel)
     chatVirtReset(&panel);
   watch.panel = &panel;
@@ -2347,8 +2327,10 @@ static void watchMessages(ChatPanel &panel) {
   if (!panel.msgs)
     return;
   lv_obj_add_event_cb(panel.msgs, messagesDeleted, LV_EVENT_DELETE, &watch);
+  lv_obj_add_event_cb(panel.msgs, chatBackgroundTap, LV_EVENT_CLICKED, &panel);
 }
 void closed(ChatPanel *panel) {
+  if (!panel || s_last_tap_panel == panel) s_last_tap_panel = nullptr;
   if (!panel || panel == host.direct)
     s_chat_detail_async_mask &= ~1;
   if (!panel || panel == host.channel)
