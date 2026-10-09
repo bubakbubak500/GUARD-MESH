@@ -13,6 +13,19 @@ maintained by [@bubakbubak500](https://github.com/bubakbubak500).
   for live PC status, messages, contacts and composing queued messages.
   Pairing is in Settings. The upstream build instructions remain below.
 
+## Guardian 2026.10.10
+
+- Discover resolves names learned from valid adverts even for nodes outside
+  Contacts. The indexed cache holds up to 1,024 identities with PSRAM (128
+  without it), evicts the least recently heard nodes, and survives restarts.
+- Clearing or filtering Found preserves learned names. Settings → General
+  shows cache usage and provides a separate confirmed clear action.
+- Chat reuses visible bubble widgets while scrolling and materialises the next
+  window during movement. ACK/echo updates preserve the viewport; cached row
+  heights avoid remeasuring unchanged history on rollover or reopening.
+- [Release notes](release-notes/guardian-2026.10.10.md) ·
+  [Firmware downloads](https://github.com/bubakbubak500/GUARD-MESH/releases/tag/guardian-2026.10.10)
+
 ## Local installation and documentation
 
 - **T-Deck UI simulator (Windows x64):** double-click [Start-Simulator.cmd](Start-Simulator.cmd).

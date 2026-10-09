@@ -1,11 +1,14 @@
 # Plán 1
 
 Rozvojový plán GUARD-MESH. Jednotlivé části popisují dohodnuté chování a požadavky
-pro budoucí implementaci.
+pro implementaci a její ověření.
 
 ## Cache názvů slyšených nodů pro Discover
 
-Zapsáno 2026-10-09. Stav: naplánováno.
+Zapsáno 2026-10-09. Implementováno pro vydání `guardian-2026.10.10`.
+Výsledné limity: 1 024 záznamů s PSRAM, 128 bez PSRAM, při nedostatku
+paměti menší kapacita. Načítání a zápis běží na pracovní úloze; index je
+v RAM. Dva snapshoty s verzí a CRC chrání před přerušeným zápisem.
 
 Discover má zobrazovat známý název nodu i tehdy, když node není v kontaktech.
 Název se zařízení naučí z přijatého platného advertu a uchová jej přes restart,
@@ -84,3 +87,17 @@ Při nedostatku paměti se použije menší kapacita nebo současné zobrazení 
   použitelné. Ověřit také souběh ukládání s discover a trvalý proud advertů.
 - Ověřit přerušený zápis, poškozený soubor, nedostupnou SD, nedostatek RAM
   a chování desek bez PSRAM.
+
+## Plynulost historie zpráv
+
+Implementováno pro stejné vydání:
+
+1. Zachování překrývajících se bublin a recyklace řádků při změně okna.
+2. Průběžná materializace během scrollování, sloučená do intervalů 16 ms.
+3. Aktualizace ACK/echo metadat bez resetu vstupu nebo posunu pohledu.
+4. Cache výšek podle identity zprávy a konfigurace zobrazení; opakované
+   použití kapacity offsetů, měření nových řádků při appendu, zachování
+   kotvy při přetočení historie a využití výšek při opětovném otevření.
+
+Nativní regresní testy a simulátor ověřují tyto scénáře. Plynulost na
+fyzickém T-Decku se ještě musí potvrdit při používání nového firmware.
