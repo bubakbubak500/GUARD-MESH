@@ -36,10 +36,14 @@ int main() {
   uint8_t other[32]; memcpy(other, pub, 32); other[31] = 22;
   cache.remember(other, "other");
   require(!cache.lookup(pub, 8, name, sizeof name));
+  uint8_t resolved[32];
+  require(cache.resolve(pub, 8, resolved) == -1);
+  require(cache.resolve(pub, 32, resolved) == 1 && !memcmp(pub, resolved, 32));
   require(cache.lookup(pub, 32, name, sizeof name) && !strcmp(name, "peer"));
   cache.remember(pub, "renamed");
   require(cache.lookup(pub, 32, name, sizeof name) && !strcmp(name, "renamed"));
   cache.clear(); require(cache.count() == 0 && !cache.lookup(pub, 32, name, sizeof name));
+  require(cache.resolve(pub, 8, resolved) == 0);
   Cache large;
   require(large.allocate(1024, ui::platform::allocate, ui::platform::release));
   for (unsigned i = 0; i < 10000; ++i) { key(i, pub); large.remember(pub, "bounded"); }

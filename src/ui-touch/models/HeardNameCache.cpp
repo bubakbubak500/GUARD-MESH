@@ -83,6 +83,18 @@ bool HeardNameCache::lookup(const uint8_t* key, unsigned length, char* name, siz
   memcpy(name, _entries[found].record.name, lengthName); name[lengthName] = '\0';
   return true;
 }
+int HeardNameCache::resolve(const uint8_t* key, unsigned length, uint8_t fullKey[32]) const {
+  if (!_entries || !key || !fullKey || (length != 8 && length != 32)) return 0;
+  int found = -1;
+  for (int slot = _buckets[bucket(key)]; slot >= 0; slot = _entries[slot].hashNext) {
+    if (memcmp(_entries[slot].record.key, key, length)) continue;
+    if (found >= 0) return -1;
+    found = slot;
+  }
+  if (found < 0) return 0;
+  memcpy(fullKey, _entries[found].record.key, 32);
+  return 1;
+}
 unsigned HeardNameCache::snapshot(Record* records, unsigned capacity) const {
   unsigned count = 0;
   for (int slot = _oldest; slot >= 0 && count < capacity; slot = _entries[slot].next)

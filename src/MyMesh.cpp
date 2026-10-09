@@ -3633,9 +3633,19 @@ void MyMesh::discoverUpsert(const uint8_t* pk, uint8_t pklen, uint8_t node_type,
                             int8_t our_snr_q4, int8_t our_rssi, int8_t their_snr_q4, uint8_t path_len) {
   uint32_t now = millis();
   int slot = -1;
+  int prefix_slot = -1;
+  bool ambiguous = false;
   for (uint8_t i = 0; i < _discover_cnt; i++) {
-    if (memcmp(_discover[i].pubkey, pk, 8) == 0) { slot = i; break; }
+    const auto& hit = _discover[i];
+    if (memcmp(hit.pubkey, pk, 8) != 0) continue;
+    if (pklen == 32 && hit.pubkey_len == 32) {
+      if (memcmp(hit.pubkey, pk, 32) == 0) { slot = i; break; }
+      continue;
+    }
+    if (prefix_slot >= 0) ambiguous = true;
+    prefix_slot = i;
   }
+  if (slot < 0 && !ambiguous) slot = prefix_slot;
   if (slot < 0) {
     if (_discover_cnt < DISCOVER_MAX) {
       slot = _discover_cnt++;

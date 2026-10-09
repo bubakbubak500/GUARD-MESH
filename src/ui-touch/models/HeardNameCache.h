@@ -12,6 +12,8 @@ public:
   bool allocate(unsigned capacity, void* (*allocate)(size_t, bool), void (*release)(void*));
   bool remember(const uint8_t key[32], const char* name);
   bool lookup(const uint8_t* key, unsigned length, char* name, size_t size) const;
+  // 1 = unique identity, 0 = absent, -1 = ambiguous prefix.
+  int resolve(const uint8_t* key, unsigned length, uint8_t fullKey[32]) const;
   void clear();
   unsigned count() const { return _count; }
   unsigned capacity() const { return _capacity; }

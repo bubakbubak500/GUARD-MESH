@@ -16,6 +16,7 @@ public:
   void configure(Host host, unsigned capacity = HeardNameCache::MaxCapacity);
   void remember(const uint8_t key[32], const char* name, uint32_t now);
   bool lookup(const uint8_t* key, unsigned length, char* name, size_t size) const;
+  int resolve(const uint8_t* key, unsigned length, uint8_t fullKey[32]) const { return _cache.resolve(key, length, fullKey); }
   unsigned count() const { return _cache.count(); }
   unsigned capacity() const { return _cache.capacity(); }
   void clear(uint32_t now);
