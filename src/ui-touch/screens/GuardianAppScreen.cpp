@@ -577,7 +577,7 @@ void GuardianAppScreen::updateDashboard(uint32_t now) {
   auto count=[&](lv_obj_t* object,uint32_t number) {
     if (online) snprintf(value,sizeof value,"%lu",(unsigned long)number); else strcpy(value,"-");
     lv_label_set_text(object,value);
-    lv_obj_set_style_text_font(object,number>999?&theme::font14():number>99?&lv_font_montserrat_20:&lv_font_montserrat_28,0);
+    lv_obj_set_style_text_font(object,number>999?&theme::font14():number>99?activityPercentFont():&lv_font_montserrat_28,0);
   };
   count(_inbox,s.inbox); count(_outbox,s.outbox);
   if (online) snprintf(value,sizeof value,TR("%lu new"),(unsigned long)s.unread); else value[0]=0;
