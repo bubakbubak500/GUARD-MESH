@@ -21,6 +21,8 @@ Firmware for **LilyGo T-Deck / T-Deck Plus**, following `guardian-2026.10.04`.
   Appends reserve offset capacity and measure only new rows; rollover and
   reopening reuse unchanged measurements. A surviving message anchors the
   viewport when history shifts.
+- Heltec uses link-time optimization to fit the complete UI in its existing OTA
+  partition; Guardian counters fall back to an available font on that board.
 
 ### Files
 
