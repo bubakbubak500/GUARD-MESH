@@ -13,6 +13,13 @@
 #include <Arduino.h>
 namespace ui { namespace screens {
 namespace {
+const lv_font_t* activityPercentFont() {
+#if LV_FONT_MONTSERRAT_20
+  return &lv_font_montserrat_20;
+#else
+  return &theme::font16();
+#endif
+}
 const char* const folders[] = {"inbox","outbox","sent","draft","transit"};
 const char* const sources[] = {"all","live","saved"};
 const char* errorText(const std::string& code) {
@@ -151,7 +158,7 @@ void GuardianAppScreen::render() {
     _activity=label("",40,21,left-100,true,panel);
     lv_label_set_long_mode(_activity,LV_LABEL_LONG_DOT);
     _percent=label("",left-60,17,52,false,panel);
-    lv_obj_set_style_text_font(_percent,&lv_font_montserrat_20,0);
+    lv_obj_set_style_text_font(_percent,activityPercentFont(),0);
     lv_obj_set_style_text_align(_percent,LV_TEXT_ALIGN_RIGHT,0);
     _bar=lv_bar_create(panel); lv_obj_set_pos(_bar,10,51); lv_obj_set_size(_bar,left-20,12);
     lv_obj_set_style_bg_color(_bar,lv_color_hex(0x263e50),0); lv_obj_set_style_bg_opa(_bar,LV_OPA_COVER,0);
@@ -562,7 +569,7 @@ void GuardianAppScreen::updateDashboard(uint32_t now) {
   else if (percent<=100) snprintf(value,sizeof value,"%u %%",percent);
   else strcpy(value,"-");
   lv_label_set_text(_percent,value);
-  lv_obj_set_style_text_font(_percent,percent==100?&theme::font16():&lv_font_montserrat_20,0);
+  lv_obj_set_style_text_font(_percent,percent==100?&theme::font16():activityPercentFont(),0);
   if (online && _direction && percent<=100) {
     lv_obj_clear_flag(_bar,LV_OBJ_FLAG_HIDDEN); lv_bar_set_value(_bar,percent,LV_ANIM_OFF);
     lv_obj_set_style_bg_color(_bar,lv_color_hex(_direction==4?0x10bdea:0xffbd45),LV_PART_INDICATOR);
