@@ -18,8 +18,8 @@ public:
     bool (*advert)(void *);
     void (*action)(void *, Action);
     Capabilities capabilities;
-    void (*heardNames)(void*, unsigned&, unsigned&) = nullptr;
-    bool (*clearHeardNames)(void*) = nullptr;
+    void (*heardNames)(void*, unsigned&, unsigned&);
+    bool (*clearHeardNames)(void*);
   };
   struct State {
     unsigned history, fallback;
