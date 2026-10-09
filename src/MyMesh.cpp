@@ -3638,6 +3638,7 @@ void MyMesh::discoverUpsert(const uint8_t* pk, uint8_t pklen, uint8_t node_type,
   for (uint8_t i = 0; i < _discover_cnt; i++) {
     const auto& hit = _discover[i];
     if (memcmp(hit.pubkey, pk, 8) != 0) continue;
+    if (pklen == 8 && hit.pubkey_len == 8) { slot = i; break; }
     if (pklen == 32 && hit.pubkey_len == 32) {
       if (memcmp(hit.pubkey, pk, 32) == 0) { slot = i; break; }
       continue;
