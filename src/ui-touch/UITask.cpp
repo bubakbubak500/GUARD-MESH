@@ -957,7 +957,10 @@ static void discoveredFlushIfDue(unsigned long now) {
 }
 // Synchronous flush for the deliberate reboot / power-off / download-mode paths
 // (mirrors the chat-history flush) so a manual reboot never drops recent finds.
-static void discoveredFlushNow() { if (s_disc_dirty) saveDiscovered(); }
+static void discoveredFlushNow() {
+  heardNames.flush();
+  if (s_disc_dirty) saveDiscovered();
+}
 // Remove discovered entries heard via more hops than the configured limit (the
 // "auto-delete above N hops" setting; 0 = off). Returns true if anything went.
 static bool discoveredSweepHops() {
@@ -11570,11 +11573,25 @@ static void discoverBuildFeed() {
     // row after this one. Keep a structurally-clean copy here (font=nullptr: emoji
     // preserved for the tap-to-add snapshot), and escape a capped display copy below.
     char name[26];
-    ContactInfo* c = the_mesh.lookupContactByPubKey((uint8_t*)h.pubkey, h.pubkey_len == 8 ? 8 : 32);
+    uint8_t resolved[32];
+    memcpy(resolved, h.pubkey, sizeof resolved);
+    bool ambiguous = false;
+    if (h.pubkey_len == 8) {
+      const int cached = heardNames.resolve(h.pubkey, 8, resolved);
+      bool found = cached == 1;
+      ambiguous = cached < 0;
+      for (uint32_t i = 0; i < the_mesh.getNumContacts(); ++i) {
+        ContactInfo contact;
+        if (!the_mesh.getContactByIdx(i, contact) || memcmp(contact.id.pub_key, h.pubkey, 8)) continue;
+        if (found && memcmp(resolved, contact.id.pub_key, 32)) ambiguous = true;
+        memcpy(resolved, contact.id.pub_key, 32); found = true;
+      }
+    }
+    ContactInfo* c = ambiguous ? nullptr : the_mesh.lookupContactByPubKey(resolved, 32);
     if (c && c->name[0]) copyUtf8ReplacingMissingGlyphs(nullptr, name, sizeof name, c->name);
     else {
       char cached[32];
-      if (heardNames.lookup(h.pubkey, h.pubkey_len == 8 ? 8 : 32, cached, sizeof cached))
+      if (!ambiguous && heardNames.lookup(resolved, 32, cached, sizeof cached))
         copyUtf8ReplacingMissingGlyphs(nullptr, name, sizeof name, cached);
       else snprintf(name, sizeof name, "Node \xC2\xB7%02X%02X", h.pubkey[0], h.pubkey[1]);
     }
@@ -30144,7 +30161,6 @@ void UITask::rebootDevice() {
 #endif
     delay(1500);   // let the warning actually paint before the reset
   }
-  heardNames.flush();
   discoveredFlushNow();   // persist the Discovered ring before we go down
   the_mesh.flushContactsIfDirty();   // and any coalesced contacts refresh (card-less devices)
   the_mesh.persistSyncHistoryNow();  // and the app-sync replay ring
