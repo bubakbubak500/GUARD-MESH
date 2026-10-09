@@ -22,6 +22,8 @@ using namespace ui::widgets;
 using std::max;
 using std::min;
 static Host host{};
+static Metrics work{};
+static uint32_t rowStyleEpoch = 1;
 static LvChatPanel *s_chat_virt_render_async_panel = nullptr;
 static bool s_chat_virt_render_async_busy = false;
 static uint8_t s_chat_detail_async_mask = 0;
@@ -113,6 +115,8 @@ static lv_coord_t chatMeasureMessageRowHeight(const MessageTypes::UIMessage &m, 
 static lv_coord_t chatVirtCreateMessageRow(LvChatPanel *p, int logical_i, int ring_idx, lv_coord_t vp_y,
                                            lv_coord_t *out_jump_y);
 static lv_coord_t chatVirtMsgViewportY(int logical_i, int32_t virt_top);
+static void chatBuildBubbleMeta(const MessageTypes::UIMessage &m, bool channel_mode, char *out,
+                                size_t out_sz, uint32_t *fg);
 
 void chatVirtRefreshScrollArea(LvChatPanel *p);
 
@@ -139,6 +143,7 @@ struct ChatVirtLayout {
   int *msg_idx = nullptr;
   int32_t *offsets = nullptr;   // virt Y per message; offsets[n] = virt total height
   int32_t *day_sep_y = nullptr; // virt Y of day label before message i, or -1
+  int offset_capacity = 0;
   // Ring slots of the first/last laid-out message. Content-generation guard: the
   // ring evicting or rotating (n unchanged at capacity) and thread switches both
   // move these, so refreshChatDetail can tell "same count, different content"
@@ -163,6 +168,38 @@ struct ChatVirtLayout {
 static ChatVirtLayout s_chat_virt;
 static int *s_chat_msg_idx = nullptr;
 static int s_chat_msg_idx_cap = 0;
+struct HeightEntry { uint32_t sequence = 0, signature = 0; lv_coord_t height = 0; };
+static HeightEntry* heightCache = nullptr;
+static uint32_t hashBytes(uint32_t hash, const void* data, size_t size) {
+  const auto* bytes = static_cast<const uint8_t*>(data);
+  while (size--) hash = (hash ^ *bytes++) * 16777619u;
+  return hash;
+}
+static uint32_t contentSignature(const MessageTypes::UIMessage& m) {
+  uint32_t hash = hashBytes(2166136261u, m.text, strnlen(m.text, sizeof m.text));
+  hash = hashBytes(hash, m.sender, strnlen(m.sender, sizeof m.sender));
+  hash = hashBytes(hash, &m.ts, sizeof m.ts);
+  hash = hashBytes(hash, &m.outgoing, sizeof m.outgoing);
+  hash = hashBytes(hash, &s_chat_virt.content_w, sizeof s_chat_virt.content_w);
+  hash = hashBytes(hash, &s_chat_virt.thread_is_room, sizeof s_chat_virt.thread_is_room);
+  hash = hashBytes(hash, &s_chat_virt.compact_chat, sizeof s_chat_virt.compact_chat);
+  const auto* font = chatMessageFont();
+  hash = hashBytes(hash, &font, sizeof font);
+  hash = hashBytes(hash, &rowStyleEpoch, sizeof rowStyleEpoch);
+  char meta[48];
+  chatBuildBubbleMeta(m, s_chat_virt.panel && s_chat_virt.panel->channel_mode, meta, sizeof meta, nullptr);
+  const bool hasMeta = meta[0];
+  hash = hashBytes(hash, &hasMeta, sizeof hasMeta);
+  if (s_chat_virt.compact_chat) {
+    hash = hashBytes(hash, s_chat_virt.compact_thread_name, strlen(s_chat_virt.compact_thread_name));
+    hash = hashBytes(hash, &m.deliv_state, sizeof m.deliv_state);
+    hash = hashBytes(hash, &m.path_len, sizeof m.path_len);
+    const uint8_t repeats = m.sent_fp && host.repeats ? host.repeats(m.sent_fp) : 0;
+    hash = hashBytes(hash, &repeats, sizeof repeats);
+  }
+  if (s_chat_virt.panel) hash = hashBytes(hash, &s_chat_virt.panel->channel_mode, sizeof(bool));
+  return hash;
+}
 static lv_timer_t *s_chat_virt_render_timer = nullptr;
 static LvChatPanel *s_chat_virt_render_panel = nullptr;
 
@@ -403,21 +440,6 @@ void chatVirtResetInputForMsgs(LvChatPanel *p) {
     lv_indev_reset(nullptr, p->msgs);
 }
 
-static bool chatVirtIndevStillScrolling(LvChatPanel *p) {
-  if (!p || !p->msgs)
-    return false;
-  for (lv_indev_t *in = lv_indev_get_next(nullptr); in; in = lv_indev_get_next(in)) {
-    if (lv_indev_get_scroll_dir(in) == LV_DIR_NONE)
-      continue;
-    lv_obj_t *scr = lv_indev_get_scroll_obj(in);
-    for (lv_obj_t *o = scr; o; o = lv_obj_get_parent(o)) {
-      if (o == p->msgs)
-        return true;
-    }
-  }
-  return false;
-}
-
 static void chatVirtFreeOffsets() {
   if (s_chat_virt.offsets) {
     ui::platform::release(s_chat_virt.offsets);
@@ -427,6 +449,25 @@ static void chatVirtFreeOffsets() {
     ui::platform::release(s_chat_virt.day_sep_y);
     s_chat_virt.day_sep_y = nullptr;
   }
+  s_chat_virt.offset_capacity = 0;
+}
+static bool ensureOffsetCapacity(int n) {
+  if (s_chat_virt.offsets && s_chat_virt.day_sep_y && s_chat_virt.offset_capacity >= n) return true;
+  int capacity = max(128, s_chat_virt.offset_capacity);
+  while (capacity < n) capacity *= 2;
+  capacity = min(capacity, max(n, s_chat_msg_idx_cap));
+  auto* offsets = static_cast<int32_t*>(ui::platform::allocate(sizeof(int32_t) * (capacity + 1), true));
+  auto* separators = static_cast<int32_t*>(ui::platform::allocate(sizeof(int32_t) * capacity, true));
+  if (!offsets) offsets = static_cast<int32_t*>(malloc(sizeof(int32_t) * (capacity + 1)));
+  if (!separators) separators = static_cast<int32_t*>(malloc(sizeof(int32_t) * capacity));
+  if (!offsets || !separators) { free(offsets); free(separators); return false; }
+  if (s_chat_virt.offsets && s_chat_virt.n <= s_chat_virt.offset_capacity) {
+    memcpy(offsets, s_chat_virt.offsets, sizeof(int32_t) * (s_chat_virt.n + 1));
+    memcpy(separators, s_chat_virt.day_sep_y, sizeof(int32_t) * s_chat_virt.n);
+  }
+  chatVirtFreeOffsets();
+  s_chat_virt.offsets = offsets; s_chat_virt.day_sep_y = separators; s_chat_virt.offset_capacity = capacity;
+  return true;
 }
 
 #if defined(TLORA_PAGER)
@@ -459,7 +500,7 @@ void chatVirtReset(LvChatPanel *p) {
 #endif
   // Null the divider pointer WITHOUT queueing a delete. It is always a child of
   // p->msgs, and every path that follows a reset (lv_obj_clean in the empty-thread
-  // branches, chatVirtPurgeMsgsChildrenSync, chatVirtClearBubbleWidgets) deletes
+  // branches, chatVirtPurgeMsgsChildrenSync) deletes
   // the widget itself. Queueing lv_obj_del_async here handed LVGL a raw pointer
   // that those synchronous cleans freed FIRST, so the deferred lv_obj_del then ran
   // on freed memory (and with both panels open, on the OTHER panel's divider).
@@ -499,11 +540,16 @@ static void chatVirtEnsureMsgIdx() {
     s_chat_msg_idx = nullptr;
   }
   s_chat_msg_idx_cap = 0;
+  ui::platform::release(heightCache); heightCache = nullptr;
   s_chat_msg_idx = (int *)ui::platform::allocate(sizeof(int) * (size_t)need, true);
   if (!s_chat_msg_idx)
     s_chat_msg_idx = (int *)ui::platform::allocate(sizeof(int) * (size_t)need, false);
-  if (s_chat_msg_idx)
+  if (s_chat_msg_idx) {
     s_chat_msg_idx_cap = need;
+    heightCache = static_cast<HeightEntry*>(ui::platform::allocate(sizeof(HeightEntry) * need, true));
+    if (!heightCache) heightCache = static_cast<HeightEntry*>(ui::platform::allocate(sizeof(HeightEntry) * need, false));
+    if (heightCache) memset(heightCache, 0, sizeof(HeightEntry) * need);
+  }
 }
 
 static void chatParseMessageDisplay(const MessageTypes::UIMessage &m, bool channel_mode, bool thread_is_room,
@@ -871,12 +917,19 @@ static lv_coord_t chatMeasureCompactRowHeight(const MessageTypes::UIMessage &m, 
 
 static lv_coord_t chatMeasureMessageRowHeight(const MessageTypes::UIMessage &m, LvChatPanel *p,
                                               int logical_i) {
+  const int ring = s_chat_msg_idx && logical_i >= 0 && logical_i < s_chat_msg_idx_cap ? s_chat_msg_idx[logical_i] : -1;
+  HeightEntry* cached = heightCache && ring >= 0 && ring < s_chat_msg_idx_cap ? &heightCache[ring] : nullptr;
+  const uint32_t signature = contentSignature(m);
+  if (cached && cached->sequence == m.seq && cached->signature == signature && cached->height > 0) return cached->height;
+  ++work.heightMeasurements;
+  lv_coord_t height;
   if (s_chat_virt.compact_chat) {
     ChatBubbleDisplay d{};
     chatParseMessageDisplay(m, p->channel_mode, s_chat_virt.thread_is_room, d);
-    return chatMeasureCompactRowHeight(m, p, logical_i, d);
-  }
-  return chatMeasureBubbleHeight(m, p->channel_mode, s_chat_virt.thread_is_room, s_chat_virt.bubble_max_w);
+    height = chatMeasureCompactRowHeight(m, p, logical_i, d);
+  } else height = chatMeasureBubbleHeight(m, p->channel_mode, s_chat_virt.thread_is_room, s_chat_virt.bubble_max_w);
+  if (cached) { cached->sequence = m.seq; cached->signature = signature; cached->height = height; }
+  return height;
 }
 
 // Safe teardown for floating chat widgets — same pattern as host.popupClose: if the
@@ -887,28 +940,6 @@ static void chatVirtBeforeMassDelete() {
   lv_indev_t *act = lv_indev_get_act();
   if (act)
     lv_indev_wait_release(act);
-}
-
-// Remove bubble/divider widgets only; keep the spacer so scroll height stays valid.
-// Deletes are SYNCHRONOUS: the only caller is chatVirtRenderWindow, which runs in
-// lv_async_call context (after the display refresh) — lv_obj_del_async here would
-// leave stale children in spec_attr until the next tick, and layout_update_core
-// then walks freed memory. Never call this from an indev/event handler.
-static void chatVirtClearBubbleWidgets(LvChatPanel *p) {
-  if (!p || !p->msgs)
-    return;
-  if (!chatVirtIndevStillScrolling(p))
-    chatVirtResetInputForMsgs(p);
-  chatVirtBeforeMassDelete();
-  s_chat_virt.divider = nullptr;
-  for (int i = static_cast<int>(lv_obj_get_child_cnt(p->msgs)) - 1; i >= 0; --i) {
-    lv_obj_t *ch = lv_obj_get_child(p->msgs, i);
-    if (!ch)
-      continue;
-    if (s_chat_virt.spacer && ch == s_chat_virt.spacer && lv_obj_is_valid(s_chat_virt.spacer))
-      continue;
-    lv_obj_del(ch);
-  }
 }
 
 // Sync purge — only call from lv_async_call / timer context, not indev handlers.
@@ -986,12 +1017,12 @@ void chatVirtSyncBubblePositions(LvChatPanel *p) {
     int logical_i;
     lv_coord_t h;
   };
-  BubbleEntry entries[64];
+  BubbleEntry entries[128];
   int cnt = 0;
 
-  for (uint32_t ci = 0; ci < lv_obj_get_child_cnt(p->msgs) && cnt < 64; ++ci) {
+  for (uint32_t ci = 0; ci < lv_obj_get_child_cnt(p->msgs) && cnt < 128; ++ci) {
     lv_obj_t *ch = lv_obj_get_child(p->msgs, ci);
-    if (!ch || ch == s_chat_virt.spacer)
+    if (!ch || ch == s_chat_virt.spacer || lv_obj_has_flag(ch, LV_OBJ_FLAG_HIDDEN))
       continue;
     if (s_chat_virt.divider && ch == s_chat_virt.divider)
       continue;
@@ -1079,21 +1110,9 @@ static bool chatVirtTryAppendLayout(LvChatPanel *p, int n, int divider_i) {
   if (s_chat_msg_idx[0] != s_chat_virt.first_ring || s_chat_msg_idx[n_old - 1] != s_chat_virt.last_ring)
     return false;
 
-  int32_t *offs = (int32_t *)ui::platform::allocate(sizeof(int32_t) * (size_t)(n + 1), true);
-  if (!offs)
-    offs = (int32_t *)malloc(sizeof(int32_t) * (size_t)(n + 1));
-  int32_t *seps = (int32_t *)ui::platform::allocate(sizeof(int32_t) * (size_t)n, true);
-  if (!seps)
-    seps = (int32_t *)malloc(sizeof(int32_t) * (size_t)n);
-  if (!offs || !seps) {
-    if (offs)
-      free(offs);
-    if (seps)
-      free(seps);
-    return false;
-  }
-  memcpy(offs, s_chat_virt.offsets, sizeof(int32_t) * (size_t)(n_old + 1));
-  memcpy(seps, s_chat_virt.day_sep_y, sizeof(int32_t) * (size_t)n_old);
+  if (!ensureOffsetCapacity(n)) return false;
+  int32_t* offs = s_chat_virt.offsets;
+  int32_t* seps = s_chat_virt.day_sep_y;
 
   // Day-key continuity: the appended range needs the day of the last old message.
   long last_day_key = -1;
@@ -1126,12 +1145,6 @@ static bool chatVirtTryAppendLayout(LvChatPanel *p, int n, int divider_i) {
   }
   offs[n] = y;
 
-  int32_t *old_offs = s_chat_virt.offsets;
-  int32_t *old_seps = s_chat_virt.day_sep_y;
-  s_chat_virt.offsets = offs;
-  s_chat_virt.day_sep_y = seps;
-  free(old_offs);
-  free(old_seps);
   s_chat_virt.n = n;
   s_chat_virt.msg_idx = s_chat_msg_idx;
   s_chat_virt.first_ring = s_chat_msg_idx[0];
@@ -1145,17 +1158,7 @@ static bool chatVirtRebuildLayout(LvChatPanel *p, int n, int divider_i) {
     return false;
   if (chatVirtTryAppendLayout(p, n, divider_i))
     return true;
-  chatVirtFreeOffsets();
-  s_chat_virt.offsets = (int32_t *)ui::platform::allocate(sizeof(int32_t) * (size_t)(n + 1), true);
-  if (!s_chat_virt.offsets)
-    s_chat_virt.offsets = (int32_t *)malloc(sizeof(int32_t) * (size_t)(n + 1));
-  s_chat_virt.day_sep_y = (int32_t *)ui::platform::allocate(sizeof(int32_t) * (size_t)n, true);
-  if (!s_chat_virt.day_sep_y)
-    s_chat_virt.day_sep_y = (int32_t *)malloc(sizeof(int32_t) * (size_t)n);
-  if (!s_chat_virt.offsets || !s_chat_virt.day_sep_y) {
-    chatVirtFreeOffsets();
-    return false;
-  }
+  if (!ensureOffsetCapacity(n)) return false;
   for (int i = 0; i < n; ++i)
     s_chat_virt.day_sep_y[i] = -1;
 
@@ -1228,8 +1231,10 @@ static bool chatVirtRebuildLayout(LvChatPanel *p, int n, int divider_i) {
 static void chatVirtCreateDivider(LvChatPanel *p, lv_coord_t vp_y) {
   if (!p || !p->msgs)
     return;
-  if (s_chat_virt.divider && lv_obj_is_valid(s_chat_virt.divider))
+  if (s_chat_virt.divider && lv_obj_is_valid(s_chat_virt.divider)) {
+    lv_obj_clear_flag(s_chat_virt.divider, LV_OBJ_FLAG_HIDDEN);
     return;
+  }
   const lv_coord_t kContentW = s_chat_virt.content_w;
   lv_obj_t *div = lv_obj_create(p->msgs);
   lv_obj_remove_style_all(div);
@@ -1269,7 +1274,14 @@ static void chatVirtCreateDaySeparator(LvChatPanel *p, int logical_i, lv_coord_t
   ui::platform::localTime(tt, tv);
   char dbuf[32];
   formatDaySeparator(dbuf, sizeof(dbuf), &tv);
-  lv_obj_t *dl = lv_label_create(p->msgs);
+  lv_obj_t *dl = nullptr;
+  for (uint32_t c = 0; c < lv_obj_get_child_cnt(p->msgs); ++c) {
+    auto* child = lv_obj_get_child(p->msgs, c);
+    if (reinterpret_cast<intptr_t>(lv_obj_get_user_data(child)) < 0 &&
+        lv_obj_has_flag(child, LV_OBJ_FLAG_HIDDEN)) { dl = child; break; }
+  }
+  if (!dl) dl = lv_label_create(p->msgs);
+  lv_obj_clear_flag(dl, LV_OBJ_FLAG_HIDDEN);
   lv_label_set_text(dl, dbuf);
   lv_obj_set_style_text_font(dl, &font12(), LV_PART_MAIN);
   lv_obj_set_style_text_color(dl, lv_color_hex(colors().COLOR_SUB), LV_PART_MAIN);
@@ -1540,7 +1552,37 @@ struct RowAction {
   int ringIndex;
   uint32_t sequence;
   bool url, retry;
+  uint32_t pressedSequence;
 };
+static constexpr unsigned kRowSlots = 128;
+struct RowView {
+  lv_obj_t *root = nullptr, *sender = nullptr, *meta = nullptr, *body = nullptr;
+  RowAction* action = nullptr;
+  int ring = -1, logical = -1;
+  uint32_t sequence = 0, signature = 0, styleEpoch = 0;
+  bool compact = false;
+  lv_coord_t innerWidth = 0, metaWidth = 0;
+};
+static RowView rows[kRowSlots];
+static RowView* buildingRow = nullptr;
+static void rowDeleted(lv_event_t* event) {
+  auto* row = static_cast<RowView*>(lv_event_get_user_data(event));
+  if (lv_event_get_target(event) == row->root) *row = {};
+}
+static lv_obj_t* rowRoot(LvChatPanel* panel, bool compact) {
+  auto& view = *buildingRow;
+  if (!view.root) {
+    view.root = compact ? lv_label_create(panel->msgs) : lv_obj_create(panel->msgs);
+    view.compact = compact;
+    lv_obj_add_event_cb(view.root, rowDeleted, LV_EVENT_DELETE, &view);
+    ++work.rowsCreated;
+    if (!compact) lv_obj_remove_style_all(view.root);
+  }
+  if (lv_obj_get_parent(view.root) != panel->msgs) lv_obj_set_parent(view.root, panel->msgs);
+  lv_obj_clear_flag(view.root, LV_OBJ_FLAG_HIDDEN);
+  ++work.rowsBound;
+  return view.root;
+}
 static void rowActionEvent(lv_event_t *event) {
   auto *action = static_cast<RowAction *>(lv_event_get_user_data(event));
   const auto code = lv_event_get_code(event);
@@ -1548,6 +1590,7 @@ static void rowActionEvent(lv_event_t *event) {
     ui::platform::release(action);
     return;
   }
+  if (code == LV_EVENT_PRESSED) { action->pressedSequence = action->sequence; return; }
   if (code != LV_EVENT_LONG_PRESSED && code != LV_EVENT_SHORT_CLICKED && code != LV_EVENT_CLICKED)
     return;
   if (!host.ready || !host.ready() || !s_chat_virt.panel || !s_chat_virt.panel->detail_open ||
@@ -1556,6 +1599,7 @@ static void rowActionEvent(lv_event_t *event) {
   MessageTypes::UIMessage message;
   if (!host.messageAt(action->ringIndex, message) || message.seq != action->sequence)
     return;
+  if (action->pressedSequence && action->pressedSequence != action->sequence) return;
   if (code == LV_EVENT_CLICKED && chatTapToLatest(s_chat_virt.panel)) return;
   if (code == LV_EVENT_LONG_PRESSED)
     host.longPressMessage(action->ringIndex);
@@ -1568,12 +1612,16 @@ static void rowActionEvent(lv_event_t *event) {
   }
 }
 static void bindRowActions(lv_obj_t *row, int ringIndex, const MessageTypes::UIMessage &message, bool url) {
-  auto *action = static_cast<RowAction *>(ui::platform::allocate(sizeof(RowAction), false));
+  auto* action = buildingRow->action;
+  const bool fresh = !action;
+  if (!action) action = static_cast<RowAction *>(ui::platform::allocate(sizeof(RowAction), false));
   if (!action)
     return; // A readable row is preferable to a dangling callback on OOM.
   const bool retry = message.outgoing && message.deliv_state == MessageTypes::DELIV_FAILED;
-  *action = {ringIndex, message.seq, url && !retry, retry};
-  lv_obj_add_event_cb(row, rowActionEvent, LV_EVENT_ALL, action);
+  const uint32_t pressed = fresh ? 0 : action->pressedSequence;
+  *action = {ringIndex, message.seq, url && !retry, retry, pressed};
+  buildingRow->action = action;
+  if (fresh) lv_obj_add_event_cb(row, rowActionEvent, LV_EVENT_ALL, action);
 }
 
 static lv_coord_t chatVirtCreateBubble(LvChatPanel *p, int logical_i, int ring_idx, lv_coord_t vp_y,
@@ -1594,8 +1642,7 @@ static lv_coord_t chatVirtCreateBubble(LvChatPanel *p, int logical_i, int ring_i
   const bool colorful_bubbles = touchPrefsGetColorfulBubbles();
 #endif
 
-  lv_obj_t *bubble = lv_obj_create(p->msgs);
-  lv_obj_remove_style_all(bubble);
+  lv_obj_t *bubble = rowRoot(p, false);
   lv_obj_clear_flag(bubble, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_add_flag(bubble, LV_OBJ_FLAG_FLOATING);
   lv_obj_set_style_radius(bubble, 10, LV_PART_MAIN);
@@ -1659,6 +1706,8 @@ static lv_coord_t chatVirtCreateBubble(LvChatPanel *p, int logical_i, int ring_i
   }
 
   int inner_y = 0;
+  if (buildingRow->sender) lv_obj_add_flag(buildingRow->sender, LV_OBJ_FLAG_HIDDEN);
+  if (buildingRow->meta) lv_obj_add_flag(buildingRow->meta, LV_OBJ_FLAG_HIDDEN);
   // Analytic bubble width for x-alignment (widest of sender/text/meta) — do not use
   // lv_obj_get_width() right after create; unsettled layout can mis-place outgoing bubbles.
   if (show_sender_line || meta_buf[0]) {
@@ -1679,27 +1728,37 @@ static lv_coord_t chatVirtCreateBubble(LvChatPanel *p, int logical_i, int ring_i
     }
 
     if (show_sender_line && sender_label_w > 0) {
-      lv_obj_t *slbl = lv_label_create(bubble);
+      lv_obj_t *slbl = buildingRow->sender;
+      if (!slbl) buildingRow->sender = slbl = lv_label_create(bubble);
+      lv_obj_clear_flag(slbl, LV_OBJ_FLAG_HIDDEN);
       lv_label_set_text(slbl, d.san_sender);
       lv_obj_set_style_text_font(slbl, &font12(), LV_PART_MAIN);
       lv_obj_set_style_text_color(slbl, sender_col, LV_PART_MAIN);
+      lv_label_set_long_mode(slbl, LV_LABEL_LONG_WRAP);
+      lv_obj_set_width(slbl, LV_SIZE_CONTENT);
       if (sender_label_w < sender_w) {
         lv_label_set_long_mode(slbl, LV_LABEL_LONG_DOT);
         lv_obj_set_width(slbl, sender_label_w);
       }
       lv_obj_set_pos(slbl, 0, inner_y);
-    }
+    } else if (buildingRow->sender) lv_obj_add_flag(buildingRow->sender, LV_OBJ_FLAG_HIDDEN);
     if (meta_fit[0]) {
-      lv_obj_t *mlbl = lv_label_create(bubble);
+      lv_obj_t *mlbl = buildingRow->meta;
+      if (!mlbl) buildingRow->meta = mlbl = lv_label_create(bubble);
+      lv_obj_clear_flag(mlbl, LV_OBJ_FLAG_HIDDEN);
       lv_label_set_text(mlbl, meta_fit);
       lv_obj_set_style_text_font(mlbl, &font12(), LV_PART_MAIN);
       lv_obj_set_style_text_color(mlbl, lv_color_hex(meta_fg), LV_PART_MAIN);
       lv_obj_set_pos(mlbl, inner_w - meta_fit_w, inner_y);
-    }
+    } else if (buildingRow->meta) lv_obj_add_flag(buildingRow->meta, LV_OBJ_FLAG_HIDDEN);
+    buildingRow->innerWidth = inner_w;
+    buildingRow->metaWidth = inner_w - (show_sender_line ? sender_label_w + 6 : 0);
     inner_y += line_h;
   }
 
-  lv_obj_t *tlbl = lv_label_create(bubble);
+  lv_obj_t *tlbl = buildingRow->body;
+  if (!tlbl) buildingRow->body = tlbl = lv_label_create(bubble);
+  lv_label_set_recolor(tlbl, false);
   lv_obj_set_style_text_font(tlbl, msg_font, LV_PART_MAIN);
   lv_obj_set_style_text_color(tlbl,
 #if defined(HAS_TDECK_PRO)
@@ -1722,8 +1781,7 @@ static lv_coord_t chatVirtCreateBubble(LvChatPanel *p, int logical_i, int ring_i
     }
   }
 #endif
-  if (txt_size.x > kInnerMaxW)
-    lv_label_set_long_mode(tlbl, LV_LABEL_LONG_WRAP);
+  lv_label_set_long_mode(tlbl, LV_LABEL_LONG_WRAP);
   lv_obj_set_width(tlbl, txt_w_used);
   if (txt_w_used > inner_w)
     inner_w = txt_w_used;
@@ -1768,7 +1826,7 @@ static lv_coord_t chatVirtCreateCompactRow(LvChatPanel *p, int logical_i, int ri
 #endif
     chatBuildCompactLine(m, p, logical_i, d, line, sizeof(line));
 
-  lv_obj_t *row = lv_label_create(p->msgs);
+  lv_obj_t *row = rowRoot(p, true);
   lv_label_set_recolor(row,
 #if defined(HAS_TDECK_PRO)
                        !epaper_channel
@@ -1801,7 +1859,7 @@ static lv_coord_t chatVirtCreateCompactRow(LvChatPanel *p, int logical_i, int ri
   } else if ((logical_i & 1) == 0) {
     lv_obj_set_style_bg_color(row, lv_color_hex(colors().COLOR_RECV_BG), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(row, LV_OPA_COVER, LV_PART_MAIN);
-  }
+  } else lv_obj_set_style_bg_opa(row, LV_OPA_TRANSP, LV_PART_MAIN);
   lv_obj_add_flag(row, LV_OBJ_FLAG_CLICKABLE);
   bindRowActions(row, ring_idx, m, false);
   lv_obj_set_pos(row, 0, vp_y);
@@ -1818,6 +1876,29 @@ static lv_coord_t chatVirtCreateMessageRow(LvChatPanel *p, int logical_i, int ri
   if (s_chat_virt.compact_chat)
     return chatVirtCreateCompactRow(p, logical_i, ring_idx, vp_y, out_jump_y);
   return chatVirtCreateBubble(p, logical_i, ring_idx, vp_y, out_jump_y);
+}
+
+static void updateRowMetadata(RowView& view, const MessageTypes::UIMessage& message, LvChatPanel* panel) {
+  if (view.compact || !view.meta) return;
+  char text[48], fitted[48];
+  uint32_t color;
+  chatBuildBubbleMeta(message, panel->channel_mode, text, sizeof text, &color);
+  chatFitLeadingEllipsis(text, view.metaWidth, fitted, sizeof fitted);
+#if defined(HAS_TDECK_PRO)
+  color = 0x000000;
+#endif
+  if (strcmp(lv_label_get_text(view.meta), fitted) != 0 ||
+      lv_color_to32(lv_obj_get_style_text_color(view.meta, LV_PART_MAIN)) != lv_color_to32(lv_color_hex(color))) {
+    lv_label_set_text(view.meta, fitted);
+    lv_obj_set_style_text_color(view.meta, lv_color_hex(color), LV_PART_MAIN);
+    lv_obj_set_x(view.meta, view.innerWidth - chatTextWidth(fitted));
+    ++work.metadataUpdates;
+  }
+  if (view.action) {
+    view.action->retry = message.outgoing && message.deliv_state == MessageTypes::DELIV_FAILED;
+    int a, b;
+    view.action->url = !view.action->retry && chatUrlSpan(message.text, 0, &a, &b);
+  }
 }
 
 // Viewport Y for a message top: layout-space px relative to virt_top (1:1). Smooth
@@ -1904,12 +1985,34 @@ static void chatVirtRenderWindow(LvChatPanel *p, lv_coord_t scroll_y, lv_coord_t
       stable_focus = foc;
     }
   }
-  const bool nav_detached = host.detachNavigation();
+  const bool nav_detached = (i0 != s_chat_virt.last_i0 || i1 != s_chat_virt.last_i1) && host.detachNavigation();
 #endif
 
-  const lv_coord_t saved_scroll_y = scroll_y;
-  chatVirtClearBubbleWidgets(p);
+  ++work.windowUpdates;
   chatVirtEnsureSpacer(p, s_chat_virt.lv_total_h);
+  // Reserve the overlap before recycling anything. The roots stay alive even
+  // while an input device holds a row, so materialisation can run during a drag.
+  bool used[kRowSlots]{};
+  RowView* selected[kRowSlots]{};
+  const int end = min(i1, i0 + int(kRowSlots) - 1);
+  for (int i = i0; i <= end; ++i) {
+    MessageTypes::UIMessage message;
+    if (!host.messageAt(s_chat_virt.msg_idx[i], message)) continue;
+    for (unsigned r = 0; r < kRowSlots; ++r) {
+      auto& view = rows[r];
+      if (!used[r] && view.root && view.compact == s_chat_virt.compact_chat &&
+          view.ring == s_chat_virt.msg_idx[i] && view.sequence == message.seq) {
+        selected[i - i0] = &view; used[r] = true; break;
+      }
+    }
+  }
+  for (unsigned r = 0; r < kRowSlots; ++r)
+    if (!used[r] && rows[r].root) lv_obj_add_flag(rows[r].root, LV_OBJ_FLAG_HIDDEN);
+  for (uint32_t c = 0; c < lv_obj_get_child_cnt(p->msgs); ++c) {
+    auto* child = lv_obj_get_child(p->msgs, c);
+    if (reinterpret_cast<intptr_t>(lv_obj_get_user_data(child)) < 0 || child == s_chat_virt.divider)
+      lv_obj_add_flag(child, LV_OBJ_FLAG_HIDDEN);
+  }
 
   if (s_chat_virt.divider_i >= 0 && s_chat_virt.divider_y >= 0 && s_chat_virt.divider_i >= i0 &&
       s_chat_virt.divider_i <= i1) {
@@ -1919,17 +2022,43 @@ static void chatVirtRenderWindow(LvChatPanel *p, lv_coord_t scroll_y, lv_coord_t
   }
 
   const int32_t virt_top = chatVirtEffectiveVirtTop(p);
-  for (int i = i0; i <= i1; ++i) {
+  for (int i = i0; i <= end; ++i) {
     if (s_chat_virt.day_sep_y && s_chat_virt.day_sep_y[i] >= 0) {
       const lv_coord_t sep_vp = static_cast<lv_coord_t>(s_chat_virt.day_sep_y[i] - virt_top);
       chatVirtCreateDaySeparator(p, i, sep_vp);
     }
-    chatVirtCreateMessageRow(p, i, s_chat_virt.msg_idx[i], chatVirtMsgViewportY(i, virt_top), out_jump_y);
+    MessageTypes::UIMessage message;
+    if (!host.messageAt(s_chat_virt.msg_idx[i], message)) continue;
+    auto* view = selected[i - i0];
+    if (!view) {
+      for (unsigned r = 0; r < kRowSlots; ++r) {
+        if (!used[r] && (!rows[r].root || rows[r].compact == s_chat_virt.compact_chat)) {
+          view = &rows[r]; used[r] = true; break;
+        }
+      }
+    }
+    if (!view) continue;
+    const uint32_t signature = contentSignature(message);
+    if (!view->root || view->ring != s_chat_virt.msg_idx[i] || view->sequence != message.seq ||
+        view->signature != signature || view->styleEpoch != rowStyleEpoch ||
+        (view->compact && view->logical != i)) {
+      buildingRow = view;
+      chatVirtCreateMessageRow(p, i, s_chat_virt.msg_idx[i], chatVirtMsgViewportY(i, virt_top), out_jump_y);
+      buildingRow = nullptr;
+      view->ring = s_chat_virt.msg_idx[i]; view->sequence = message.seq;
+      view->signature = signature; view->styleEpoch = rowStyleEpoch;
+    } else {
+      lv_obj_clear_flag(view->root, LV_OBJ_FLAG_HIDDEN);
+      updateRowMetadata(*view, message, p);
+    }
+    if (lv_obj_get_parent(view->root) != p->msgs) lv_obj_set_parent(view->root, p->msgs);
+    view->logical = i;
+    lv_obj_set_user_data(view->root, reinterpret_cast<void*>(static_cast<intptr_t>(i)));
+    if (out_jump_y && view->ring == s_chat_jump_msg_idx) *out_jump_y = chatVirtMsgViewportY(i, virt_top);
   }
 
   s_chat_virt.last_i0 = i0;
-  s_chat_virt.last_i1 = i1;
-  lv_obj_scroll_to_y(p->msgs, saved_scroll_y, LV_ANIM_OFF);
+  s_chat_virt.last_i1 = end;
   chatVirtSyncBubblePositions(p);
   CHAT_SCROLL_TRACE_DO(chatVirtCheckStoreEdges(p));
 
@@ -1945,7 +2074,7 @@ static void chatVirtRenderWindow(LvChatPanel *p, lv_coord_t scroll_y, lv_coord_t
     const uint32_t nch2 = lv_obj_get_child_cnt(p->msgs);
     for (uint32_t c = 0; c < nch2; c++) {
       lv_obj_t *row = lv_obj_get_child(p->msgs, c);
-      if (!row || !lv_obj_has_flag(row, LV_OBJ_FLAG_CLICKABLE))
+      if (!row || !lv_obj_has_flag(row, LV_OBJ_FLAG_CLICKABLE) || lv_obj_has_flag(row, LV_OBJ_FLAG_HIDDEN))
         continue;
       if (reinterpret_cast<intptr_t>(lv_obj_get_user_data(row)) == (intptr_t)refocus_i) {
         host.focusHint(row);
@@ -2004,11 +2133,6 @@ static void chatVirtRenderTimerCb(lv_timer_t *t) {
     lv_timer_pause(t);
     return;
   }
-  if (chatVirtIndevStillScrolling(p)) {
-    lv_timer_set_period(t, 16);
-    lv_timer_reset(t);
-    return;
-  }
   s_chat_virt_render_panel = nullptr;
   lv_timer_pause(t);
   if (s_chat_virt_render_async_busy)
@@ -2026,15 +2150,16 @@ static void chatVirtRenderTimerCb(lv_timer_t *t) {
 void chatVirtScheduleRender(LvChatPanel *p) {
   if (!p || !p->detail_open || s_chat_virt.panel != p || s_chat_virt.n <= 0)
     return;
+  if (s_chat_virt_render_panel == p || s_chat_virt_render_async_busy) return;
   s_chat_virt_render_panel = p;
   if (!s_chat_virt_render_timer) {
-    s_chat_virt_render_timer = lv_timer_create(chatVirtRenderTimerCb, 1, nullptr);
+    s_chat_virt_render_timer = lv_timer_create(chatVirtRenderTimerCb, 16, nullptr);
     if (!s_chat_virt_render_timer) {
       s_chat_virt_render_panel = nullptr;
       return;
     }
   } else {
-    lv_timer_set_period(s_chat_virt_render_timer, 1);
+    lv_timer_set_period(s_chat_virt_render_timer, 16);
     lv_timer_reset(s_chat_virt_render_timer);
     lv_timer_resume(s_chat_virt_render_timer);
   }
@@ -2138,6 +2263,16 @@ void refreshChatDetail(LvChatPanel &p) {
   const bool opening = s_chat_just_opened;
   const lv_coord_t prev_scroll_y = lv_obj_get_scroll_y(p.msgs);
   const bool was_at_bottom = lv_obj_get_scroll_bottom(p.msgs) <= 8;
+  int anchorRing = -1;
+  uint32_t anchorSequence = 0;
+  int32_t anchorDelta = 0;
+  if (!opening && s_chat_virt.panel == &p && s_chat_virt.offsets && s_chat_virt.n > 0) {
+    const int32_t top = chatVirtEffectiveVirtTop(&p);
+    const int index = chatVirtFindMsgAtVirtTop(top);
+    anchorRing = s_chat_msg_idx[index];
+    anchorSequence = heightCache ? heightCache[anchorRing].sequence : 0;
+    anchorDelta = top - s_chat_virt.offsets[index];
+  }
 
   if (!host.hasActiveThread() || host.activeThreadIsChannel() != p.channel_mode) {
     chatVirtResetToPlaceholder(p, "No thread selected.\n\nTap a chat to open it.");
@@ -2192,21 +2327,37 @@ void refreshChatDetail(LvChatPanel &p) {
   // the next message's text at the previous message's position.
   const bool ring_changed = (s_chat_virt.n > 0) && (s_chat_msg_idx[0] != s_chat_virt.first_ring ||
                                                     s_chat_msg_idx[n - 1] != s_chat_virt.last_ring);
+  bool changedHeight = false;
+  if (s_chat_virt.panel == &p && heightCache && s_chat_virt.offsets && !ring_changed && s_chat_virt.n == n) {
+    // Compact delivery text can wrap; only changed cache entries are measured.
+    // Bubble metadata has a fixed header, so inspect just the materialised rows.
+    const int begin = compact_chat ? 0 : max(0, s_chat_virt.last_i0);
+    const int end = compact_chat ? n - 1 : min(n - 1, s_chat_virt.last_i1);
+    for (int i = begin; i <= end; ++i) {
+      MessageTypes::UIMessage message;
+      if (host.messageAt(s_chat_msg_idx[i], message)) {
+        const auto& entry = heightCache[s_chat_msg_idx[i]];
+        if (entry.sequence != message.seq || entry.signature != contentSignature(message)) {
+          changedHeight = true; break;
+        }
+      }
+    }
+  }
   const bool need_layout = (s_chat_virt.panel != &p) || (s_chat_virt.n != n) || !s_chat_virt.offsets ||
-                           ring_changed || s_chat_virt.compact_chat != compact_chat;
+                           ring_changed || changedHeight || s_chat_virt.compact_chat != compact_chat;
   const bool divider_rebuild = !need_layout && divider_i >= 0 && s_chat_virt.divider_y < 0;
   const bool changing_panel = s_chat_virt.panel != &p;
   if (opening || need_layout || divider_rebuild)
     chatVirtCancelRenderTimer();
   if (opening || changing_panel) {
-    // The next protected render clears every stale child. Drop these aliases so
-    // it cannot preserve/reuse a spacer owned by a previous panel or thread.
+    chatVirtPurgeMsgsChildrenSync(&p);
     s_chat_virt.spacer = nullptr;
     s_chat_virt.divider = nullptr;
     s_chat_virt.scroll_virt_valid = false;
   }
   if (need_layout) {
-    lv_indev_reset(nullptr, nullptr);
+    if (opening || changing_panel || s_chat_virt.compact_chat != compact_chat)
+      chatVirtResetInputForMsgs(&p);
     s_chat_virt.last_i0 = -1;
     s_chat_virt.last_i1 = -1;
     if (!chatVirtRebuildLayout(&p, n, divider_i)) {
@@ -2216,7 +2367,6 @@ void refreshChatDetail(LvChatPanel &p) {
   } else {
     s_chat_virt.divider_i = divider_i;
     if (divider_rebuild) {
-      lv_indev_reset(nullptr, nullptr);
       s_chat_virt.last_i0 = -1;
       s_chat_virt.last_i1 = -1;
       if (!chatVirtRebuildLayout(&p, n, divider_i)) {
@@ -2231,6 +2381,18 @@ void refreshChatDetail(LvChatPanel &p) {
   }
 
   lv_coord_t scroll_target = prev_scroll_y;
+  if ((need_layout || divider_rebuild) && !opening && !was_at_bottom && anchorRing >= 0) {
+    for (int i = 0; i < n; ++i) {
+      if (s_chat_msg_idx[i] != anchorRing) continue;
+      MessageTypes::UIMessage message;
+      if (host.messageAt(anchorRing, message) && (!anchorSequence || message.seq == anchorSequence)) {
+        const int32_t top = max<int32_t>(0, s_chat_virt.offsets[i] + anchorDelta);
+        chatVirtSyncScrollState(&p, chatVirtVirtToLv(top), top);
+        scroll_target = chatVirtVirtToLv(top);
+      }
+      break;
+    }
+  }
   if (s_chat_virt.scroll_virt_valid && chatVirtCompressCoords() && !s_chat_just_opened && !was_at_bottom) {
     scroll_target = chatVirtVirtToLv(s_chat_virt.scroll_virt_top);
   }
@@ -2253,9 +2415,13 @@ void refreshChatDetail(LvChatPanel &p) {
     scroll_target = LV_COORD_MAX;
   }
 
-  chatVirtResetInputForMsgs(&p);
-  chatVirtCancelRenderTimer();
-  chatVirtQueueScroll(&p, scroll_target);
+  if (opening || need_layout || divider_rebuild) {
+    if (opening) chatVirtResetInputForMsgs(&p);
+    chatVirtQueueScroll(&p, scroll_target);
+  } else {
+    // ACK/echo refresh: retain roots, scroll animation and active touch input.
+    chatVirtRenderWindow(&p, prev_scroll_y, nullptr);
+  }
 
 #if TRACE_MESSAGE_SCROLL_ACTIVITY
   if (opening) {
@@ -2356,7 +2522,9 @@ Snapshot snapshot() {
 }
 FocusRequest requestedFocus() { return focusRequest; }
 void requestFocus(int logicalIndex) { focusRequest = {logicalIndex, ui::platform::milliseconds()}; }
-void invalidateRows() { s_chat_virt.last_i0 = s_chat_virt.last_i1 = -1; }
+void invalidateRows() { ++rowStyleEpoch; s_chat_virt.last_i0 = s_chat_virt.last_i1 = -1; }
+Metrics metrics() { return work; }
+void resetMetrics() { work = {}; }
 int32_t messageCenter(int index) {
   return s_chat_virt.offsets && index >= 0 && index < s_chat_virt.n
              ? (s_chat_virt.offsets[index] + chatVirtMsgVirtBottom(index)) / 2
@@ -2385,6 +2553,8 @@ void shutdown() {
     s_chat_msg_idx = nullptr;
     s_chat_msg_idx_cap = 0;
   }
+  ui::platform::release(heightCache);
+  heightCache = nullptr;
   closeUrlMenu();
   closeUrlQr();
   host = {};
