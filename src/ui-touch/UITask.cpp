@@ -16102,6 +16102,7 @@ static void msgsScrollCb(lv_event_t* e) {
   chatVirtRemap1To1Scroll(p);
   chatUpdateJumpButtons(p);
   chatVirtSyncBubblePositions(p);
+  chatVirtScheduleRender(p);
 #if TRACE_MESSAGE_SCROLL_ACTIVITY
   if (s_chat_touch_on_msgs && s_chat_msgs_scroll_obj == p->msgs) {
     const lv_coord_t scroll_y = lv_obj_get_scroll_y(p->msgs);

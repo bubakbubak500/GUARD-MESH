@@ -45,6 +45,9 @@ struct FocusRequest {
   int index;
   uint32_t at;
 };
+struct Metrics { uint32_t rowsCreated, rowsBound, heightMeasurements, metadataUpdates, windowUpdates; };
+Metrics metrics();
+void resetMetrics();
 // One active timeline on the device. Owns all layout/index buffers, render
 // scheduling and URL dialogs. Host panels outlive configure/shutdown; their
 // message containers are borrowed and watched for external LVGL deletion.

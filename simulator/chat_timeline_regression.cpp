@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "screens/ChatTimeline.h"
+#include "helpers/esp32/TouchPrefsStore.h"
 #include <chrono>
 #include <cstdio>
 #include <cstring>
@@ -12,6 +13,7 @@ using ui::screens::ChatPanel;
 int first = 0, count = 240, reads = 0, actions = 0;
 uint32_t sequenceOffset = 0;
 bool longText = false;
+uint8_t delivery = MessageTypes::DELIV_SENT;
 void check(bool condition, const char *reason) {
   if (!condition)
     throw std::runtime_error(reason);
@@ -23,6 +25,7 @@ void drain() {
   }
 }
 lv_obj_t *label(lv_obj_t *root, const char *text) {
+  if (lv_obj_has_flag(root, LV_OBJ_FLAG_HIDDEN)) return nullptr;
   if (lv_obj_check_type(root, &lv_label_class) && strstr(lv_label_get_text(root), text))
     return root;
   for (uint32_t i = 0; i < lv_obj_get_child_cnt(root); ++i)
@@ -34,6 +37,12 @@ void createMessages(ChatPanel &panel) {
   panel.msgs = lv_obj_create(lv_layer_top());
   lv_obj_set_size(panel.msgs, 308, 160);
   panel.detail_open = true;
+  lv_obj_add_event_cb(panel.msgs, [](lv_event_t* event) {
+    auto* panel = static_cast<ChatPanel*>(lv_event_get_user_data(event));
+    timeline::chatVirtRemap1To1Scroll(panel);
+    timeline::chatVirtSyncBubblePositions(panel);
+    timeline::chatVirtScheduleRender(panel);
+  }, LV_EVENT_SCROLL, &panel);
 }
 } // namespace
 void runChatTimelineRegression() {
@@ -49,6 +58,8 @@ void runChatTimelineRegression() {
     out = {};
     out.seq = index + 1 + sequenceOffset;
     out.ts = 1750000000 + index;
+    out.outgoing = index == 1;
+    if (out.outgoing) out.deliv_state = delivery;
     strcpy(out.sender, "peer");
     snprintf(
         out.text, sizeof out.text, "%s %d https://example.com/%d",
@@ -104,6 +115,46 @@ void runChatTimelineRegression() {
   drain();
   check(timeline::snapshot().firstVisible == 0, "Oldest jump missed first message");
   auto *firstRow = lv_obj_get_parent(label(direct.msgs, "Message 0"));
+  auto* ackRow = lv_obj_get_parent(label(direct.msgs, "Message 1 "));
+  const auto originalHeight = timeline::snapshot().totalHeight;
+  const auto originalScroll = lv_obj_get_scroll_y(direct.msgs);
+  timeline::resetMetrics();
+  delivery = MessageTypes::DELIV_FAILED;
+  timeline::refreshChatDetail(direct);
+  drain();
+  check(lv_obj_get_parent(label(direct.msgs, "Message 1 ")) == ackRow &&
+        lv_obj_get_scroll_y(direct.msgs) == originalScroll &&
+        timeline::snapshot().totalHeight == originalHeight, "ACK replaced a bubble or moved the viewport");
+  auto work = timeline::metrics();
+  check(work.heightMeasurements == 0 && work.rowsBound == 0 && work.metadataUpdates > 0,
+        "ACK rebuilt content instead of updating metadata");
+  timeline::resetMetrics();
+  count = 241;
+  timeline::refreshChatDetail(direct);
+  drain();
+  check(timeline::metrics().heightMeasurements == 1 &&
+        lv_obj_get_parent(label(direct.msgs, "Message 0")) == firstRow,
+        "Append remeasured history or replaced overlapping rows");
+  count = 240;
+  timeline::refreshChatDetail(direct);
+  drain();
+  timeline::resetMetrics();
+  // Keep LVGL's animated scroll active across several window boundaries.
+  // The previous renderer waited until input stopped before materialising.
+  lv_obj_scroll_by(direct.msgs, 0, -700, LV_ANIM_ON);
+  std::this_thread::sleep_for(std::chrono::milliseconds(40));
+  for (int frame = 0; frame < 7; ++frame) {
+    lv_timer_handler();
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+  }
+  check(timeline::snapshot().firstVisible > 0 && timeline::metrics().windowUpdates > 0,
+        "Scroll did not materialise while moving");
+  drain();
+  check(timeline::metrics().heightMeasurements == 0 && timeline::metrics().rowsCreated < 16,
+        "Scrolling remeasured history or failed to reuse rows");
+  timeline::chatVirtJumpToOldest(&direct);
+  drain();
+  firstRow = lv_obj_get_parent(label(direct.msgs, "Message 0"));
   lv_event_send(firstRow, LV_EVENT_CLICKED, nullptr);
   lv_event_send(firstRow, LV_EVENT_CLICKED, nullptr);
   drain();
@@ -120,6 +171,14 @@ void runChatTimelineRegression() {
   timeline::refreshChatDetail(direct);
   drain();
   check(timeline::snapshot().totalHeight > height, "Equal-count thread switch reused old row heights");
+  timeline::chatVirtJumpToOldest(&direct);
+  drain();
+  timeline::resetMetrics();
+  first = 241;
+  timeline::refreshChatDetail(direct);
+  drain();
+  check(timeline::metrics().heightMeasurements == 1 && timeline::snapshot().count == 240,
+        "Ring rollover remeasured existing history");
   auto *link = label(direct.msgs, "https://example.com/");
   check(link, "URL bubble missing");
   auto *row = lv_obj_get_parent(link);
@@ -154,8 +213,25 @@ void runChatTimelineRegression() {
   drain();
   check(reads == before && !timeline::snapshot().hasOffsets, "Closed chat retained deferred work");
   direct.detail_open = true;
+  timeline::resetMetrics();
   timeline::opened(0);
   timeline::refreshChatDetail(direct);
+  drain();
+  check(timeline::metrics().heightMeasurements == 0, "Reopening forgot cached heights");
+  const bool compactBefore = touchPrefsGetCompactChat();
+  touchPrefsSetCompactChat(true);
+  first = 0; count = 240;
+  timeline::refreshChatDetail(direct);
+  drain();
+  timeline::chatVirtJumpToOldest(&direct);
+  drain();
+  timeline::resetMetrics();
+  delivery = MessageTypes::DELIV_DELIVERED;
+  timeline::refreshChatDetail(direct);
+  drain();
+  check(timeline::metrics().heightMeasurements == 1 && label(direct.msgs, "Message") == nullptr &&
+        label(direct.msgs, "longer message"), "Compact ACK failed to remeasure just the changed row");
+  touchPrefsSetCompactChat(compactBefore);
   timeline::refreshChatDetailAsync(direct);
   lv_obj_del(direct.msgs);
   drain();
