@@ -6,6 +6,7 @@
 - [T-Deck simulátor pro Windows](SIMULATOR.md)
 - [Guardian BLE v1 — připojení a ověření](GUARDIAN-BLE.md)
 - [Historický rozvojový plán propojení s Guardianem](GUARDIAN-INTEGRATION.md)
+- [Plán 1 — cache názvů slyšených nodů pro Discover](PLAN-1.md)
 - [Plán oddělení UI a desktopového simulátoru](UI-REFACTOR.md)
 - [Původní uživatelský návod](UPSTREAM-USER-GUIDE.md)
 - [Původní Lua SDK](UPSTREAM-LUA-SDK.md)

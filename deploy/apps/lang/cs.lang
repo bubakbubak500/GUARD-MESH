@@ -1424,3 +1424,8 @@ Priority	Priorita
 Live routes	Živé
 Drafts	Koncepty
 Transit	Tranzit
+Heard names: %u / %u nodes	Zapamatované názvy: %u / %u nodů
+Clear heard-name cache	Vymazat cache názvů
+Clear remembered node names?\n\nContacts and Found stay unchanged. Names are learned again from new adverts.	Vymazat zapamatované názvy nodů?\n\nKontakty a Found zůstanou beze změny. Názvy se znovu naučí z nových advertů.
+Clearing heard-name cache...	Mažu cache názvů...
+Heard-name cache cleared	Cache názvů vymazána

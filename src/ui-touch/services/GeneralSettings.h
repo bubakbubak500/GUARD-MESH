@@ -18,6 +18,8 @@ public:
     bool (*advert)(void *);
     void (*action)(void *, Action);
     Capabilities capabilities;
+    void (*heardNames)(void*, unsigned&, unsigned&) = nullptr;
+    bool (*clearHeardNames)(void*) = nullptr;
   };
   struct State {
     unsigned history, fallback;
@@ -34,6 +36,8 @@ public:
   bool setConsole(bool);
   bool advert();
   bool action(Action);
+  void heardNames(unsigned& count, unsigned& capacity) const;
+  bool clearHeardNames();
 
 private:
   Host _host;

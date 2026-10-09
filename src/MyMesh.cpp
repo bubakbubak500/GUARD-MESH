@@ -3649,6 +3649,10 @@ void MyMesh::discoverUpsert(const uint8_t* pk, uint8_t pklen, uint8_t node_type,
     _discover[slot].first_ms = now;
   }
   DiscoverHit& h = _discover[slot];
+  if (pklen >= h.pubkey_len) {
+    h.pubkey_len = pklen > 32 ? 32 : pklen;
+    memcpy(h.pubkey, pk, h.pubkey_len);
+  }
   h.node_type    = node_type;
   h.our_snr_q4   = our_snr_q4;
   h.our_rssi     = our_rssi;
