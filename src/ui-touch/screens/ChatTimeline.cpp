@@ -1552,7 +1552,7 @@ struct RowAction {
   int ringIndex;
   uint32_t sequence;
   bool url, retry;
-  uint32_t pressedSequence = 0;
+  uint32_t pressedSequence;
 };
 static constexpr unsigned kRowSlots = 128;
 struct RowView {
