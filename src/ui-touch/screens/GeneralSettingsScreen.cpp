@@ -22,6 +22,7 @@ void GeneralSettingsScreen::detach() {
   unbind(_body.get());
   _body.set(nullptr);
   _storage.set(nullptr);
+  _heardCount.set(nullptr);
   auto *history = _controls[History].get(), *fallback = _controls[Fallback].get();
   for (auto &object : _controls) {
     unbind(object.get());
@@ -156,6 +157,14 @@ void GeneralSettingsScreen::build(lv_obj_t *body, lv_coord_t width) {
   lv_obj_set_flex_flow(body, LV_FLEX_FLOW_COLUMN);
   lv_obj_set_style_pad_row(body, SC(10), LV_PART_MAIN);
   button(Advert, TR("Send advert now"));
+  unsigned heardCount = 0, heardCapacity = 0;
+  _settings.heardNames(heardCount, heardCapacity);
+  if (heardCapacity) {
+    char text[96];
+    snprintf(text, sizeof text, TR("Heard names: %u / %u nodes"), heardCount, heardCapacity);
+    _heardCount.set(label(text));
+    button(HeardNames, TR("Clear heard-name cache"));
+  }
   label(TR("Keep per chat (messages)"));
   dropdown(History, TR("100\n250\n500\n1000\n2000\nNo limit"), state.history);
   label(TR("Older messages in a chat are dropped past this. A very large or unlimited history makes the chat "
@@ -188,7 +197,9 @@ void GeneralSettingsScreen::confirm(Confirmation kind) {
   const auto request = ++_request;
   const bool resume = _settings.capabilities().resumeRecovery;
   const char *text =
-      kind == Confirmation::Unlimited
+      kind == Confirmation::HeardNames
+          ? TR("Clear remembered node names?\n\nContacts and Found stay unchanged. Names are learned again from new adverts.")
+      : kind == Confirmation::Unlimited
           ? TR("Turn the history limit off?\n\nA busy channel can then fill the whole message store, which "
                "uses more space and makes the chat list and app noticeably slower. Only do this if you "
                "really need the full backlog.")
@@ -197,12 +208,24 @@ void GeneralSettingsScreen::confirm(Confirmation kind) {
                : TR("Overwrite the SD card's settings and\nidentity with the internal copies,\nthen reboot?");
   _confirmation.showCaptured(
       text,
-      kind == Confirmation::Unlimited ? TR("Turn off")
+      kind == Confirmation::HeardNames ? TR("Clear")
+      : kind == Confirmation::Unlimited ? TR("Turn off")
       : resume                        ? TR("Resume")
                                       : TR("Copy"),
       [this, generation, request, kind] {
         if (_generation != generation || _request != request || !_body.get())
           return;
+        if (kind == Confirmation::HeardNames) {
+          const bool queued = _settings.clearHeardNames();
+          if (_generation != generation || !_body.get()) return;
+          unsigned count = 0, capacity = 0;
+          _settings.heardNames(count, capacity);
+          char text[96];
+          snprintf(text, sizeof text, TR("Heard names: %u / %u nodes"), count, capacity);
+          if (_heardCount.get()) lv_label_set_text(_heardCount.get(), text);
+          notify(queued ? TR("Clearing heard-name cache...") : TR("Save failed"));
+          return;
+        }
         if (kind == Confirmation::Recovery) {
           _settings.action(GeneralSettings::Action::Recover);
           return;
@@ -283,7 +306,9 @@ void GeneralSettingsScreen::event(lv_event_t *e) {
     const bool sent = self._settings.advert();
     if (generation == self._generation && self._body.get())
       self.notify(sent ? TR("Advert sent") : TR("Advert failed"), 900);
-  } else if (id == Recovery)
+  } else if (id == HeardNames)
+    self.confirm(Confirmation::HeardNames);
+  else if (id == Recovery)
     self.confirm(Confirmation::Recovery);
   else if (id == Setup)
     self._settings.action(GeneralSettings::Action::Setup);

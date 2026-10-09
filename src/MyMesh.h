@@ -591,6 +591,7 @@ public:
   // is kept, with BOTH link directions (our RX of them + their RX of us, from RESP payload[1]).
   struct DiscoverHit {
     uint8_t  pubkey[32];    // responder identity (full key — the REQ sets prefix_only=0)
+    uint8_t  pubkey_len;    // 8-byte legacy prefix or complete identity
     uint8_t  node_type;     // ADV_TYPE_* (RESP payload[0] low nibble): repeater/chat/room/sensor
     int8_t   our_snr_q4;    // our RX SNR*4 of their reply (forward link)
     int8_t   our_rssi;      // our RX RSSI dBm of their reply

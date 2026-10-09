@@ -73,6 +73,7 @@ struct Context {
   bool onRead = false, onClose = false, onAction = false, onAdvert = false, chooseOnClose = false;
   bool advertOk = true;
   unsigned actions = 0, adverts = 0, alerts = 0;
+  unsigned heardCount = 12, clears = 0;
   Settings::Action last = Settings::Action::Setup;
   void replace(bool &flag) {
     if (flag) {
@@ -101,7 +102,9 @@ Settings::Host host(Context &c, Settings::Capabilities caps = {true, true, true,
             c.last = action;
             c.replace(c.onAction);
           },
-          caps};
+          caps,
+          [](void* p, unsigned& count, unsigned& capacity) { count = static_cast<Context*>(p)->heardCount; capacity = 1024; },
+          [](void* p) { auto& c = *static_cast<Context*>(p); ++c.clears; c.heardCount = 0; return true; }};
 }
 Screen::Host formHost(Context &c) {
   return {&c,
@@ -195,6 +198,15 @@ void screenRegression(void (*pump)(unsigned)) {
   closing = &c;
   auto *first = body();
   screen.build(first, 202);
+  click(button(first, TR("Clear heard-name cache")));
+  check(screen.confirmationOpen() && c.clears == 0, "Heard-name cache cleared before confirmation");
+  click(button(lv_layer_top(), TR("Cancel")));
+  pump(2);
+  check(c.clears == 0, "Cancelled cache clear changed names");
+  click(button(first, TR("Clear heard-name cache")));
+  click(button(lv_layer_top(), TR("Clear")));
+  check(c.clears == 1 && c.heardCount == 0 && c.actions == 0, "Cache clear changed unrelated settings");
+  pump(2);
   auto *history = dropdown(first, 0);
   check(find(first, TR("Contacts are on internal flash.")), "Storage snapshot not rendered");
   choose(history, 5);

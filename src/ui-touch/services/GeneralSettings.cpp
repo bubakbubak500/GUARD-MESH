@@ -47,6 +47,11 @@ bool GeneralSettings::setConsole(bool on) {
   return true;
 }
 bool GeneralSettings::advert() { return _host.advert && _host.advert(_host.context); }
+void GeneralSettings::heardNames(unsigned& count, unsigned& capacity) const {
+  count = capacity = 0;
+  if (_host.heardNames) _host.heardNames(_host.context, count, capacity);
+}
+bool GeneralSettings::clearHeardNames() { return _host.clearHeardNames && _host.clearHeardNames(_host.context); }
 bool GeneralSettings::action(Action action) {
   if (!_host.action)
     return false;

@@ -83,6 +83,7 @@ def main():
     executable = CACHE / 'build' / (CACHE / 'build/executable.txt').read_text().strip()
     if args.test:
         run(sys.executable, ROOT / 'scripts/test_ui_models.py')
+        run(sys.executable, ROOT / 'scripts/test_heard_names.py')
         run(sys.executable, ROOT / 'scripts/test_storage_access.py')
         run(sys.executable, ROOT / 'scripts/test_storage_maintenance.py')
         run(sys.executable, ROOT / 'scripts/test_sd_health_monitor.py')

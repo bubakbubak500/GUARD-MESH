@@ -30,8 +30,8 @@ public:
   }
 
 private:
-  enum Control { Advert, History, Fallback, Sd, Recovery, Console, Setup, Reboot, Count };
-  enum class Confirmation { Unlimited, Recovery };
+  enum Control { Advert, History, Fallback, Sd, Recovery, Console, Setup, Reboot, HeardNames, Count };
+  enum class Confirmation { Unlimited, Recovery, HeardNames };
   static void deleted(lv_event_t *);
   static void event(lv_event_t *);
   void unbind(lv_obj_t *);
@@ -45,7 +45,7 @@ private:
   GeneralSettings &_settings;
   Host _host;
   ConfirmDialog _confirmation;
-  widgets::ObjectRef _body, _controls[Count], _storage;
+  widgets::ObjectRef _body, _controls[Count], _storage, _heardCount;
   lv_coord_t _width = 0;
   uint32_t _generation = 0, _request = 0;
   bool _destroying = false;

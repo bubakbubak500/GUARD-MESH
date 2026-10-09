@@ -73,6 +73,7 @@ using namespace ui::radio;
 #include "services/ImageCodec.h"
 using namespace ui::images;
 #include "services/HistoryService.h"
+#include "services/HeardNameService.h"
 #include "application/LuaIntegration.h"
 #include "screens/AppPermissionsScreen.h"
 #include "services/AudioService.h"
@@ -114,6 +115,7 @@ using namespace ui::images;
 #include "application/UiApplication.h"
 static ui::UiApplication uiApplication;
 static ui::history::HistoryService history;
+static ui::services::HeardNameService heardNames;
 static ui::platform::DataFilesystem dataFilesystem;
 #include "theme/Theme.h"
 #include "theme/Fonts.h"
@@ -955,7 +957,10 @@ static void discoveredFlushIfDue(unsigned long now) {
 }
 // Synchronous flush for the deliberate reboot / power-off / download-mode paths
 // (mirrors the chat-history flush) so a manual reboot never drops recent finds.
-static void discoveredFlushNow() { if (s_disc_dirty) saveDiscovered(); }
+static void discoveredFlushNow() {
+  heardNames.flush();
+  if (s_disc_dirty) saveDiscovered();
+}
 // Remove discovered entries heard via more hops than the configured limit (the
 // "auto-delete above N hops" setting; 0 = off). Returns true if anything went.
 static bool discoveredSweepHops() {
@@ -7019,7 +7024,9 @@ static ui::GeneralSettings::Host generalSettingsHost() {
 #else
       false,
 #endif
-      CAP_CONSOLE}
+      CAP_CONSOLE},
+    [](void*, unsigned& count, unsigned& capacity) { count = heardNames.count(); capacity = heardNames.capacity(); },
+    [](void*) { if (!heardNames.capacity()) return false; heardNames.clear(millis()); return true; }
   };
 }
 static ui::screens::GeneralSettingsScreen::Host generalSettingsFormHost() {
@@ -11566,9 +11573,28 @@ static void discoverBuildFeed() {
     // row after this one. Keep a structurally-clean copy here (font=nullptr: emoji
     // preserved for the tap-to-add snapshot), and escape a capped display copy below.
     char name[26];
-    ContactInfo* c = the_mesh.lookupContactByPubKey((uint8_t*)h.pubkey, 6);
+    uint8_t resolved[32];
+    memcpy(resolved, h.pubkey, sizeof resolved);
+    bool ambiguous = false;
+    if (h.pubkey_len == 8) {
+      const int cached = heardNames.resolve(h.pubkey, 8, resolved);
+      bool found = cached == 1;
+      ambiguous = cached < 0;
+      for (uint32_t i = 0; i < the_mesh.getNumContacts(); ++i) {
+        ContactInfo contact;
+        if (!the_mesh.getContactByIdx(i, contact) || memcmp(contact.id.pub_key, h.pubkey, 8)) continue;
+        if (found && memcmp(resolved, contact.id.pub_key, 32)) ambiguous = true;
+        memcpy(resolved, contact.id.pub_key, 32); found = true;
+      }
+    }
+    ContactInfo* c = ambiguous ? nullptr : the_mesh.lookupContactByPubKey(resolved, 32);
     if (c && c->name[0]) copyUtf8ReplacingMissingGlyphs(nullptr, name, sizeof name, c->name);
-    else                 snprintf(name, sizeof name, "Node \xC2\xB7%02X%02X", h.pubkey[0], h.pubkey[1]);
+    else {
+      char cached[32];
+      if (!ambiguous && heardNames.lookup(resolved, 32, cached, sizeof cached))
+        copyUtf8ReplacingMissingGlyphs(nullptr, name, sizeof name, cached);
+      else snprintf(name, sizeof name, "Node \xC2\xB7%02X%02X", h.pubkey[0], h.pubkey[1]);
+    }
     if (!discoverRowsReady()) break;
     memcpy(s_disc_row_key[k], h.pubkey, 32);           // snapshot this row for tap-to-add
     s_disc_row_type[k] = h.node_type;
@@ -26410,6 +26436,7 @@ void UITask::stepComposerAction(int delta) { _composer_action_idx += delta; }
 void UITask::userLedHandler() {}
 
 void UITask::discoveredContact(const ContactInfo& contact, bool is_new, uint8_t path_len) {
+  heardNames.remember(contact.id.pub_key, contact.name, millis());
   // Ordinary adverts change age/RSSI, not the chat directory. Only a name/key
   // binding affected by this saved contact requires a full reconciliation.
   if (!is_new && _messages.ready()) {
@@ -28195,6 +28222,11 @@ void UITask::begin(DisplayDriver* display, SensorManager* sensors, NodePrefs* no
     static_cast<UITask*>(context)->_chat.select(value.index, value.channel);
   };
   history.configure(_messages, _msgcount, historyHost);
+  unsigned heardCapacity = 1024;
+#if defined(ESP32)
+  if (!heap_caps_get_total_size(MALLOC_CAP_SPIRAM)) heardCapacity = 128;
+#endif
+  heardNames.configure({historyHost.filesystem, historyHost.root}, heardCapacity);
   ui::maps::configureLuaMap({mapTileHost(), []() { return s_map_night; }});
   ui::screens::map::configure(mapScreenHost());
   _display    = display;
@@ -32581,6 +32613,14 @@ void UITask::loop() {
 #endif
   uiCp("ui:lvgl");
   lv_timer_handler();
+  heardNames.tick(millis());
+  static bool heardWasClearing = false;
+  if (heardWasClearing && !heardNames.clearing() && g_lv.task)
+    g_lv.task->showAlert(TR("Heard-name cache cleared"), 1200);
+  heardWasClearing = heardNames.clearing();
+#if defined(GUARD_SIMULATOR)
+  heardNames.runPending();
+#endif
   ui::screens::map::processPendingRender(); // tile decode/repaint on a shallow stack
 #if defined(HAS_TDECK_PRO)
   display.serviceRefresh();   // one coalesced e-paper update after all LVGL bands

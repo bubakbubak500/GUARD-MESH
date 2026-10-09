@@ -32,7 +32,8 @@ def main():
     executable = OUT / ('ui-models.exe' if os.name == 'nt' else 'ui-models')
     threading_flags = [] if os.name == 'nt' else ['-pthread']
     subprocess.run([*compiler, '-std=c++11', '-Wall', '-Wextra', '-Werror', '-O1', '-g',
-                    *threading_flags, '-I'+str(ROOT/'src'), *map(str, sources), '-o', str(executable)], check=True)
+                    *threading_flags, '-I'+str(ROOT/'src'), '-I'+str(ROOT/'.sim-cache/arduinojson/src'),
+                    *map(str, sources), '-o', str(executable)], check=True)
     subprocess.run([str(executable)], check=True, timeout=30)
 
 if __name__ == '__main__':
