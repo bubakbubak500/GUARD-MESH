@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "FirmwareUpdateJobs.h"
 #include "../platform/StorageAccess.h"
-#include <climits>
 #include <cstdio>
 #include <cstring>
 namespace ui {
@@ -98,86 +97,5 @@ bool FirmwareUpdateJobs::runInstall(const Backend &backend) {
     _progress.store(100, std::memory_order_relaxed);
   _installState.store(Ready, std::memory_order_release);
   return true;
-}
-bool ReleaseMonitor::selectChannel(bool beta) {
-  if (beta == _beta)
-    return false;
-  _beta = beta;
-  ++_generation;
-  _latest = -1;
-  _checked = false;
-  _force = true;
-  _failures = 0;
-  return true;
-}
-bool ReleaseMonitor::tick(FirmwareUpdateJobs &jobs, uint32_t now, bool networkReady, int currentVersion,
-                          bool (*ensureExecutor)()) {
-  if (currentVersion < 0)
-    return false;
-  bool changed = false;
-  FirmwareUpdateJobs::CheckResult result;
-  if (jobs.takeCheck(result) && result.request.generation == _generation && result.request.beta == _beta) {
-    _latest = result.latest;
-    _checked = true;
-    changed = true;
-    if (_latest < 0) {
-      if (_failures < 10)
-        ++_failures;
-      _next = now + (_failures <= 3 ? 60000u : 300000u);
-    } else {
-      _failures = 0;
-      _next = now + 6u * 60u * 60u * 1000u;
-    }
-  }
-  if (networkReady && !jobs.checkActive() &&
-      (_force || !_scheduled || static_cast<int32_t>(now - _next) >= 0)) {
-    if (jobs.requestCheck(_beta, _generation)) {
-      _force = false;
-      _scheduled = true;
-      _next = now + 6u * 60u * 60u * 1000u;
-      if (!ensureExecutor || !ensureExecutor())
-        jobs.failQueuedCheck();
-    }
-  }
-  return changed;
-}
-void ReleaseListing::feed(char c) {
-  static const char pattern[] = "beta_";
-  if (_digits) {
-    if (c >= '0' && c <= '9') {
-      if (_number < 0)
-        _number = 0;
-      if (_number > (INT_MAX - (c - '0')) / 10)
-        _overflow = true;
-      if (!_overflow)
-        _number = _number * 10 + c - '0';
-      return;
-    }
-    if (!_overflow && _number > _best)
-      _best = _number;
-    _digits = false;
-    _number = -1;
-    _matched = 0;
-    _overflow = false;
-  }
-  if (c == pattern[_matched]) {
-    if (++_matched == sizeof pattern - 1) {
-      _matched = 0;
-      _digits = true;
-    }
-  } else
-    _matched = c == pattern[0] ? 1 : 0;
-}
-int ReleaseListing::latest() const { return _digits && !_overflow && _number > _best ? _number : _best; }
-int ReleaseListing::version(const char *tag) {
-  if (!tag || strncmp(tag, "beta_", 5) || tag[5] < '0' || tag[5] > '9')
-    return -1;
-  int number = 0;
-  for (const char *p = tag + 5; *p; ++p) {
-    if (*p < '0' || *p > '9' || number > (INT_MAX - (*p - '0')) / 10)
-      return -1;
-    number = number * 10 + *p - '0';
-  }
-  return number;
 }
 } // namespace ui

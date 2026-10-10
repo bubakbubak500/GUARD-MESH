@@ -3571,11 +3571,7 @@ static void      openSettingsCategory(int cat);  // fwd: the Contacts overflow l
 static void      buildAppPermsSettings(lv_obj_t* page, lv_coord_t lblw);   // fwd: defined with the perm helpers
 #endif
 
-// ---- Firmware update check (red badge on the Settings gear + About-tab line) ----
-// Compares our embedded release tag against the latest pre-alpha_N published to
-// ALLFATHER-BV/meshcomod (the same listing the web flasher reads), fetched over
-// plain HTTP via the meshcomod api-github proxy. FIRMWARE_RELEASE_TAG is set at
-// release time; an empty/non-release tag disables the check (dev build).
+// ---- GUARD-MESH release source and manual OTA instructions ----
 #ifndef FIRMWARE_RELEASE_TAG
 #define FIRMWARE_RELEASE_TAG ""
 #endif
@@ -3630,9 +3626,8 @@ static ui::screens::SystemInfoScreen systemInfoScreen({nullptr, readSystemDiagno
 static lv_obj_t* s_sleep_diag_lbl  = nullptr;   // Idle-sleep instrumentation label (Lock settings, line 1)
 static lv_obj_t* s_sleep_diag_lbl2 = nullptr;   // Idle-sleep instrumentation label (Lock settings, line 2)
 #endif
-static bool      s_update_available = false;
+static const bool s_update_available = false;
 static ui::FirmwareUpdateJobs firmwareUpdates;
-static ui::ReleaseMonitor releaseMonitor;
 static ui::screens::FirmwareUpdatePanel::Host firmwareUpdateHost();
 static ui::screens::FirmwareUpdatePanel firmwareUpdatePanel(firmwareUpdates, firmwareUpdateHost());
 
@@ -3718,90 +3713,30 @@ static bool ensureTileFetchTaskRunning();          // fwd: start the permanent c
 static ui::screens::SetupWizardScreen& setupWizardScreen();
 static void setupWizardOpen();
 
-// Our release number (the N in "beta_N"); -1 if this isn't a tagged build.
-static int firmwareReleaseN() { return ui::ReleaseListing::version(FIRMWARE_RELEASE_TAG); }
-
-#ifndef FIRMWARE_OTA_ENV
-#define FIRMWARE_OTA_ENV ""
-#endif
 static void versionCheckUpdateUi() {
-  lv_obj_t* badges[2] = { s_update_badge, settingsScreen.badge() };
+  lv_obj_t* badges[2] = {s_update_badge, settingsScreen.badge()};
   for (lv_obj_t* badge : badges) {
-    if (!badge) continue;
-    if (s_update_available) lv_obj_clear_flag(badge, LV_OBJ_FLAG_HIDDEN);
-    else lv_obj_add_flag(badge, LV_OBJ_FLAG_HIDDEN);
+    if (badge) lv_obj_add_flag(badge, LV_OBJ_FLAG_HIDDEN);
   }
-  firmwareUpdatePanel.refresh({releaseMonitor.latest(), releaseMonitor.checked(), touchPrefsGetBetaUpdates()});
 }
 
 static ui::screens::FirmwareUpdatePanel::Host firmwareUpdateHost() {
   return {nullptr,
-    [](void*) -> bool {
-#if defined(ESP32) && defined(MULTI_TRANSPORT_COMPANION)
-      return ensureTileFetchTaskRunning();
-#else
-      return false;
-#endif
-    },
-    [](void*) -> bool {
-#if defined(MULTI_TRANSPORT_COMPANION)
-      return WiFi.status() == WL_CONNECTED;
-#else
-      return false;
-#endif
-    },
-    [](void*) -> bool {
-#if defined(ESP32) && defined(MULTI_TRANSPORT_COMPANION) && CAP_OTA
-      return ui::platform::hasOtaUpdateSlot();
-#else
-      return false;
-#endif
-    },
-    [](void*, const char* message, int duration) { if (g_lv.task) g_lv.task->showAlert(message, duration); },
-    [](void*) { if (g_lv.task) g_lv.task->rebootDevice(); },
-    [](void*, bool beta) {
-      touchPrefsSetBetaUpdates(beta);
-      ui::screens::releasePicker::close();
-      releaseMonitor.selectChannel(beta);
-      s_update_available = false;
-      versionCheckUpdateUi();
-      if (g_lv.task) g_lv.task->showAlert(beta ? TR("Test builds: on") : TR("Test builds: off"), 2000);
-    },
-    [](void*, int latest, bool beta) { ui::screens::releasePicker::open(latest, beta); }
+    [](void*, const char* message, int duration) { if (g_lv.task) g_lv.task->showAlert(message, duration); }
   };
 }
 static void buildFirmwareUpdatePanel(lv_obj_t* page, lv_coord_t width) {
-  ui::screens::FirmwareUpdatePanel::Options options{FIRMWARE_VERSION, firmwareReleaseN(), false, false, false, false};
-#if defined(ESP32) && defined(MULTI_TRANSPORT_COMPANION)
-  options.channelControls = FIRMWARE_OTA_ENV[0] != 0;
-#if CAP_OTA
+  const char* tag = FIRMWARE_RELEASE_TAG;
+  ui::screens::FirmwareUpdatePanel::Options options{tag[0] ? tag : FIRMWARE_VERSION, false};
+#if defined(ESP32) && defined(MULTI_TRANSPORT_COMPANION) && CAP_OTA
   options.ota = ui::platform::hasOtaUpdateSlot();
-#if CAP_SD
-  options.sd = true;
 #endif
-#endif
-#endif
-#if defined(HAS_TDECK_GT911)
-  options.launcher = true;
-#endif
-  firmwareUpdatePanel.build(page, width, options,
-    {releaseMonitor.latest(), releaseMonitor.checked(), touchPrefsGetBetaUpdates()});
+  firmwareUpdatePanel.build(page, width, options);
 }
 
-// Trigger a check once Wi-Fi is up (then every 6 h); apply the result when ready.
+// No release polling or automatic installation until GitHub OTA is implemented.
 static void versionCheckService(unsigned long now) {
   firmwareUpdatePanel.poll(static_cast<uint32_t>(now));
-#if defined(MULTI_TRANSPORT_COMPANION)
-  const bool changed = releaseMonitor.selectChannel(touchPrefsGetBetaUpdates());
-  const bool ready = WiFi.status() == WL_CONNECTED && (uint32_t)WiFi.localIP() != 0;
-  const bool completed = releaseMonitor.tick(firmwareUpdates, now, ready, firmwareReleaseN(), ensureTileFetchTaskRunning);
-  if (changed || completed) {
-    s_update_available = releaseMonitor.latest() > firmwareReleaseN();
-    versionCheckUpdateUi();
-  }
-#else
-  (void)now;
-#endif
 }
 
 static void applySwipeGesture(int8_t swipe_x, int8_t swipe_y) {

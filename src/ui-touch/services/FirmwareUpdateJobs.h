@@ -57,32 +57,4 @@ private:
   CheckResult _check{};
   InstallResult _install{};
 };
-// UI-thread scheduling and channel identity. Stale worker results are consumed
-// but cannot overwrite a newer choice, including stable -> beta -> stable.
-class ReleaseMonitor {
-public:
-  bool selectChannel(bool beta);
-  bool tick(FirmwareUpdateJobs &, uint32_t now, bool networkReady, int currentVersion,
-            bool (*ensureExecutor)());
-  int latest() const { return _latest; }
-  bool checked() const { return _checked; }
-
-private:
-  bool _beta = false, _checked = false, _scheduled = false, _force = true;
-  int _latest = -1;
-  uint8_t _failures = 0;
-  uint32_t _generation = 0, _next = 0;
-};
-// Incremental bounded parser for the release listing; does not allocate a JSON tree.
-class ReleaseListing {
-public:
-  void feed(char);
-  int latest() const;
-  static int version(const char *tag);
-
-private:
-  int _best = -1, _number = -1;
-  unsigned _matched = 0;
-  bool _digits = false, _overflow = false;
-};
 } // namespace ui
