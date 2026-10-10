@@ -1429,3 +1429,11 @@ Clear heard-name cache	Vymazat cache názvů
 Clear remembered node names?\n\nContacts and Found stay unchanged. Names are learned again from new adverts.	Vymazat zapamatované názvy nodů?\n\nKontakty a Found zůstanou beze změny. Názvy se znovu naučí z nových advertů.
 Clearing heard-name cache...	Mažu cache názvů...
 Heard-name cache cleared	Cache názvů vymazána
+
+Firmware %s	Firmware %s
+Firmware downloads on GitHub	Stažení firmwaru na GitHubu
+Download the firmware for your exact board from GUARD-MESH releases.	Z vydání GUARD-MESH stáhni firmware pro svou konkrétní desku.
+Automatic installation is not available yet.	Automatická instalace zatím není dostupná.
+For Wi-Fi OTA, use app-ota.bin. Open Terminal and run 'ota start', connect to MeshCore-OTA, then open the displayed /update address and upload as Firmware.	Pro OTA přes Wi-Fi použij app-ota.bin. V Terminalu spusť 'ota start', připoj se k MeshCore-OTA, otevři vypsanou adresu /update a nahraj obraz jako Firmware.
+For this partition layout, use USB or your board's installer.	Pro toto rozdělení úložiště použij USB nebo instalátor své desky.
+Automatic installation is unavailable. Use GUARD-MESH GitHub releases.	Automatická instalace není dostupná. Použij vydání GUARD-MESH na GitHubu.

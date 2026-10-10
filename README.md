@@ -13,6 +13,19 @@ maintained by [@bubakbubak500](https://github.com/bubakbubak500).
   for live PC status, messages, contacts and composing queued messages.
   Pairing is in Settings. The upstream build instructions remain below.
 
+## Guardian 2026.10.10.1
+
+- About points to GUARD-MESH releases on GitHub and shows the actual Guardian
+  release tag with manual Wi-Fi OTA instructions.
+- Automatic release polling, installation and SD downloads are unavailable.
+  The old upstream update transport has been removed; retained install calls
+  are rejected without downloading or writing firmware.
+- Manual OTA uses the matching **app-ota.bin**: open Terminal, run `ota start`,
+  connect to **MeshCore-OTA**, and upload through the displayed `/update` page.
+  The complete **merged.bin** is for USB installation.
+- [Release notes](release-notes/guardian-2026.10.10.1.md) ·
+  [Firmware downloads](https://github.com/bubakbubak500/GUARD-MESH/releases/tag/guardian-2026.10.10.1)
+
 ## Guardian 2026.10.10
 
 - Discover resolves names learned from valid adverts even for nodes outside

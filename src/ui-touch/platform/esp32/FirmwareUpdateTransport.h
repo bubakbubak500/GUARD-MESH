@@ -3,8 +3,8 @@
 namespace ui {
 class FirmwareUpdateJobs;
 namespace platform {
-// Shared executor owns its HTTP/socket objects. Opaque handles preserve the
-// board-specific WiFiClient alias (including the P4's C6 socket).
+// Legacy executor entry points reject checks/installs without using the opaque
+// socket handles. Manual GUARD-MESH GitHub downloads are the supported path.
 bool runFirmwareCheck(FirmwareUpdateJobs &, void *client, void *http);
 bool runFirmwareInstall(FirmwareUpdateJobs &, void *client, void *http);
 } // namespace platform

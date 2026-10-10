@@ -28,7 +28,7 @@ def main():
                 ROOT/'src/ui-touch/services/RadioService.cpp',
                 ROOT/'src/ui-touch/services/ConfigurationService.cpp',
                 ROOT/'src/ui-touch/services/AppStoreJobs.cpp',
-                ROOT/'src/ui-touch/services/FirmwareUpdateJobs.cpp', ROOT/'src/ui-touch/services/SightlineJob.cpp', ROOT/'src/ui-touch/services/StorageUsage.cpp']
+                ROOT/'src/ui-touch/services/FirmwareUpdateJobs.cpp', ROOT/'src/ui-touch/platform/esp32/FirmwareUpdateTransport.cpp', ROOT/'src/ui-touch/services/SightlineJob.cpp', ROOT/'src/ui-touch/services/StorageUsage.cpp']
     executable = OUT / ('ui-models.exe' if os.name == 'nt' else 'ui-models')
     threading_flags = [] if os.name == 'nt' else ['-pthread']
     subprocess.run([*compiler, '-std=c++11', '-Wall', '-Wextra', '-Werror', '-O1', '-g',
