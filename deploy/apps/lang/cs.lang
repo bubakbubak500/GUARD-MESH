@@ -322,7 +322,6 @@ Fetching the app list from firmware.wadamesh.com	Načítám seznam aplikací z f
 Files	Soubory
 Find	Hledat
 Finish	Dokončit
-Firmware beta_%d\nCouldn't reach the update server	Firmware beta_%d\nServer aktualizací není dostupný
 Firmware:	Firmware:
 Flash on new message	Bliknout při nové zprávě
 Flood	Flood
@@ -330,7 +329,6 @@ Flood advert sent	Flood Advert odeslán
 Flood every	Flood každých
 Flood: relayed across the mesh (multi-hop).\nZero-hop: neighbours only (no relaying).	Flood: přenos přes mesh (multi-hop).\nZero-hop: pouze sousedé (bez opakování).
 Folder created	Složka vytvořena
-For Launcher installs: saves the latest firmware of the selected channel to the SD card (BINS folder).	Instalace přes Launcher: uloží nejnovější firmware vybrané větve na SD kartu (složka BINS).
 Forget network	Zapomenout síť
 Format	Formátovat
 Format SD as MESHCOMOD (FAT32)?\nAll data on the card will be erased.	Formátovat SD jako MESHCOMOD (FAT32)?\nVšechna data na kartě se smažou.
@@ -385,8 +383,6 @@ Inactive	Neaktivní
 Info	Info
 Insert emoji / symbol	Vložit emoji / symbol
 Install	Instalovat
-Install a previous version	Instalovat předchozí verzi
-Install an earlier version	Instalovat starší verzi
 Install failed (network?)	Instalace selhala (síť?)
 Install update	Instalovat aktualizaci
 Installed	Nainstalováno
@@ -533,7 +529,6 @@ No contact for thread	Vláknu chybí kontakt
 No contact to trace	Chybí kontakt pro trasování
 No contacts have shared\na GPS location yet.	Žádný kontakt zatím\nnesdílel polohu GPS.
 No discovered nodes yet.\n\nAnything heard over the air that isn't in your contacts will show up here. When auto-add is off, you can manually add nodes to your contacts.	Zatím žádné objevené uzly.\n\nZde se zobrazí přijaté uzly, které nemáš v kontaktech. Při vypnutém automatickém přidávání je můžeš přidat ručně.
-No earlier versions yet	Zatím žádné starší verze
 No local expansion data	Chybí data místního rozšíření
 No location for this contact	U tohoto kontaktu chybí poloha
 No map storage.\n\nInsert an SD card to cache\nWi-Fi tiles (or reflash to\nrestore the tiles partition).	Chybí úložiště map.\n\nVlož SD kartu pro cache\ndlaždic z Wi-Fi (nebo znovu\nnahraj oddíl dlaždic).
@@ -550,7 +545,6 @@ No saved map tiles here.\n\nConnect to Wi-Fi (Settings → Wi-Fi)\nto download t
 No system time yet	Systémový čas ještě není nastaven
 No telemetry in this window.\nRequest one, or widen the range below.	V tomto období chybí telemetrie.\nVyžádej ji nebo níže rozšiř období.
 No tiles (non-ESP32)	Bez dlaždic (mimo ESP32)
-No version known yet. Wi-Fi and a completed update check are needed first.	Verze zatím není známá. Nejdřív je potřeba Wi-Fi a dokončená kontrola aktualizací.
 Node name	Název uzlu
 Node\nRegion\nRadio\nSignal\nContacts\nChannels\nBattery\nUptime	Uzel\nRegion\nRádio\nSignál\nKontakty\nKanály\nBaterie\nDoba provozu
 Normal (100%)\nLarge (150%)\nHuge (200%)	Normální (100%)\nVelké (150%)\nObrovské (200%)
@@ -648,7 +642,6 @@ Reboot	Restartovat
 Reboot device	Restartovat zařízení
 Rebooting...	Restartuji...
 Rebooting…	Restartuji…
-Receive unreleased test firmware — newer features, but less tested. The update check and Install update both follow the beta channel.	Přijímat nevydaný testovací firmware — novější funkce, ale méně ověřené. Kontrola i instalace aktualizací budou používat beta větev.
 Recently heard	Nedávno slyšené
 Reformat SD as MESHCOMOD (FAT32)?\nALL data on the card will be erased.	Přeformátovat SD jako MESHCOMOD (FAT32)?\nVŠECHNA data na kartě se smažou.
 Region & scope	Region a scope
@@ -738,7 +731,6 @@ Saved — rebooting	Uloženo — restartuji
 Saved — reconnecting…	Uloženo — připojuji znovu…
 Saved: %s\nFlash it from the Launcher.	Uloženo: %s\nNahraj pomocí Launcheru.
 Saved: %s\nReady for offline flashing.	Uloženo: %s\nPřipraveno k offline nahrání.
-Saves the latest firmware of the selected channel to the SD card (BINS folder).	Uloží nejnovější firmware vybrané větve na SD kartu (složka BINS).
 Saving to SD… %d%%	Ukládám na SD… %d%%
 Saving to SD… 0%	Ukládám na SD… 0%
 Scan to open on phone	Naskenuj pro otevření v telefonu
@@ -1100,8 +1092,6 @@ Networks	Sítě
 Other networks	Další sítě
 Show system files	Zobrazit systémové soubory
 Unfav	Odebrat z oblíbených
-Firmware beta_%d\nChecking for updates over Wi-Fi…	Firmware beta_%d\nHledám aktualizace přes Wi-Fi…
-Install beta_%d?\nThis downgrades the firmware and reboots.	Instalovat beta_%d?\nNahraje starší firmware a restartuje zařízení.
 Other (hidden) network…	Jiná (skrytá) síť…
 Paused	Pozastaveno
 Scan again	Hledat znovu

@@ -17,6 +17,8 @@ Firmware for **LilyGo T-Deck / T-Deck Plus** and **Heltec V4 TFT**, following `g
   partition. Successful installs flush history and restart the device.
 - Checks happen on request; there is no background polling or SD requirement.
   Devices with incompatible partition layouts use USB installation.
+- Removes the obsolete upstream beta-release picker and its unused translation
+  entries so verified HTTPS OTA also fits the Heltec application slot.
 
 ## System Information
 

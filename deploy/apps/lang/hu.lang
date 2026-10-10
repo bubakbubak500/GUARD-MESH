@@ -325,7 +325,6 @@ Fetching the app list from firmware.wadamesh.com	Applista letöltése: firmware.
 Files	Fájlok
 Find	Keresés
 Finish	Befejezés
-Firmware beta_%d\nCouldn't reach the update server	Firmware beta_%d\nNem sikerült elérni a frissítőszervert
 Firmware:	Firmware:
 Flash on new message	Villog, ha új üzenet érkezett
 Flood	Flood
@@ -333,7 +332,6 @@ Flood advert sent	Flood advert elküldve
 Flood every	Flood időköz
 Flood: relayed across the mesh (multi-hop).\nZero-hop: neighbours only (no relaying).	Flood: a hálón keresztül továbbítva (multi-hop).\nZero-hop: csak neighbours (nincs továbbítás).
 Folder created	Mappa létrehozva
-For Launcher installs: saves the latest firmware of the selected channel to the SD card (BINS folder).	Indító telepítések esetén: a kiválasztott csatorna legújabb firmware-jét menti az SD-kártyára (BINS mappa).
 Forget network	Hálózat elfelejtése
 Format	Formátum
 Format SD as MESHCOMOD (FAT32)?\nAll data on the card will be erased.	Formázza az SD kártyát MESHCOMOD (FAT32) formátumban?\nA kártyán lévő összes adat törlődik.
@@ -388,8 +386,6 @@ Inactive	Inaktív
 Info	Infó
 Insert emoji / symbol	Emoji / szimbólum beszúrása
 Install	Telepít
-Install a previous version	Telepítse az előző verziót
-Install an earlier version	Telepítse egy korábbi verziót
 Install failed (network?)	A telepítés nem sikerült (hálózat?)
 Install update	Frissítés telepítése
 Installed	Telepítve
@@ -538,7 +534,6 @@ No contact for thread	Nincs elérhetőség a szálhoz
 No contact to trace	Nincs nyomon követhető kapcsolat
 No contacts have shared\na GPS location yet.	Még egyetlen névjegy sem osztotta meg GPS-helyzetét.
 No discovered nodes yet.\n\nAnything heard over the air that isn't in your contacts will show up here. When auto-add is off, you can manually add nodes to your contacts.	Még nincsenek felfedezett csomópontok.\n\nMinden, amit a rádióban hallasz, és ami nem szerepel a névjegyeid között, itt fog megjelenni. Ha az automatikus hozzáadás ki van kapcsolva, manuálisan is hozzáadhatsz csomópontokat a névjegyeidhez.
-No earlier versions yet	Még nincsenek korábbi verziók
 No local expansion data	Nincsenek helyi bővítési adatok
 No location for this contact	Nincs hely ehhez a névjegyhez
 No map storage.\n\nInsert an SD card to cache\nWi-Fi tiles (or reflash to\nrestore the tiles partition).	Nincs térképtárhely.\n\nHelyezzen be egy SD-kártyát a Wi-Fi csempék gyorsítótárazásához (vagy flashelje újra a csempék partíciójának visszaállításához).
@@ -555,7 +550,6 @@ No saved map tiles here.\n\nConnect to Wi-Fi (Settings → Wi-Fi)\nto download t
 No system time yet	Még nincs rendszeridő
 No telemetry in this window.\nRequest one, or widen the range below.	Nincs telemetria ebben az ablakban.\nKérjen egyet, vagy szélesítse az alábbi tartományt.
 No tiles (non-ESP32)	Nincsenek csempék (nem ESP32)
-No version known yet. Wi-Fi and a completed update check are needed first.	Egyelőre nincs ismert verzió. Először Wi-Fi-kapcsolat és egy frissítés-ellenőrzés szükséges.
 Node name	Node név
 Node\nRegion\nRadio\nSignal\nContacts\nChannels\nBattery\nUptime	Node\nRégió\nRádió\nJel\nNévjegyekk\nCsatornák\nAkkumulátor\nÜzemidő
 Normal (100%)\nLarge (150%)\nHuge (200%)	Normál (100%)\nLarge (150%)\nHuge (200%)
@@ -655,7 +649,6 @@ Reboot	Újraindítás
 Reboot device	Eszköz újraindítása
 Rebooting...	Újraindítás...
 Rebooting…	Újraindítás…
-Receive unreleased test firmware — newer features, but less tested. The update check and Install update both follow the beta channel.	Kiadatlan teszt firmware-t kapsz – újabb funkciók, de kevésbé teszteltek. A frissítések ellenőrzése és a frissítések telepítése is a béta verziót követi.
 Recently heard	Nemrég hallottam
 Reformat SD as MESHCOMOD (FAT32)?\nALL data on the card will be erased.	Újraformázza az SD kártyát MESHCOMOD (FAT32) formátumban?\nA kártyán lévő ÖSSZES adat törlődik.
 Region & scope	Régió és hatókör
@@ -748,7 +741,6 @@ Saved — rebooting	Mentve — újraindítás
 Saved — reconnecting…	Mentve — újracsatlakozás…
 Saved: %s\nFlash it from the Launcher.	Mentett: %s\nFlash-eld a Launcher-ből.
 Saved: %s\nReady for offline flashing.	Saved: %s\nReady for offline flashing.
-Saves the latest firmware of the selected channel to the SD card (BINS folder).	Saves the latest firmware of the selected channel to the SD card (BINS folder).
 Saving to SD… %d%%	Mentés SD-kártyára… %d%%
 Saving to SD… 0%	Mentés SD-kártyára… 0%
 Scan to open on phone	Olvasd be a telefonos megnyitáshoz
@@ -1119,8 +1111,6 @@ Hide system files	Hide system files
 Networks	Networks
 Show system files	Show system files
 Unfav	Unfav
-Firmware beta_%d\nChecking for updates over Wi-Fi…	Firmware beta_%d\nChecking for updates over Wi-Fi…
-Install beta_%d?\nThis downgrades the firmware and reboots.	A beta_%d telepítése?\nEz leminősíti a firmware-t és újraindul.
 Other (hidden) network…	Other (hidden) network…
 Paused	Paused
 At a glance	At a glance

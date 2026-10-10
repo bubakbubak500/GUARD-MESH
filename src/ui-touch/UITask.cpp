@@ -12,7 +12,6 @@
 #include "platform/DeviceDiagnostics.h"
 #include "screens/SightlineScreen.h"
 #include "platform/esp32/SightlineTransport.h"
-#include "screens/ReleasePicker.h"
 #include "services/FirmwareUpdateJobs.h"
 #include "platform/esp32/FirmwareUpdateTransport.h"
 #include "models/TextClipboard.h"
@@ -16681,7 +16680,6 @@ static void closeSettingsCategory() {
   accentColorPicker.close();
   if (s_settings_open_cat == CAT_UPDATE) firmwareUpdatePanel.detach();
   if (s_settings_open_cat == CAT_ABOUT) {   // null the live-label ptrs (freed with the sheet)
-    ui::screens::releasePicker::close();
     g_lv.settings_status = nullptr; g_lv.diag_id_label = nullptr; g_lv.diag_label = nullptr;
   }
 #if defined(HAS_TDECK_GT911)
@@ -32781,7 +32779,6 @@ static constexpr uint8_t PF_STATUS = ui::UiApplication::StatusPage; // uses the 
 #define P_OPEN(root) []{ return (root) != nullptr; }
 static const PopupEnt k_popup_registry[] = {
   { []{ return pingReplyDialog.isOpen(); }, []{ pingReplyDialog.dismiss(); }, PF_COUNT },
-  { ui::screens::releasePicker::isOpen, ui::screens::releasePicker::close, PF_COUNT },
   { []{return ui::screens::timeline::urlQrOpen();},            []{ closeUrlQr(); },                 PF_COUNT },   // chat URL -> QR
   { []{return ui::screens::timeline::urlMenuOpen();},          []{ closeUrlMenu(); },               PF_COUNT },   // chat URL -> action menu
   { P_OPEN(s_discover_root),         []{ closeDiscoverPage(); },          PF_COUNT | PF_STATUS },

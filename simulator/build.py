@@ -79,7 +79,7 @@ def main():
     sources += [ROOT/'simulator/text_selection_regression.cpp']
     sources += [ROOT/'simulator/text_edit_menu_regression.cpp']
     sources += [ROOT/'simulator/chat_composer_regression.cpp']
-    sources += [ROOT/'simulator/release_picker_regression.cpp', ROOT/'simulator/sightline_regression.cpp', ROOT/'simulator/system_info_regression.cpp']
+    sources += [ROOT/'simulator/sightline_regression.cpp', ROOT/'simulator/system_info_regression.cpp']
     sources += [ROOT/'simulator/firmware_panel_regression.cpp']
     sources += [ROOT/'simulator/clock_settings_regression.cpp']
     sources += [ROOT/'simulator/gps_settings_regression.cpp']
