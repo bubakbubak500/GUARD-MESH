@@ -93,6 +93,7 @@ def main():
         run(sys.executable, ROOT / 'scripts/test_message_ingress.py')
         run(sys.executable, ROOT / 'scripts/test_thread_refresh.py')
         run(sys.executable, ROOT / 'scripts/test_network_executor.py')
+        run(sys.executable, ROOT / 'scripts/test_firmware_transport.py')
         run(sys.executable, ROOT / 'scripts/test_tile_fetch_transport.py')
         run(sys.executable, ROOT / 'scripts/test_ble_command_targets.py')
         run(sys.executable, ROOT / 'scripts/test_guardian_status.py')

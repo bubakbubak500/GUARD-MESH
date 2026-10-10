@@ -3,6 +3,7 @@
 #include <atomic>
 #include <stddef.h>
 #include <stdint.h>
+#include "../models/FirmwareRelease.h"
 namespace ui {
 // One UI producer/consumer, one executor. Neither side shares mutable buffers.
 // Stop the executor before destroying this owner. All callbacks are synchronous.
@@ -16,11 +17,15 @@ public:
   struct CheckResult {
     CheckRequest request;
     int latest;
+    FirmwareRelease release;
+    bool ok;
+    char message[80];
   };
   struct InstallRequest {
     Destination destination;
     bool beta;
     int version;
+    FirmwareRelease release;
   };
   struct InstallResult {
     InstallRequest request;
@@ -35,14 +40,20 @@ public:
     void *context;
     int (*check)(void *, bool beta);
     void (*install)(void *, const InstallRequest &, Progress, InstallResult &);
+    void (*resolve)(void *, CheckResult &);
+    Backend(void *c, int (*checkFn)(void *, bool),
+            void (*installFn)(void *, const InstallRequest &, Progress, InstallResult &),
+            void (*resolveFn)(void *, CheckResult &) = nullptr)
+      : context(c), check(checkFn), install(installFn), resolve(resolveFn) {}
   };
   bool requestCheck(bool beta, uint32_t generation);
   bool takeCheck(CheckResult &);
   bool checkActive() const;
   bool requestInstall(Destination, bool beta, int version);
+  bool requestInstall(const FirmwareRelease &);
   bool takeInstall(Destination, InstallResult &);
   bool installActive() const;
-  bool storageBusy() const;            // queued/running SD job, not a completed result
+  bool storageBusy() const;            // queued/running install, not a completed result
   int installState(Destination) const; // 0 idle, 1 queued/running, 2 success, 3 failure
   int progress() const { return _progress.load(std::memory_order_relaxed); }
   void failQueuedCheck();

@@ -12,9 +12,47 @@
 #include <cstdio>
 #include <cstring>
 #include <thread>
+#include <string>
 namespace {
 using Jobs = ui::FirmwareUpdateJobs;
 using Destination = Jobs::Destination;
+void githubMetadata() {
+  std::string json = R"({"tag_name":"guardian-2026.10.10.2","draft":false,"prerelease":false,"assets":[{"name":"Guard-Mesh-TDeck-guardian-2026.10.10.2-app-ota.bin","state":"uploaded","size":123456,"digest":"sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","browser_download_url":"https://github.com/bubakbubak500/GUARD-MESH/releases/download/guardian-2026.10.10.2/Guard-Mesh-TDeck-guardian-2026.10.10.2-app-ota.bin"}]})";
+  ui::FirmwareRelease release;
+  char message[80];
+  assert(ui::parseFirmwareRelease(json.data(), json.size(), "TDeck", release, message, sizeof message));
+  assert(release.size == 123456 && ui::validFirmwareRelease(release, "TDeck"));
+  assert(!ui::validFirmwareRelease(release, "Heltec-V4-TFT"));
+  assert(ui::newerFirmwareRelease(release.tag, "guardian-2026.10.10.1"));
+  assert(ui::newerFirmwareRelease("guardian-2026.10.11", release.tag));
+  assert(!ui::newerFirmwareRelease(release.tag, release.tag));
+  assert(!ui::newerFirmwareRelease("guardian-2026.10.10", release.tag));
+  assert(!ui::newerFirmwareRelease("guardian-2026.10.10.2/evil", release.tag));
+  assert(!ui::parseFirmwareRelease(json.data(), json.size(), "Heltec-V4-TFT", release, message, sizeof message));
+  assert(strstr(message, "this board"));
+  auto bad = json; bad.replace(bad.find("uploaded"), 8, "starter");
+  assert(!ui::parseFirmwareRelease(bad.data(), bad.size(), "TDeck", release, message, sizeof message));
+  bad = json; bad.replace(bad.find("sha256:"), 7, "sha512:");
+  assert(!ui::parseFirmwareRelease(bad.data(), bad.size(), "TDeck", release, message, sizeof message));
+  bad = json; bad.replace(bad.find("github.com/bubak"), 10, "evil.test/");
+  assert(!ui::parseFirmwareRelease(bad.data(), bad.size(), "TDeck", release, message, sizeof message));
+  assert(!ui::parseFirmwareRelease(json.data(), json.size() - 8, "TDeck", release, message, sizeof message));
+  assert(!ui::parseFirmwareRelease(json.data(), 65537, "TDeck", release, message, sizeof message));
+  assert(ui::parseFirmwareRelease(json.data(), json.size(), "TDeck", release, message, sizeof message));
+  Jobs jobs;
+  uint32_t size = release.size;
+  assert(jobs.requestInstall(release));
+  release.size = 1; strcpy(release.tag, "modified");
+  assert(!jobs.requestCheck(false, 123));
+  assert(jobs.runInstall({&size, nullptr,
+    [](void *p, const Jobs::InstallRequest &request, Jobs::Progress, Jobs::InstallResult &out) {
+      assert(request.release.size == *static_cast<const uint32_t *>(p));
+      assert(!strcmp(request.release.tag, "guardian-2026.10.10.2"));
+      out.ok = false;
+    }}));
+  Jobs::InstallResult result;
+  assert(jobs.takeInstall(Destination::Ota, result) && result.request.release.size == size);
+}
 struct Backend {
   Jobs *jobs;
   std::atomic<bool> entered{false}, finish{false};
@@ -108,7 +146,7 @@ void blockedTransport() {
     assert(ui::platform::runFirmwareInstall(jobs, nullptr, nullptr));
     Jobs::InstallResult result;
     assert(jobs.takeInstall(destination, result) && !result.ok && jobs.progress() == 0);
-    assert(strstr(result.message, "GUARD-MESH GitHub releases"));
+    assert(strstr(result.message, "unavailable"));
   }
 }
 void storageAdmission() {
@@ -134,6 +172,7 @@ void storageAdmission() {
 }
 } // namespace
 void firmwareUpdatesRegression() {
+  githubMetadata();
   transactions();
   blockedTransport();
   storageAdmission();

@@ -3515,7 +3515,8 @@ enum {
   CAT_LANGUAGE,      // UI language picker
   CAT_MQTT,          // MQTT bridge — broker host/port/credentials
   CAT_APPPERMS,      // what each Lua app is allowed to do, and taking it back
-  CAT_ABOUT,         // firmware / update / system info / diagnostics
+  CAT_UPDATE,        // GitHub release check and Wi-Fi OTA
+  CAT_ABOUT,         // firmware / system info / diagnostics
 #if defined(LILYGO_TDECK) || defined(GUARD_SIMULATOR)
   CAT_GUARDIAN,
 #endif
@@ -3550,6 +3551,7 @@ static const SettingsCatDef kSettingsCats[CAT_COUNT] = {
   { "Language",      LV_SYMBOL_BARS },
   { "MQTT bridge",   LV_SYMBOL_UPLOAD },
   { "App permissions", LV_SYMBOL_WARNING },
+  { "Update",        LV_SYMBOL_DOWNLOAD },
   { "About",         LV_SYMBOL_LIST },
 #if defined(LILYGO_TDECK) || defined(GUARD_SIMULATOR)
   { "Guardian BLE",  LV_SYMBOL_BLUETOOTH },
@@ -3626,7 +3628,7 @@ static ui::screens::SystemInfoScreen systemInfoScreen({nullptr, readSystemDiagno
 static lv_obj_t* s_sleep_diag_lbl  = nullptr;   // Idle-sleep instrumentation label (Lock settings, line 1)
 static lv_obj_t* s_sleep_diag_lbl2 = nullptr;   // Idle-sleep instrumentation label (Lock settings, line 2)
 #endif
-static const bool s_update_available = false;
+static bool s_update_available = false;
 static ui::FirmwareUpdateJobs firmwareUpdates;
 static ui::screens::FirmwareUpdatePanel::Host firmwareUpdateHost();
 static ui::screens::FirmwareUpdatePanel firmwareUpdatePanel(firmwareUpdates, firmwareUpdateHost());
@@ -3707,6 +3709,7 @@ static bool          s_wifiscan_reconnect_after = false;  // main: rejoin once r
 static uint32_t      s_wifiscan_drop_ms        = 0;      // main: disassoc-settle timer
 static uint32_t      s_wifiscan_guard_ms       = 0;      // main: cancel only an unclaimed scan
 static bool ensureTileFetchTaskRunning();          // fwd: start the permanent core-0 executor if needed
+static bool wifiPrepareEnable(lv_obj_t*);
 
 // First-boot policy stays in UITask; the overlay and step state are owned by
 // SetupWizardScreen. Early key routing needs only its visible/back accessors.
@@ -3716,27 +3719,64 @@ static void setupWizardOpen();
 static void versionCheckUpdateUi() {
   lv_obj_t* badges[2] = {s_update_badge, settingsScreen.badge()};
   for (lv_obj_t* badge : badges) {
-    if (badge) lv_obj_add_flag(badge, LV_OBJ_FLAG_HIDDEN);
+    if (!badge) continue;
+    if (s_update_available) lv_obj_clear_flag(badge, LV_OBJ_FLAG_HIDDEN);
+    else lv_obj_add_flag(badge, LV_OBJ_FLAG_HIDDEN);
   }
 }
 
 static ui::screens::FirmwareUpdatePanel::Host firmwareUpdateHost() {
   return {nullptr,
-    [](void*, const char* message, int duration) { if (g_lv.task) g_lv.task->showAlert(message, duration); }
+    [](void*, const char* message, int duration) { if (g_lv.task) g_lv.task->showAlert(message, duration); },
+    [](void*) -> bool {
+#if defined(ESP32) && defined(MULTI_TRANSPORT_COMPANION)
+      return WiFi.status() == WL_CONNECTED;
+#else
+      return false;
+#endif
+    },
+    [](void*) -> bool {
+#if defined(ESP32) && defined(MULTI_TRANSPORT_COMPANION)
+      return wifiConfigGetRadioEnabled();
+#else
+      return false;
+#endif
+    },
+    [](void*, bool enabled) -> bool {
+#if defined(ESP32) && defined(MULTI_TRANSPORT_COMPANION)
+      if (enabled && !wifiPrepareEnable(nullptr)) return false;
+      wifiConfigSetRadioEnabled(enabled);
+      return true;
+#else
+      (void)enabled; return false;
+#endif
+    },
+    [](void*) { openSettingsCategory(CAT_WIFI); },
+    [](void*) -> bool {
+#if defined(ESP32) && defined(MULTI_TRANSPORT_COMPANION)
+      return ensureTileFetchTaskRunning();
+#else
+      return false;
+#endif
+    },
+    [](void*, const char* message) { showConfirm(message, TR("Install update"), [] { firmwareUpdatePanel.installLatest(); }); },
+    [](void*) { if (g_lv.task) g_lv.task->rebootDevice(); }
   };
 }
 static void buildFirmwareUpdatePanel(lv_obj_t* page, lv_coord_t width) {
   const char* tag = FIRMWARE_RELEASE_TAG;
   ui::screens::FirmwareUpdatePanel::Options options{tag[0] ? tag : FIRMWARE_VERSION, false};
-#if defined(ESP32) && defined(MULTI_TRANSPORT_COMPANION) && CAP_OTA
+#if defined(ESP32) && defined(MULTI_TRANSPORT_COMPANION) && CAP_OTA && (defined(LILYGO_TDECK) || defined(HELTEC_LORA_V4_TFT))
   options.ota = ui::platform::hasOtaUpdateSlot();
 #endif
   firmwareUpdatePanel.build(page, width, options);
 }
 
-// No release polling or automatic installation until GitHub OTA is implemented.
+// Checks happen only on explicit request from Settings -> Update.
 static void versionCheckService(unsigned long now) {
   firmwareUpdatePanel.poll(static_cast<uint32_t>(now));
+  const bool available = firmwareUpdatePanel.updateAvailable();
+  if (available != s_update_available) { s_update_available = available; versionCheckUpdateUi(); }
 }
 
 static void applySwipeGesture(int8_t swipe_x, int8_t swipe_y) {
@@ -16558,9 +16598,18 @@ static void settingsCatBuild(int cat) {
       buildAppPermsSettings(page, lblw);
 #endif
       break;
-    case CAT_ABOUT: {
+    case CAT_UPDATE:
       s_settings_inline_parent = nullptr;
       buildFirmwareUpdatePanel(page, lblw);
+      break;
+    case CAT_ABOUT: {
+      s_settings_inline_parent = nullptr;
+      lv_obj_t* firmware = lv_label_create(page);
+      lv_label_set_long_mode(firmware, LV_LABEL_LONG_WRAP);
+      lv_obj_set_width(firmware, lblw);
+      lv_obj_set_style_text_font(firmware, &font14(), LV_PART_MAIN);
+      lv_obj_set_style_text_color(firmware, lv_color_hex(colors().COLOR_TEXT), LV_PART_MAIN);
+      lv_label_set_text_fmt(firmware, "GUARD-MESH\n%s", FIRMWARE_RELEASE_TAG[0] ? FIRMWARE_RELEASE_TAG : FIRMWARE_VERSION);
 
 #if defined(ESP32)
       // Crash-report export — only when a panic coredump is waiting in flash.
@@ -16630,9 +16679,9 @@ static void closeSettingsCategory() {
   lockSettingsScreen.detach();
   generalSettingsScreen.detach();
   accentColorPicker.close();
+  if (s_settings_open_cat == CAT_UPDATE) firmwareUpdatePanel.detach();
   if (s_settings_open_cat == CAT_ABOUT) {   // null the live-label ptrs (freed with the sheet)
     ui::screens::releasePicker::close();
-    firmwareUpdatePanel.detach();
     g_lv.settings_status = nullptr; g_lv.diag_id_label = nullptr; g_lv.diag_label = nullptr;
   }
 #if defined(HAS_TDECK_GT911)
@@ -16789,7 +16838,7 @@ static void makeSettings(lv_obj_t* tab) {
 #endif
 #endif
     return true;
-  }, settingsCatOpenCb, styleSettingsScrollbar, CAT_ABOUT);
+  }, settingsCatOpenCb, styleSettingsScrollbar, CAT_UPDATE);
   versionCheckUpdateUi();
 #if CAP_LUA_APPS
   settingsApplyHiddenCats();
@@ -28117,20 +28166,6 @@ void UITask::begin(DisplayDriver* display, SensorManager* sensors, NodePrefs* no
       return false;
 #endif
     }, popupClose, []() -> lv_coord_t { return STATUSBAR_H; }, pushDiagLine});
-  ui::screens::releasePicker::configure({popupClose,
-    [](int version, bool beta) {
-      firmwareUpdatePanel.install(version, beta);
-    },
-    [](const char* message) { if (g_lv.task) g_lv.task->showAlert(message, 1500); },
-    []() -> lv_coord_t { return STATUSBAR_H; },
-    [](lv_obj_t* object) {
-#if CAP_KEYPAD_NAV
-      ui::focus::requestFocus(object); navMarkDirty();
-#else
-      (void)object;
-#endif
-    }
-  });
   ui::screens::glyphPicker::configure(glyphPickerHost());
   ui::screens::threadMenu::configure(threadMenuHost());
   ui::screens::timeline::configure(chatTimelineHost());
