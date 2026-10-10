@@ -3,8 +3,8 @@
 namespace ui {
 class FirmwareUpdateJobs;
 namespace platform {
-// Legacy executor entry points reject checks/installs without using the opaque
-// socket handles. Manual GUARD-MESH GitHub downloads are the supported path.
+// Worker-only HTTPS fetch/OTA. Owns its verified TLS client; shared plain-HTTP
+// handles are deliberately unused. Unsupported boards fail without writing.
 bool runFirmwareCheck(FirmwareUpdateJobs &, void *client, void *http);
 bool runFirmwareInstall(FirmwareUpdateJobs &, void *client, void *http);
 } // namespace platform

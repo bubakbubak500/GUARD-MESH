@@ -258,6 +258,13 @@ void captureSnapshot() {
   }
   printf("Saved %s.png\n", stem.c_str());
 }
+lv_obj_t *findOffscreenLabel(lv_obj_t *obj, const char *text) {
+  if (lv_obj_has_flag(obj, LV_OBJ_FLAG_HIDDEN)) return nullptr;
+  if (lv_obj_check_type(obj, &lv_label_class) && !strcmp(lv_label_get_text(obj), text)) return obj;
+  for (uint32_t i = 0; i < lv_obj_get_child_cnt(obj); ++i)
+    if (auto *found = findOffscreenLabel(lv_obj_get_child(obj, i), text)) return found;
+  return nullptr;
+}
 lv_obj_t *findLabel(lv_obj_t *obj, const char *text) {
   if (lv_obj_has_flag(obj, LV_OBJ_FLAG_HIDDEN))
     return nullptr;
@@ -614,7 +621,32 @@ int appMain(int argc, char **argv) {
     saveFrame("map.png");
     click(288, 225);
     saveFrame("settings.png");
+    auto openCategory = [&](const char *name) {
+      auto *category = findOffscreenLabel(lv_scr_act(), TR(name));
+      if (!category) throw std::runtime_error(std::string("Settings category missing: ") + name);
+      lv_obj_scroll_to_view_recursive(category, LV_ANIM_OFF); pump(150);
+      clickLabel(TR(name)); pump(150);
+    };
+    openCategory("Update");
+    if (!findOffscreenLabel(lv_scr_act(), TR("Check for updates")) ||
+        !findOffscreenLabel(lv_scr_act(), TR("Wi-Fi settings")))
+      throw std::runtime_error("Update category did not build its controls");
+    saveFrame("update.png");
+    click(8, 10); pump(150);
+    openCategory("About");
+    if (findOffscreenLabel(lv_scr_act(), TR("Check for updates")))
+      throw std::runtime_error("About still owns update controls");
+    saveFrame("about.png");
+    clickLabel(TR("System Information")); pump(150);
+    saveFrame("system-info.png");
+    click(8, 10); pump(150);
+    // The shared Back policy may close the category together with its modal.
+    if (findLabel(lv_layer_top(), TR("About"))) { click(8, 10); pump(150); }
+    auto *profileCategory = findOffscreenLabel(lv_scr_act(), TR("Profile"));
+    if (!profileCategory) throw std::runtime_error("System information Back lost Settings");
+    lv_obj_scroll_to_view_recursive(profileCategory, LV_ANIM_OFF); pump(150);
     clickLabel(TR("Profile"));
+    pump(300);
     saveFrame("profile.png");
     auto profileTa = findTextarea(lv_layer_top());
     if (!profileTa)

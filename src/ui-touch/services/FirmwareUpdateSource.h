@@ -2,8 +2,7 @@
 #pragma once
 namespace ui {
 namespace firmwareUpdate {
-// Manual downloads are the supported release path. A future automatic updater
-// must validate the GitHub release, exact board asset and digest before writing.
 static const char releasesUrl[] = "https://github.com/bubakbubak500/GUARD-MESH/releases";
+static const char latestUrl[] = "https://api.github.com/repos/bubakbubak500/GUARD-MESH/releases/latest";
 } // namespace firmwareUpdate
 } // namespace ui

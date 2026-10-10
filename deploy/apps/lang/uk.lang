@@ -320,7 +320,6 @@ Fetching the app list from firmware.wadamesh.com	Завантаження спи
 Files	Файли
 Find	Знайти
 Finish	Готово
-Firmware beta_%d\nCouldn't reach the update server	Прошивка beta_%d\nСервер оновлень недоступний
 Firmware:	Прошивка:
 Flash on new message	Блимати при новому повідомленні
 Flood	Флуд
@@ -328,7 +327,6 @@ Flood advert sent	Flood advert надіслано
 Flood every	Flood кожні
 Flood: relayed across the mesh (multi-hop).\nZero-hop: neighbours only (no relaying).	Flood: ретранслюється по мережі (мульти-хоп).\nZero-hop: лише сусіди (без ретрансляції).
 Folder created	Теку створено
-For Launcher installs: saves the latest firmware of the selected channel to the SD card (BINS folder).	Для встановлень через Launcher: зберігає останню прошивку вибраного каналу на SD-карту (папка BINS).
 Forget network	Забути мережу
 Format	Форматувати
 Format SD as MESHCOMOD (FAT32)?\nAll data on the card will be erased.	Форматувати SD як MESHCOMOD (FAT32)?\nУсі дані на карті буде стерто.
@@ -383,8 +381,6 @@ Inactive	Неактивно
 Info	Інфо
 Insert emoji / symbol	Вставити емодзі / символ
 Install	Встановити
-Install a previous version	Встановити попередню версію
-Install an earlier version	Встановити ранішу версію
 Install failed (network?)	Встановлення не вдалося (мережа?)
 Install update	Встановити оновлення
 Installed	Встановлено
@@ -532,7 +528,6 @@ No contact for thread	Немає контакту для гілки
 No contact to trace	Немає контакту для трасування
 No contacts have shared\na GPS location yet.	Контакти ще не ділилися\nGPS-місцезнаходженням.
 No discovered nodes yet.\n\nAnything heard over the air that isn't in your contacts will show up here. When auto-add is off, you can manually add nodes to your contacts.	Виявлених вузлів ще немає.\n\nУсе почуте в ефірі, чого немає в контактах, з'явиться тут. Коли автододавання вимкнено, вузли можна додати до контактів вручну.
-No earlier versions yet	Ранніх версій ще немає
 No local expansion data	Немає локальних даних розширення
 No location for this contact	Немає розташування для цього контакту
 No map storage.\n\nInsert an SD card to cache\nWi-Fi tiles (or reflash to\nrestore the tiles partition).	Немає сховища карти.\n\nВставте SD-картку для кешу\nWi-Fi плиток (або перепрошийте\nдля розділу tiles).
@@ -549,7 +544,6 @@ No saved map tiles here.\n\nConnect to Wi-Fi (Settings → Wi-Fi)\nto download t
 No system time yet	Системний час ще не задано
 No telemetry in this window.\nRequest one, or widen the range below.	Немає телеметрії в цьому вікні.\nЗапросіть її або розширте діапазон нижче.
 No tiles (non-ESP32)	Немає плиток (не ESP32)
-No version known yet. Wi-Fi and a completed update check are needed first.	Версія поки невідома. Спершу потрібні Wi-Fi та завершена перевірка оновлень.
 Node name	Назва вузла
 Node\nRegion\nRadio\nSignal\nContacts\nChannels\nBattery\nUptime	Вузол\nРегіон\nРадіо\nСигнал\nКонтакти\nКанали\nБатарея\nЧас роботи
 Normal (100%)\nLarge (150%)\nHuge (200%)	Звичайний (100%)\nВеликий (150%)\nВеличезний (200%)
@@ -647,7 +641,6 @@ Reboot	Перезавантажити
 Reboot device	Перезавантажити пристрій
 Rebooting...	Перезавантаження...
 Rebooting…	Перезавантаження…
-Receive unreleased test firmware — newer features, but less tested. The update check and Install update both follow the beta channel.	Отримувати невипущену тестову прошивку — новіші функції, але менш перевірені. Перевірка та встановлення оновлень йдуть бета-каналом.
 Recently heard	Нещодавно чуто
 Reformat SD as MESHCOMOD (FAT32)?\nALL data on the card will be erased.	Переформатувати SD як MESHCOMOD (FAT32)?\nУСІ дані на картці будуть стерті.
 Region & scope	Регіон і охоплення
@@ -737,7 +730,6 @@ Saved — rebooting	Збережено — перезавантаження
 Saved — reconnecting…	Збережено — перепідключення…
 Saved: %s\nFlash it from the Launcher.	Збережено: %s\nПрошийте з Launcher.
 Saved: %s\nReady for offline flashing.	Saved: %s\nReady for offline flashing.
-Saves the latest firmware of the selected channel to the SD card (BINS folder).	Saves the latest firmware of the selected channel to the SD card (BINS folder).
 Saving to SD… %d%%	Збереження на SD… %d%%
 Saving to SD… 0%	Збереження на SD… 0%
 Scan to open on phone	Відскануйте, щоб відкрити на телефоні
@@ -1100,8 +1092,6 @@ Networks	Networks
 Other networks	Other networks
 Show system files	Show system files
 Unfav	Unfav
-Firmware beta_%d\nChecking for updates over Wi-Fi…	Firmware beta_%d\nChecking for updates over Wi-Fi…
-Install beta_%d?\nThis downgrades the firmware and reboots.	Install beta_%d?\nThis downgrades the firmware and reboots.
 Other (hidden) network…	Other (hidden) network…
 Paused	Paused
 Scan again	Scan again

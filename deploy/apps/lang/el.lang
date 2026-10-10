@@ -320,7 +320,6 @@ Fetching the app list from firmware.wadamesh.com	Λήψη λίστας εφαρ�
 Files	Αρχεία
 Find	Εύρεση
 Finish	Τέλος
-Firmware beta_%d\nCouldn't reach the update server	Firmware beta_%d\nΑδυναμία πρόσβασης στον διακομιστή
 Firmware:	Firmware:
 Flash on new message	Αναβόσβημα σε νέο μήνυμα
 Flood	Flood
@@ -328,7 +327,6 @@ Flood advert sent	Στάλθηκε flood advert
 Flood every	Flood κάθε
 Flood: relayed across the mesh (multi-hop).\nZero-hop: neighbours only (no relaying).	Flood: αναμετάδοση στο mesh (πολλαπλά άλματα).\nZero-hop: μόνο γείτονες (χωρίς αναμετάδοση).
 Folder created	Ο φάκελος δημιουργήθηκε
-For Launcher installs: saves the latest firmware of the selected channel to the SD card (BINS folder).	Για εγκαταστάσεις Launcher: αποθηκεύει το πιο πρόσφατο firmware του επιλεγμένου καναλιού στην κάρτα SD (φάκελος BINS).
 Forget network	Διαγραφή δικτύου
 Format	Διαμόρφωση
 Format SD as MESHCOMOD (FAT32)?\nAll data on the card will be erased.	Διαμόρφωση SD ως MESHCOMOD (FAT32);\nΌλα τα δεδομένα στην κάρτα θα διαγραφούν.
@@ -383,8 +381,6 @@ Inactive	Ανενεργό
 Info	Πληροφορίες
 Insert emoji / symbol	Εισαγωγή emoji / συμβόλου
 Install	Εγκατάσταση
-Install a previous version	Εγκατάσταση προηγούμενης έκδοσης
-Install an earlier version	Εγκατάσταση παλαιότερης έκδοσης
 Install failed (network?)	Η εγκατάσταση απέτυχε (δίκτυο;)
 Install update	Εγκατάσταση ενημέρωσης
 Installed	Εγκατεστημένες
@@ -532,7 +528,6 @@ No contact for thread	Καμία επαφή για το νήμα
 No contact to trace	Καμία επαφή για ιχνηλάτηση
 No contacts have shared\na GPS location yet.	Καμία επαφή δεν έχει\nμοιραστεί θέση GPS ακόμη.
 No discovered nodes yet.\n\nAnything heard over the air that isn't in your contacts will show up here. When auto-add is off, you can manually add nodes to your contacts.	Δεν βρέθηκαν κόμβοι ακόμη.\n\nΟτιδήποτε ακούγεται στον αέρα και δεν είναι στις επαφές σας θα εμφανιστεί εδώ. Όταν η αυτόματη προσθήκη είναι κλειστή, μπορείτε να προσθέσετε κόμβους χειροκίνητα.
-No earlier versions yet	Δεν υπάρχουν προηγούμενες εκδόσεις
 No local expansion data	Δεν υπάρχουν τοπικά δεδομένα επέκτασης
 No location for this contact	Καμία τοποθεσία για αυτήν την επαφή
 No map storage.\n\nInsert an SD card to cache\nWi-Fi tiles (or reflash to\nrestore the tiles partition).	Χωρίς αποθήκευση χάρτη.\n\nΕισαγάγετε κάρτα SD για πλακίδια\nWi-Fi (ή ξαναφλασάρετε για\nτο tiles partition).
@@ -549,7 +544,6 @@ No saved map tiles here.\n\nConnect to Wi-Fi (Settings → Wi-Fi)\nto download t
 No system time yet	Δεν υπάρχει ακόμη ώρα συστήματος
 No telemetry in this window.\nRequest one, or widen the range below.	Δεν υπάρχει τηλεμετρία σε αυτό το παράθυρο.\nΖητήστε μία ή διευρύνετε το εύρος παρακάτω.
 No tiles (non-ESP32)	Χωρίς πλακίδια (μη ESP32)
-No version known yet. Wi-Fi and a completed update check are needed first.	Καμία γνωστή έκδοση ακόμη. Χρειάζονται πρώτα Wi-Fi και ολοκληρωμένος έλεγχος ενημέρωσης.
 Node name	Όνομα κόμβου
 Node\nRegion\nRadio\nSignal\nContacts\nChannels\nBattery\nUptime	Κόμβος\nΠεριοχή\nΡαδιό\nΣήμα\nΕπαφές\nΚανάλια\nΜπαταρία\nΧρόνος λειτουργίας
 Normal (100%)\nLarge (150%)\nHuge (200%)	Κανονικό (100%)\nΜεγάλο (150%)\nΤεράστιο (200%)
@@ -647,7 +641,6 @@ Reboot	Επανεκκίνηση
 Reboot device	Επανεκκίνηση συσκευής
 Rebooting...	Επανεκκίνηση...
 Rebooting…	Επανεκκίνηση…
-Receive unreleased test firmware — newer features, but less tested. The update check and Install update both follow the beta channel.	Λήψη μη κυκλοφορημένου δοκιμαστικού firmware — νεότερες λειτουργίες, αλλά λιγότερο δοκιμασμένες. Ο έλεγχος και η εγκατάσταση ακολουθούν το κανάλι beta.
 Recently heard	Ακούστηκε πρόσφατα
 Reformat SD as MESHCOMOD (FAT32)?\nALL data on the card will be erased.	Επαναδιαμόρφωση SD ως MESHCOMOD (FAT32);\nΟΛΑ τα δεδομένα στην κάρτα θα διαγραφούν.
 Region & scope	Περιοχή & εμβέλεια
@@ -737,7 +730,6 @@ Saved — rebooting	Αποθηκεύτηκε — επανεκκίνηση
 Saved — reconnecting…	Αποθηκεύτηκε — επανασύνδεση…
 Saved: %s\nFlash it from the Launcher.	Αποθηκεύτηκε: %s\nΕγκαταστήστε το από τον Launcher.
 Saved: %s\nReady for offline flashing.	Saved: %s\nReady for offline flashing.
-Saves the latest firmware of the selected channel to the SD card (BINS folder).	Saves the latest firmware of the selected channel to the SD card (BINS folder).
 Saving to SD… %d%%	Αποθήκευση στην SD… %d%%
 Saving to SD… 0%	Αποθήκευση στην SD… 0%
 Scan to open on phone	Σαρώστε για άνοιγμα στο κινητό
@@ -1100,8 +1092,6 @@ Networks	Networks
 Other networks	Other networks
 Show system files	Show system files
 Unfav	Unfav
-Firmware beta_%d\nChecking for updates over Wi-Fi…	Firmware beta_%d\nChecking for updates over Wi-Fi…
-Install beta_%d?\nThis downgrades the firmware and reboots.	Install beta_%d?\nThis downgrades the firmware and reboots.
 Other (hidden) network…	Other (hidden) network…
 Paused	Paused
 Scan again	Scan again

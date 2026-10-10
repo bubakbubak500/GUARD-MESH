@@ -170,7 +170,6 @@ void runAccentCycleRegression();
 void runTextSelectionRegression();
 void runTextEditMenuRegression();
 void runChatComposerRegression();
-void runReleasePickerRegression();
 void runSightlineRegression();
 void runSystemInfoRegression();
 void runFirmwarePanelRegression();
@@ -299,7 +298,6 @@ void runUiLifetimeRegression(void (*pump)(unsigned)) {
   runTextSelectionRegression();
   runTextEditMenuRegression();
   runChatComposerRegression();
-  runReleasePickerRegression();
   runSightlineRegression();
   runSystemInfoRegression();
   runFirmwarePanelRegression();

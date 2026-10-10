@@ -320,7 +320,6 @@ Fetching the app list from firmware.wadamesh.com	Se preia lista de aplicaţii de
 Files	Fişiere
 Find	Caută
 Finish	Finalizează
-Firmware beta_%d\nCouldn't reach the update server	Firmware beta_%d\nServerul de actualizare nu a putut fi contactat
 Firmware:	Firmware:
 Flash on new message	Iluminează la mesaj nou
 Flood	Difuzare
@@ -328,7 +327,6 @@ Flood advert sent	Advert flood trimis
 Flood every	Flood la fiecare
 Flood: relayed across the mesh (multi-hop).\nZero-hop: neighbours only (no relaying).	Flood: retransmis prin mesh (multi-salt).\nZero-hop: doar vecinii (fără retransmitere).
 Folder created	Folder creat
-For Launcher installs: saves the latest firmware of the selected channel to the SD card (BINS folder).	Pentru instalări prin Launcher: salvează cel mai recent firmware al canalului selectat pe cardul SD (folderul BINS).
 Forget network	Uită reţeaua
 Format	Formatează
 Format SD as MESHCOMOD (FAT32)?\nAll data on the card will be erased.	Formatezi SD ca MESHCOMOD (FAT32)?\nToate datele de pe card vor fi şterse.
@@ -383,8 +381,6 @@ Inactive	Inactiv
 Info	Info
 Insert emoji / symbol	Inserează emoji / simbol
 Install	Instalează
-Install a previous version	Instalează o versiune anterioară
-Install an earlier version	Instalează o versiune mai veche
 Install failed (network?)	Instalarea a eşuat (reţea?)
 Install update	Instalează actualizarea
 Installed	Instalate
@@ -532,7 +528,6 @@ No contact for thread	Niciun contact pentru conversaţie
 No contact to trace	Niciun contact de trasat
 No contacts have shared\na GPS location yet.	Niciun contact nu a partajat\nîncă o locaţie GPS.
 No discovered nodes yet.\n\nAnything heard over the air that isn't in your contacts will show up here. When auto-add is off, you can manually add nodes to your contacts.	Niciun nod descoperit încă.\n\nTot ce se aude prin eter şi nu e în contactele tale apare aici. Când auto-adăugarea e oprită, poţi adăuga manual noduri la contacte.
-No earlier versions yet	Nicio versiune anterioară încă
 No local expansion data	Fără date locale de extensie
 No location for this contact	Fără locaţie pentru acest contact
 No map storage.\n\nInsert an SD card to cache\nWi-Fi tiles (or reflash to\nrestore the tiles partition).	Fără stocare pentru hartă.\n\nIntrodu un card SD pentru dalele\nWi-Fi (sau rescrie partiţia\nde dale ca s-o refaci).
@@ -549,7 +544,6 @@ No saved map tiles here.\n\nConnect to Wi-Fi (Settings → Wi-Fi)\nto download t
 No system time yet	Încă nu există oră de sistem
 No telemetry in this window.\nRequest one, or widen the range below.	Fără telemetrie în acest interval.\nCere una sau lărgeşte intervalul de mai jos.
 No tiles (non-ESP32)	Fără dale (non-ESP32)
-No version known yet. Wi-Fi and a completed update check are needed first.	Nicio versiune cunoscută încă. E nevoie mai întâi de Wi-Fi şi de o verificare de actualizare completă.
 Node name	Nume nod
 Node\nRegion\nRadio\nSignal\nContacts\nChannels\nBattery\nUptime	Nod\nRegiune\nRadio\nSemnal\nContacte\nCanale\nBaterie\nTimp de funcţionare
 Normal (100%)\nLarge (150%)\nHuge (200%)	Normal (100%)\nMare (150%)\nFoarte mare (200%)
@@ -647,7 +641,6 @@ Reboot	Reporneşte
 Reboot device	Reporneşte dispozitivul
 Rebooting...	Se reporneşte...
 Rebooting…	Se reporneşte…
-Receive unreleased test firmware — newer features, but less tested. The update check and Install update both follow the beta channel.	Primeşti firmware de test nepublicat — funcţii mai noi, dar mai puţin testate. Verificarea de actualizare şi Instalează actualizarea urmează ambele canalul beta.
 Recently heard	Auzite recent
 Reformat SD as MESHCOMOD (FAT32)?\nALL data on the card will be erased.	Reformatezi SD ca MESHCOMOD (FAT32)?\nTOATE datele de pe card vor fi şterse.
 Region & scope	Regiune şi acoperire
@@ -737,7 +730,6 @@ Saved — rebooting	Salvat — se reporneşte
 Saved — reconnecting…	Salvat — se reconectează…
 Saved: %s\nFlash it from the Launcher.	Salvat: %s\nInstalează-l din Launcher.
 Saved: %s\nReady for offline flashing.	Saved: %s\nReady for offline flashing.
-Saves the latest firmware of the selected channel to the SD card (BINS folder).	Saves the latest firmware of the selected channel to the SD card (BINS folder).
 Saving to SD… %d%%	Se salvează pe SD… %d%%
 Saving to SD… 0%	Se salvează pe SD… 0%
 Scan to open on phone	Scanează pentru a deschide pe telefon
@@ -1101,8 +1093,6 @@ Networks	Networks
 Other networks	Other networks
 Show system files	Show system files
 Unfav	Unfav
-Firmware beta_%d\nChecking for updates over Wi-Fi…	Firmware beta_%d\nChecking for updates over Wi-Fi…
-Install beta_%d?\nThis downgrades the firmware and reboots.	Install beta_%d?\nThis downgrades the firmware and reboots.
 Other (hidden) network…	Other (hidden) network…
 Paused	Paused
 Scan again	Scan again

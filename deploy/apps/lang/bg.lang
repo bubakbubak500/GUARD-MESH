@@ -320,7 +320,6 @@ Fetching the app list from firmware.wadamesh.com	Изтегляне на спи�
 Files	Файлове
 Find	Намери
 Finish	Готово
-Firmware beta_%d\nCouldn't reach the update server	Фърмуер beta_%d\nСървърът за обновяване е недостъпен
 Firmware:	Фърмуер:
 Flash on new message	Мигане при ново съобщение
 Flood	Флуд
@@ -328,7 +327,6 @@ Flood advert sent	Flood advert изпратен
 Flood every	Flood на всеки
 Flood: relayed across the mesh (multi-hop).\nZero-hop: neighbours only (no relaying).	Flood: препредаване през мрежата (мулти-хоп).\nZero-hop: само съседи (без препредаване).
 Folder created	Папката е създадена
-For Launcher installs: saves the latest firmware of the selected channel to the SD card (BINS folder).	За инсталации с Launcher: запазва най-новия фърмуер на избрания канал на SD картата (папка BINS).
 Forget network	Забрави мрежата
 Format	Форматирай
 Format SD as MESHCOMOD (FAT32)?\nAll data on the card will be erased.	Форматиране на SD като MESHCOMOD (FAT32)?\nВсички данни на картата ще бъдат изтрити.
@@ -383,8 +381,6 @@ Inactive	Неактивно
 Info	Инфо
 Insert emoji / symbol	Вмъкни емоджи / символ
 Install	Инсталирай
-Install a previous version	Инсталиране на предишна версия
-Install an earlier version	Инсталиране на по-ранна версия
 Install failed (network?)	Инсталирането се провали (мрежа?)
 Install update	Инсталирай обновление
 Installed	Инсталирани
@@ -532,7 +528,6 @@ No contact for thread	Няма контакт за разговора
 No contact to trace	Няма контакт за проследяване
 No contacts have shared\na GPS location yet.	Все още няма контакти,\nсподелили GPS местоположение.
 No discovered nodes yet.\n\nAnything heard over the air that isn't in your contacts will show up here. When auto-add is off, you can manually add nodes to your contacts.	Все още няма открити възли.\n\nВсичко чуто в ефира, което не е в контактите ви, ще се появи тук. Когато авто-добавянето е изключено, можете да добавяте възли ръчно.
-No earlier versions yet	Все още няма по-ранни версии
 No local expansion data	Няма локални данни за разширение
 No location for this contact	Няма местоположение за този контакт
 No map storage.\n\nInsert an SD card to cache\nWi-Fi tiles (or reflash to\nrestore the tiles partition).	Няма хранилище за карта.\n\nПоставете SD карта за кеш на\nWi-Fi плочки (или префлашнете за\nдяла tiles).
@@ -549,7 +544,6 @@ No saved map tiles here.\n\nConnect to Wi-Fi (Settings → Wi-Fi)\nto download t
 No system time yet	Все още няма системно време
 No telemetry in this window.\nRequest one, or widen the range below.	Няма телеметрия в този прозорец.\nПоискайте или разширете обхвата по-долу.
 No tiles (non-ESP32)	Няма плочки (не ESP32)
-No version known yet. Wi-Fi and a completed update check are needed first.	Все още няма известна версия. Първо са нужни Wi-Fi и завършена проверка за обновления.
 Node name	Име на възела
 Node\nRegion\nRadio\nSignal\nContacts\nChannels\nBattery\nUptime	Възел\nРегион\nРадио\nСигнал\nКонтакти\nКанали\nБатерия\nВреме на работа
 Normal (100%)\nLarge (150%)\nHuge (200%)	Нормален (100%)\nГолям (150%)\nОгромен (200%)
@@ -647,7 +641,6 @@ Reboot	Рестартирай
 Reboot device	Рестартирай устройството
 Rebooting...	Рестартиране...
 Rebooting…	Рестартиране…
-Receive unreleased test firmware — newer features, but less tested. The update check and Install update both follow the beta channel.	Получаване на неиздаден тестов firmware — по-нови функции, но по-малко тествани. Проверката и инсталирането следват бета канала.
 Recently heard	Наскоро чути
 Reformat SD as MESHCOMOD (FAT32)?\nALL data on the card will be erased.	Форматиране на SD като MESHCOMOD (FAT32)?\nВСИЧКИ данни на картата ще бъдат изтрити.
 Region & scope	Регион и обхват
@@ -737,7 +730,6 @@ Saved — rebooting	Запазено — рестарт
 Saved — reconnecting…	Запазено — повторно свързване…
 Saved: %s\nFlash it from the Launcher.	Запазено: %s\nФлашнете го от Launcher.
 Saved: %s\nReady for offline flashing.	Saved: %s\nReady for offline flashing.
-Saves the latest firmware of the selected channel to the SD card (BINS folder).	Saves the latest firmware of the selected channel to the SD card (BINS folder).
 Saving to SD… %d%%	Запис на SD… %d%%
 Saving to SD… 0%	Запис на SD… 0%
 Scan to open on phone	Сканирай, за да отвориш на телефона
@@ -1100,8 +1092,6 @@ Networks	Networks
 Other networks	Other networks
 Show system files	Show system files
 Unfav	Unfav
-Firmware beta_%d\nChecking for updates over Wi-Fi…	Firmware beta_%d\nChecking for updates over Wi-Fi…
-Install beta_%d?\nThis downgrades the firmware and reboots.	Install beta_%d?\nThis downgrades the firmware and reboots.
 Other (hidden) network…	Other (hidden) network…
 Paused	Paused
 Scan again	Scan again

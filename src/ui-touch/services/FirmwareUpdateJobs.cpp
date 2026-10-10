@@ -5,9 +5,9 @@
 #include <cstring>
 namespace ui {
 bool FirmwareUpdateJobs::requestCheck(bool beta, uint32_t generation) {
-  if (checkActive())
+  if (checkActive() || installActive())
     return false;
-  _check = {{beta, generation}, -1};
+  _check = {{beta, generation}, -1, {}, false, {0}};
   _checkState.store(Queued, std::memory_order_release);
   return true;
 }
@@ -20,9 +20,16 @@ bool FirmwareUpdateJobs::takeCheck(CheckResult &result) {
   return true;
 }
 bool FirmwareUpdateJobs::requestInstall(Destination destination, bool beta, int version) {
-  if (version < 0 || installActive())
+  if (version < 0 || installActive() || checkActive())
     return false;
-  _install = {{destination, beta, version}, false, {0}};
+  _install = {{destination, beta, version, {}}, false, {0}};
+  _progress.store(0, std::memory_order_relaxed);
+  _installState.store(Queued, std::memory_order_release);
+  return true;
+}
+bool FirmwareUpdateJobs::requestInstall(const FirmwareRelease &release) {
+  if (installActive() || checkActive() || !release.size) return false;
+  _install = {{Destination::Ota, false, 0, release}, false, {0}};
   _progress.store(0, std::memory_order_relaxed);
   _installState.store(Queued, std::memory_order_release);
   return true;
@@ -32,7 +39,7 @@ bool FirmwareUpdateJobs::installActive() const {
 }
 bool FirmwareUpdateJobs::storageBusy() const {
   const auto state = _installState.load(std::memory_order_acquire);
-  return (state == Queued || state == Running) && _install.request.destination == Destination::Sd;
+  return state == Queued || state == Running;
 }
 int FirmwareUpdateJobs::installState(Destination destination) const {
   const auto state = _installState.load(std::memory_order_acquire);
@@ -52,6 +59,7 @@ void FirmwareUpdateJobs::failQueuedCheck() {
   if (!_checkState.compare_exchange_strong(expected, Running, std::memory_order_acquire))
     return;
   _check.latest = -1;
+  snprintf(_check.message, sizeof _check.message, "Update worker unavailable");
   _checkState.store(Ready, std::memory_order_release);
 }
 void FirmwareUpdateJobs::failQueuedInstall(const char *message) {
@@ -67,6 +75,7 @@ bool FirmwareUpdateJobs::runCheck(const Backend &backend) {
   if (!_checkState.compare_exchange_strong(expected, Running, std::memory_order_acquire))
     return false;
   _check.latest = backend.check ? backend.check(backend.context, _check.request.beta) : -1;
+  if (backend.resolve) backend.resolve(backend.context, _check);
   _checkState.store(Ready, std::memory_order_release);
   return true;
 }

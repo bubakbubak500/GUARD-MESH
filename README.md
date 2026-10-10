@@ -13,18 +13,23 @@ maintained by [@bubakbubak500](https://github.com/bubakbubak500).
   for live PC status, messages, contacts and composing queued messages.
   Pairing is in Settings. The upstream build instructions remain below.
 
-## Guardian 2026.10.10.1
+## Guardian 2026.10.10.2
 
-- About points to GUARD-MESH releases on GitHub and shows the actual Guardian
-  release tag with manual Wi-Fi OTA instructions.
-- Automatic release polling, installation and SD downloads are unavailable.
-  The old upstream update transport has been removed; retained install calls
-  are rejected without downloading or writing firmware.
-- Manual OTA uses the matching **app-ota.bin**: open Terminal, run `ota start`,
-  connect to **MeshCore-OTA**, and upload through the displayed `/update` page.
-  The complete **merged.bin** is for USB installation.
-- [Release notes](release-notes/guardian-2026.10.10.1.md) ·
-  [Firmware downloads](https://github.com/bubakbubak500/GUARD-MESH/releases/tag/guardian-2026.10.10.1)
+- Settings → **Update** (Czech: **Aktualizace**) enables Wi-Fi, opens network
+  settings, checks the latest published GUARD-MESH GitHub release and installs
+  its exact board-specific **app-ota.bin** after confirmation. No SD card is needed.
+- Downloads use verified HTTPS certificates, restricted GitHub redirects,
+  size/header checks and SHA-256. Firmware streams into the inactive internal
+  flash slot; the boot partition changes only after successful verification.
+  Unsupported partition layouts offer USB installation instead.
+- About contains the firmware version and diagnostics. System Information reads
+  image headers instead of verifying the entire application inside a UI event,
+  and keeps its large formatting buffers off the loop-task stack.
+- Existing releases without this updater need an initial USB install using
+  **merged.bin**, or a manual OTA upload of **app-ota.bin** through `ota start`.
+  Direct GitHub OTA still needs validation on physical hardware.
+- [Release notes](release-notes/guardian-2026.10.10.2.md) ·
+  [Firmware downloads](https://github.com/bubakbubak500/GUARD-MESH/releases/tag/guardian-2026.10.10.2)
 
 ## Guardian 2026.10.10
 

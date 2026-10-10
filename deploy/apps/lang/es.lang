@@ -320,7 +320,6 @@ Fetching the app list from firmware.wadamesh.com	Obteniendo la lista de apps de 
 Files	Archivos
 Find	Buscar
 Finish	Finalizar
-Firmware beta_%d\nCouldn't reach the update server	Firmware beta_%d\nNo se pudo contactar el servidor
 Firmware:	Firmware:
 Flash on new message	Parpadear con mensaje nuevo
 Flood	Difusión
@@ -328,7 +327,6 @@ Flood advert sent	Anuncio flood enviado
 Flood every	Flood cada
 Flood: relayed across the mesh (multi-hop).\nZero-hop: neighbours only (no relaying).	Flood: retransmitido por la malla (multisalto).\nZero-hop: solo vecinos (sin retransmisión).
 Folder created	Carpeta creada
-For Launcher installs: saves the latest firmware of the selected channel to the SD card (BINS folder).	Para instalaciones con Launcher: guarda el firmware más reciente del canal elegido en la tarjeta SD (carpeta BINS).
 Forget network	Olvidar la red
 Format	Formatear
 Format SD as MESHCOMOD (FAT32)?\nAll data on the card will be erased.	¿Formatear SD como MESHCOMOD (FAT32)?\nSe borrarán todos los datos de la tarjeta.
@@ -383,8 +381,6 @@ Inactive	Inactivo
 Info	Info
 Insert emoji / symbol	Insertar emoji / símbolo
 Install	Instalar
-Install a previous version	Instalar una versión anterior
-Install an earlier version	Instalar una versión anterior
 Install failed (network?)	Falló la instalación (¿red?)
 Install update	Instalar actualización
 Installed	Instaladas
@@ -532,7 +528,6 @@ No contact for thread	Sin contacto para el hilo
 No contact to trace	Sin contacto para rastrear
 No contacts have shared\na GPS location yet.	Ningún contacto ha compartido\nuna ubicación GPS aún.
 No discovered nodes yet.\n\nAnything heard over the air that isn't in your contacts will show up here. When auto-add is off, you can manually add nodes to your contacts.	Aún no hay nodos descubiertos.\n\nTodo lo que se oiga por radio y no esté en tus contactos aparecerá aquí. Si el auto-añadir está desactivado, puedes añadir nodos manualmente a tus contactos.
-No earlier versions yet	Aún no hay versiones anteriores
 No local expansion data	Sin datos de expansión local
 No location for this contact	Sin ubicación para este contacto
 No map storage.\n\nInsert an SD card to cache\nWi-Fi tiles (or reflash to\nrestore the tiles partition).	Sin almacenamiento de mapa.\n\nInserta una tarjeta SD para teselas\nWi-Fi (o reinstala para restaurar\nla partición de teselas).
@@ -549,7 +544,6 @@ No saved map tiles here.\n\nConnect to Wi-Fi (Settings → Wi-Fi)\nto download t
 No system time yet	Aún no hay hora del sistema
 No telemetry in this window.\nRequest one, or widen the range below.	Sin telemetría en esta ventana.\nSolicita una o amplía el rango abajo.
 No tiles (non-ESP32)	Sin teselas (no ESP32)
-No version known yet. Wi-Fi and a completed update check are needed first.	Aún no se conoce versión. Primero se necesitan Wi-Fi y una comprobación de actualización completada.
 Node name	Nombre del nodo
 Node\nRegion\nRadio\nSignal\nContacts\nChannels\nBattery\nUptime	Nodo\nRegión\nRadio\nSeñal\nContactos\nCanales\nBatería\nActividad
 Normal (100%)\nLarge (150%)\nHuge (200%)	Normal (100%)\nGrande (150%)\nEnorme (200%)
@@ -647,7 +641,6 @@ Reboot	Reiniciar
 Reboot device	Reiniciar dispositivo
 Rebooting...	Reiniciando...
 Rebooting…	Reiniciando…
-Receive unreleased test firmware — newer features, but less tested. The update check and Install update both follow the beta channel.	Recibe firmware de prueba no publicado — funciones más nuevas, pero menos probadas. La comprobación y la instalación siguen el canal beta.
 Recently heard	Escuchado hace poco
 Reformat SD as MESHCOMOD (FAT32)?\nALL data on the card will be erased.	¿Reformatear la SD como MESHCOMOD (FAT32)?\nSe borrarán TODOS los datos de la tarjeta.
 Region & scope	Región y alcance
@@ -737,7 +730,6 @@ Saved — rebooting	Guardado — reiniciando
 Saved — reconnecting…	Guardado — reconectando…
 Saved: %s\nFlash it from the Launcher.	Guardado: %s\nFlashéalo desde el Launcher.
 Saved: %s\nReady for offline flashing.	Saved: %s\nReady for offline flashing.
-Saves the latest firmware of the selected channel to the SD card (BINS folder).	Saves the latest firmware of the selected channel to the SD card (BINS folder).
 Saving to SD… %d%%	Guardando en SD… %d%%
 Saving to SD… 0%	Guardando en SD… 0%
 Scan to open on phone	Escanea para abrir en el móvil
@@ -1100,8 +1092,6 @@ Networks	Networks
 Other networks	Other networks
 Show system files	Show system files
 Unfav	Unfav
-Firmware beta_%d\nChecking for updates over Wi-Fi…	Firmware beta_%d\nChecking for updates over Wi-Fi…
-Install beta_%d?\nThis downgrades the firmware and reboots.	Install beta_%d?\nThis downgrades the firmware and reboots.
 Other (hidden) network…	Other (hidden) network…
 Paused	Paused
 Scan again	Scan again

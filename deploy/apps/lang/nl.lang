@@ -320,7 +320,6 @@ Fetching the app list from firmware.wadamesh.com	App-lijst ophalen van firmware.
 Files	Bestanden
 Find	Zoeken
 Finish	Voltooien
-Firmware beta_%d\nCouldn't reach the update server	Firmware beta_%d\nKon de updateserver niet bereiken
 Firmware:	Firmware:
 Flash on new message	Knipperen bij nieuw bericht
 Flood	Flood
@@ -328,7 +327,6 @@ Flood advert sent	Flood-advert verzonden
 Flood every	Flood elke
 Flood: relayed across the mesh (multi-hop).\nZero-hop: neighbours only (no relaying).	Flood: doorgestuurd over het mesh (multi-hop).\nZero-hop: alleen buren (geen doorsturen).
 Folder created	Map aangemaakt
-For Launcher installs: saves the latest firmware of the selected channel to the SD card (BINS folder).	Voor Launcher-installaties: slaat de nieuwste firmware van het geselecteerde kanaal op de SD-kaart op (BINS-map).
 Forget network	Netwerk vergeten
 Format	Formatteren
 Format SD as MESHCOMOD (FAT32)?\nAll data on the card will be erased.	SD formatteren als MESHCOMOD (FAT32)?\nAlle gegevens op de kaart worden gewist.
@@ -383,8 +381,6 @@ Inactive	Inactief
 Info	Info
 Insert emoji / symbol	Emoji / symbool invoegen
 Install	Installeren
-Install a previous version	Een vorige versie installeren
-Install an earlier version	Een eerdere versie installeren
 Install failed (network?)	Installatie mislukt (netwerk?)
 Install update	Update installeren
 Installed	Geïnstalleerd
@@ -531,7 +527,6 @@ No contact for thread	Geen contact voor gesprek
 No contact to trace	Geen contact om te traceren
 No contacts have shared\na GPS location yet.	Nog geen contacten hebben\neen GPS-locatie gedeeld.
 No discovered nodes yet.\n\nAnything heard over the air that isn't in your contacts will show up here. When auto-add is off, you can manually add nodes to your contacts.	Nog geen ontdekte nodes.\n\nAlles wat via de ether wordt gehoord en niet in je contacten staat, verschijnt hier. Als automatisch toevoegen uit staat, kun je nodes handmatig aan je contacten toevoegen.
-No earlier versions yet	Nog geen eerdere versies
 No local expansion data	Geen lokale uitbreidingsdata
 No location for this contact	Geen locatie voor dit contact
 No map storage.\n\nInsert an SD card to cache\nWi-Fi tiles (or reflash to\nrestore the tiles partition).	Geen kaartopslag.\n\nPlaats een SD-kaart om wifi-tegels\nte cachen (of flash opnieuw om\nde tiles-partitie te herstellen).
@@ -548,7 +543,6 @@ No saved map tiles here.\n\nConnect to Wi-Fi (Settings → Wi-Fi)\nto download t
 No system time yet	Nog geen systeemtijd
 No telemetry in this window.\nRequest one, or widen the range below.	Geen telemetrie in dit venster.\nVraag er een aan, of verbreed het bereik hieronder.
 No tiles (non-ESP32)	Geen tegels (niet-ESP32)
-No version known yet. Wi-Fi and a completed update check are needed first.	Nog geen versie bekend. Eerst zijn Wi-Fi en een voltooide updatecontrole nodig.
 Node name	Nodenaam
 Node\nRegion\nRadio\nSignal\nContacts\nChannels\nBattery\nUptime	Node\nRegio\nRadio\nSignaal\nContacten\nKanalen\nBatterij\nBedrijfstijd
 Normal (100%)\nLarge (150%)\nHuge (200%)	Normaal (100%)\nGroot (150%)\nEnorm (200%)
@@ -646,7 +640,6 @@ Reboot	Herstarten
 Reboot device	Apparaat herstarten
 Rebooting...	Opnieuw opstarten...
 Rebooting…	Opnieuw opstarten…
-Receive unreleased test firmware — newer features, but less tested. The update check and Install update both follow the beta channel.	Ontvang niet-uitgebrachte testfirmware — nieuwere functies, maar minder getest. De updatecontrole en Update installeren volgen beide het bètakanaal.
 Recently heard	Recent gehoord
 Reformat SD as MESHCOMOD (FAT32)?\nALL data on the card will be erased.	SD herformatteren als MESHCOMOD (FAT32)?\nALLE data op de kaart wordt gewist.
 Region & scope	Regio en bereik
@@ -736,7 +729,6 @@ Saved — rebooting	Opgeslagen — opnieuw opstarten
 Saved — reconnecting…	Opgeslagen — opnieuw verbinden…
 Saved: %s\nFlash it from the Launcher.	Opgeslagen: %s\nFlash het vanuit de Launcher.
 Saved: %s\nReady for offline flashing.	Saved: %s\nReady for offline flashing.
-Saves the latest firmware of the selected channel to the SD card (BINS folder).	Saves the latest firmware of the selected channel to the SD card (BINS folder).
 Saving to SD… %d%%	Opslaan naar SD… %d%%
 Saving to SD… 0%	Opslaan naar SD… 0%
 Scan to open on phone	Scan om op je telefoon te openen
@@ -1097,8 +1089,6 @@ Networks	Networks
 Other networks	Other networks
 Show system files	Show system files
 Unfav	Unfav
-Firmware beta_%d\nChecking for updates over Wi-Fi…	Firmware beta_%d\nChecking for updates over Wi-Fi…
-Install beta_%d?\nThis downgrades the firmware and reboots.	Install beta_%d?\nThis downgrades the firmware and reboots.
 Other (hidden) network…	Other (hidden) network…
 Paused	Paused
 Scan again	Scan again

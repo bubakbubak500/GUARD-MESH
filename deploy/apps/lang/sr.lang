@@ -320,7 +320,6 @@ Fetching the app list from firmware.wadamesh.com	Преузимање листе
 Files	Фајлови
 Find	Пронађи
 Finish	Заврши
-Firmware beta_%d\nCouldn't reach the update server	Фирмвер beta_%d\nСервер ажурирања недоступан
 Firmware:	Фирмвер:
 Flash on new message	Блицај при новој поруци
 Flood	Флуд
@@ -328,7 +327,6 @@ Flood advert sent	Flood advert послат
 Flood every	Flood сваких
 Flood: relayed across the mesh (multi-hop).\nZero-hop: neighbours only (no relaying).	Flood: прослеђено кроз мрежу (мулти-хоп).\nZero-hop: само суседи (без прослеђивања).
 Folder created	Фасцикла направљена
-For Launcher installs: saves the latest firmware of the selected channel to the SD card (BINS folder).	За Launcher инсталације: чува најновији фирмвер изабраног канала на SD картицу (BINS фолдер).
 Forget network	Заборави мрежу
 Format	Форматирај
 Format SD as MESHCOMOD (FAT32)?\nAll data on the card will be erased.	Форматирати SD као MESHCOMOD (FAT32)?\nСви подаци на картици биће обрисани.
@@ -383,8 +381,6 @@ Inactive	Неактивно
 Info	Инфо
 Insert emoji / symbol	Уметни емоџи / симбол
 Install	Инсталирај
-Install a previous version	Инсталирај претходну верзију
-Install an earlier version	Инсталирај ранију верзију
 Install failed (network?)	Инсталирање није успело (мрежа?)
 Install update	Инсталирај ажурирање
 Installed	Инсталиране
@@ -532,7 +528,6 @@ No contact for thread	Нема контакта за разговор
 No contact to trace	Нема контакта за праћење
 No contacts have shared\na GPS location yet.	Још ниједан контакт није\nподелио GPS локацију.
 No discovered nodes yet.\n\nAnything heard over the air that isn't in your contacts will show up here. When auto-add is off, you can manually add nodes to your contacts.	Још нема откривених чворова.\n\nСве чуто у етру што није у контактима појавиће се овде. Када је аутоматско додавање искључено, чворове можете додати ручно.
-No earlier versions yet	Још нема ранијих верзија
 No local expansion data	Нема локалних података о проширењу
 No location for this contact	Нема локације за овај контакт
 No map storage.\n\nInsert an SD card to cache\nWi-Fi tiles (or reflash to\nrestore the tiles partition).	Нема складишта мапе.\n\nУбаците SD картицу за кеш\nWi-Fi плочица (или флешујте за\ntiles партицију).
@@ -549,7 +544,6 @@ No saved map tiles here.\n\nConnect to Wi-Fi (Settings → Wi-Fi)\nto download t
 No system time yet	Још нема системског времена
 No telemetry in this window.\nRequest one, or widen the range below.	Нема телеметрије у овом прозору.\nЗатражите је или проширите опсег испод.
 No tiles (non-ESP32)	Нема плочица (није ESP32)
-No version known yet. Wi-Fi and a completed update check are needed first.	Верзија још није позната. Прво су потребни Wi-Fi и завршена провера ажурирања.
 Node name	Назив чвора
 Node\nRegion\nRadio\nSignal\nContacts\nChannels\nBattery\nUptime	Чвор\nРегион\nРадио\nСигнал\nКонтакти\nКанали\nБатерија\nВреме рада
 Normal (100%)\nLarge (150%)\nHuge (200%)	Нормалан (100%)\nВелик (150%)\nОгроман (200%)
@@ -647,7 +641,6 @@ Reboot	Рестартуј
 Reboot device	Рестартуј уређај
 Rebooting...	Рестартовање...
 Rebooting…	Рестартовање…
-Receive unreleased test firmware — newer features, but less tested. The update check and Install update both follow the beta channel.	Прими необјављени тест firmware — новије функције, али мање тестиране. Провера и инсталација прате бета канал.
 Recently heard	Недавно чути
 Reformat SD as MESHCOMOD (FAT32)?\nALL data on the card will be erased.	Форматирати SD као MESHCOMOD (FAT32)?\nСВИ подаци на картици биће обрисани.
 Region & scope	Регион и опсег
@@ -737,7 +730,6 @@ Saved — rebooting	Сачувано — рестарт
 Saved — reconnecting…	Сачувано — поновно повезивање…
 Saved: %s\nFlash it from the Launcher.	Сачувано: %s\nФлешујте га из Launcher-а.
 Saved: %s\nReady for offline flashing.	Saved: %s\nReady for offline flashing.
-Saves the latest firmware of the selected channel to the SD card (BINS folder).	Saves the latest firmware of the selected channel to the SD card (BINS folder).
 Saving to SD… %d%%	Чување на SD… %d%%
 Saving to SD… 0%	Чување на SD… 0%
 Scan to open on phone	Скенирај да отвориш на телефону
@@ -1100,8 +1092,6 @@ Networks	Networks
 Other networks	Other networks
 Show system files	Show system files
 Unfav	Unfav
-Firmware beta_%d\nChecking for updates over Wi-Fi…	Firmware beta_%d\nChecking for updates over Wi-Fi…
-Install beta_%d?\nThis downgrades the firmware and reboots.	Install beta_%d?\nThis downgrades the firmware and reboots.
 Other (hidden) network…	Other (hidden) network…
 Paused	Paused
 Scan again	Scan again
