@@ -2124,6 +2124,9 @@ void loop() {
 #else
   sensors.loop();
 #endif
+#if defined(LILYGO_TDECK) && defined(ESP32)
+  tdeckGpsPowerService();
+#endif
 #if defined(ESP32)
   // GPS time guard (Ricky Leong's "stuck at 1902"): MicroNMEALocationProvider
   // sets the mesh RTC from a GPS *position* fix even before the date fields are

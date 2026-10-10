@@ -1454,3 +1454,14 @@ Firmware download interrupted	Stahování firmwaru bylo přerušeno
 Firmware validation failed	Ověření firmwaru selhalo
 Could not activate firmware	Nový firmware nelze aktivovat
 Wi-Fi OTA is unavailable in this build	V tomto sestavení není Wi-Fi OTA dostupná
+Unverified GPS	Neověřené GPS
+Unknown GPS	Neznámé GPS
+Identifying receiver	Ověřuji přijímač
+Receiver active	Přijímač je aktivní
+Preparing standby	Připravuji uspání
+Standby command sent	Příkaz k uspání odeslán
+Waking receiver	Probouzím přijímač
+Standby skipped: configuration not confirmed	Uspání vynecháno: nastavení nepotvrzeno
+Standby or wake failed	Uspání nebo probuzení selhalo
+Receiver active; standby unsupported	Přijímač je aktivní; uspání nepodporováno
+Software off; standby unsupported	Softwarově vypnuto; uspání nepodporováno

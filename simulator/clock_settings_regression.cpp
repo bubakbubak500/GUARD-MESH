@@ -194,6 +194,9 @@ void runClockSettingsRegression(void (*pump)(unsigned)) {
         "Old clock form or picker changed replacement state");
   pump(40);
   lv_obj_del(first);
+  // Programmatic clicks do not guarantee a display refresh. Commit the new
+  // form's percentage widths before inspecting its LONG_DOT caption.
+  lv_obj_update_layout(second);
   click(zoneButton(second));
   click(button(lv_layer_top(), settings.zoneLabel(1)));
   check(settings.read().zone == 1 && !screen.pickerOpen() && label(second, settings.zoneLabel(1)),

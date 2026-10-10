@@ -14,6 +14,7 @@
 #endif
 #include "helpers/sensors/EnvironmentSensorManager.h"
 #include "helpers/sensors/MicroNMEALocationProvider.h"
+#include "../../src/ui-touch/models/GpsStatus.h"
 
 extern TDeckBoard board;
 extern WRAPPER_CLASS radio_driver;
@@ -30,6 +31,9 @@ extern EnvironmentSensorManager sensors;
 // radio. The microSD slot (CS=39) reuses this so it doesn't fight the radio for
 // the bus. Returns nullptr if the build has no LoRa SPI pins.
 SPIClass* tdeckSharedSPI();
+
+void tdeckGpsPowerService();
+void tdeckGpsPowerSnapshot(ui::gps::Snapshot &snapshot);
 
 bool radio_init();
 mesh::LocalIdentity radio_new_identity();

@@ -1526,6 +1526,30 @@ static int         g_shot_h   = 0;
 // (skip the panel) + the display-init resolution. Ungated so non-mirror code reads it
 // (always false on Tanmatsu / when off).
 static bool s_remote_mode = false;
+
+#if defined(HAS_TDECK_GT911)
+// Only a synchronous repaint before lighting the panel may write while the
+// screen policy is still dark. Do not duplicate the policy's persistent state.
+static bool s_preparing_panel_frame = false;
+static bool s_in_lvgl_handler = false;
+static bool s_panel_light_pending = false;
+static bool touchPanelWriteNeeded() {
+  return s_preparing_panel_frame || (!s_panel_light_pending &&
+         (!g_lv.task || !g_lv.task->isScreenOff()));
+}
+static bool touchVisualRefreshNeeded() {
+  return touchPanelWriteNeeded() || g_shot_buf || g_web_mirror.active();
+}
+static void touchDisplayRefresh(lv_timer_t* timer) {
+  // Keep dirty areas pending, but keep input, animation and application timers
+  // running. LVGL invalidation can resume this timer, so pausing it alone would
+  // not prevent dark-screen rendering. Explicit lv_refr_now remains available.
+  if (touchVisualRefreshNeeded()) _lv_disp_refr_timer(timer);
+  else lv_timer_pause(timer);
+}
+#else
+static inline bool touchVisualRefreshNeeded() { return true; }
+#endif
 static bool s_remote_landscape = false;   // remote orientation: true=800x480 landscape (desktop), false=480x800 portrait
 // Bootloop guard for remote mode: RTC memory persists across a soft reset (crash/reboot)
 // but is garbage on a cold power-on. Armed before entering remote mode, cleared a few
@@ -1872,6 +1896,9 @@ static void lvglFlush(lv_disp_drv_t* disp_drv, const lv_area_t* area, lv_color_t
   display.flushBandRGB565(area->x1, area->y1, w, h, reinterpret_cast<uint16_t*>(color_p),
                           lv_disp_flush_is_last(disp_drv));
 #else
+#if defined(HAS_TDECK_GT911)
+  if (touchPanelWriteNeeded())
+#endif
   display.writePixelsRGB565(area->x1, area->y1, w, h, reinterpret_cast<uint16_t*>(color_p));
 #endif
   if (g_shot_buf) {                       // mirror this area into the screenshot buffer
@@ -3415,6 +3442,7 @@ static void refreshContactsList();
 static void contactsListForceRefresh();   // refresh past the no-change cache (e.g. fav toggle, where the count is unchanged)
 static void refreshThreadLists();
 static void refreshStatusLabels();
+static void refreshFullDisplayFrame();
 static void refreshLiveDiag(unsigned long now);
 static void refreshSettingsSectionSubtitles();
 static void refreshLogModalView();
@@ -7219,6 +7247,9 @@ static ui::GpsSettings::Host gpsHost() {
       snapshot.altitude = g_lv.task->getGpsAltitude();
       snapshot.latitude = g_lv.task->getNodeLat();
       snapshot.longitude = g_lv.task->getNodeLon();
+#if defined(LILYGO_TDECK) && defined(ESP32) && !defined(GUARD_SIMULATOR)
+      tdeckGpsPowerSnapshot(snapshot);
+#endif
     },
     [](void*, bool on) {
       if (!g_lv.task || on == g_lv.task->getGPSState()) return;
@@ -18459,7 +18490,9 @@ static void lockscreenUnlockPopupHide() { s_lock_screen.hideUnlockProgress(); }
 static void lockscreenUnlockProgress(unsigned long remaining_ms) {
   s_lock_screen.showUnlockProgress(static_cast<uint32_t>(remaining_ms));
 }
-static void serviceLockscreen() { s_lock_screen.service(); }
+static void serviceLockscreen() {
+  if (touchVisualRefreshNeeded()) s_lock_screen.service();
+}
 #endif  // core lock screen (HAS_TDECK_GT911 || HAS_TANMATSU)
 
 static ui::screens::SoundSettingsScreen::Host soundFormHost() {
@@ -23189,10 +23222,14 @@ static void takeScreenshotToSd() {
 
   // Mirror a forced full-screen redraw (all layers) into buf via the flush hook.
   g_shot_w = W; g_shot_h = H; g_shot_buf = buf;
+#if defined(HAS_TDECK_GT911)
+  refreshFullDisplayFrame();
+#else
   lv_obj_invalidate(lv_scr_act());
   lv_obj_invalidate(lv_layer_top());
   lv_obj_invalidate(lv_layer_sys());
   lv_refr_now(NULL);
+#endif
   g_shot_buf = nullptr;
 
   markSdIo();
@@ -24719,6 +24756,11 @@ static void refreshStatusLabels() {
 #if defined(HAS_EXPANSION_KIT)
   localEnvHistoryMaybeSample(millis());
 #endif
+#if defined(ESP32) && defined(MULTI_TRANSPORT_COMPANION)
+  // Worker handoff continues while the local panel is dark.
+  ui::screens::sightlineScreen::poll();
+#endif
+  if (!touchVisualRefreshNeeded()) return;
   // Global status bar updates every refresh — visible on every tab, so
   // it's not gated on home_active like the home tab's body widgets.
   updateGlobalStatusBar();
@@ -24806,8 +24848,6 @@ static void refreshStatusLabels() {
       renderMapMarkers();
     }
   }
-  // Line-of-sight worker result handoff (non-blocking).
-  ui::screens::sightlineScreen::poll();
 #endif
 
   if (g_lv.home_state && home_active) {
@@ -24928,6 +24968,82 @@ static void refreshStatusLabels() {
   }
   if (settings_active || g_set_modal.root) refreshSettingsSectionSubtitles();
 }
+
+static void refreshPendingDisplayVisuals(bool heavy_ok) {
+  if (!heavy_ok || !touchVisualRefreshNeeded()) return;
+  if (g_lv.dirty_contacts && getActiveTab() == CONTACTS_TAB_INDEX && !s_ctd_active) {
+    g_lv.dirty_contacts = false;
+    refreshContactsList();
+  }
+  if (g_lv.dirty_threads) {
+    refreshThreadLists();
+    g_lv.dirty_threads = false;
+  }
+  if (g_lv.dirty_timeline) {
+    if (g_lv.dm.detail_open) refreshChatDetailAsync(g_lv.dm);
+    if (g_lv.ch.detail_open) refreshChatDetailAsync(g_lv.ch);
+    g_lv.dirty_timeline = false;
+  }
+}
+
+static void refreshDisplayBadges() {
+  if (!touchVisualRefreshNeeded()) return;
+  if (s_chat_unread_badge) {
+    const int u = g_lv.task->getUnreadTotal();
+    if (u > 0) {
+      char b[8]; if (u > 99) snprintf(b, sizeof b, "99+"); else snprintf(b, sizeof b, "%d", u);
+      lv_label_set_text(s_chat_unread_badge, b);
+      lv_obj_clear_flag(s_chat_unread_badge, LV_OBJ_FLAG_HIDDEN);
+    } else lv_obj_add_flag(s_chat_unread_badge, LV_OBJ_FLAG_HIDDEN);
+  }
+  if (s_ct_disc_badge) {
+    const int dc = discoveredCount();
+    if (dc > 0) {
+      char b[8];
+      if (dc >= DISCOVERED_MAX) snprintf(b, sizeof b, "%d!", dc);
+      else snprintf(b, sizeof b, "%d", dc > 99 ? 99 : dc);
+      lv_label_set_text(s_ct_disc_badge, b);
+      lv_obj_clear_flag(s_ct_disc_badge, LV_OBJ_FLAG_HIDDEN);
+    } else lv_obj_add_flag(s_ct_disc_badge, LV_OBJ_FLAG_HIDDEN);
+  }
+}
+
+static void refreshFullDisplayFrame() {
+  if (!g_lv.ready) return;
+  refreshPendingDisplayVisuals(true);
+  refreshStatusLabels();
+  refreshDisplayBadges();
+#if CAP_LOCK_SCREEN
+  serviceLockscreen();
+#endif
+  batterySettingsScreen.refresh();
+  systemInfoScreen.refresh(millis());
+  ui::screens::map::processPendingRender();
+  // Include both overlay layers: the lock screen and global status bar are
+  // not children of the active screen. Skipped flushes leave panel GRAM stale.
+  lv_obj_invalidate(lv_scr_act());
+  lv_obj_invalidate(lv_layer_top());
+  lv_obj_invalidate(lv_layer_sys());
+  lv_refr_now(nullptr);
+}
+
+#if defined(GUARD_SIMULATOR)
+// Exercise the same composited capture path as the SD screenshot, with the
+// offline simulator's unavailable filesystem replaced by a caller-owned buffer.
+void guardSimCaptureDisplayFrame(lv_color_t* pixels) {
+  g_shot_w = lv_disp_get_hor_res(nullptr);
+  g_shot_h = lv_disp_get_ver_res(nullptr);
+  g_shot_buf = pixels;
+  refreshFullDisplayFrame();
+  g_shot_buf = nullptr;
+}
+void guardSimDisplayOpenHome() {
+  setHomeDrawer(false);
+  closeSettingsModal();
+  if (uiApplication.pageClose()) uiApplication.pageClose()();
+  goToTab(HOME_TAB_INDEX);
+}
+#endif
 
 // ============================================================
 // Boot splash: static Guardian shield, shared with the early hardware boot frame.
@@ -29002,6 +29118,11 @@ void UITask::begin(DisplayDriver* display, SensorManager* sensors, NodePrefs* no
     // rotation is left at NONE so it never software-rotates on top of the panel.
     g_lv.disp_drv.sw_rotate = 1;
   lv_disp_drv_register(&g_lv.disp_drv);
+#if defined(HAS_TDECK_GT911)
+  lv_timer_set_cb(_lv_disp_get_refr_timer(lv_disp_get_default()), touchDisplayRefresh);
+  s_web_fb_w = lv_disp_get_hor_res(nullptr);
+  s_web_fb_h = lv_disp_get_ver_res(nullptr);
+#endif
 #if defined(HAS_TANMATSU)
     // Apply the 270° software rotation now that the driver is registered: logical surface
     // becomes 800x480 and lv_disp_get_hor/ver_res report landscape for every layout query.
@@ -29852,6 +29973,24 @@ static inline void touchPanelSleep(bool) {}
  * Panel RAM survives SLPIN, so wake is near-instant and the previous image is
  * still on the glass when the LED lights back up — no partial re-render. */
 static inline void touchScreenBacklight(bool on) {
+#if defined(HAS_TDECK_GT911)
+  if (!on) s_panel_light_pending = false;
+  if (on && s_in_lvgl_handler) {
+    // The touch read callback can request wake. Finish that handler before
+    // rebuilding widgets or decoding map tiles on the shallow UI loop stack.
+    s_panel_light_pending = true;
+    return;
+  }
+  if (on && g_lv.ready && !s_remote_mode && !s_preparing_panel_frame) {
+    // Wake with the LED still dark, commit current widgets, then repaint the
+    // complete composited frame. Preserve the policy until the caller commits
+    // wake/reveal, so a message reveal cannot accidentally unlock the device.
+    touchPanelSleep(false);
+    s_preparing_panel_frame = true;
+    refreshFullDisplayFrame();
+    s_preparing_panel_frame = false;
+  }
+#endif
 #if defined(TLORA_PAGER)
   // Also has TFT_BL defined (=-1, disabling TFT_eSPI's own backlight pin
   // support), which would otherwise fall into the #elif defined(TFT_BL) branch
@@ -29927,6 +30066,9 @@ static inline void touchScreenBacklight(bool on) {
   else    display.setBrightness(0);
 #else
   (void)on;
+#endif
+#if defined(GUARD_SIMULATOR) && defined(HAS_TDECK_GT911)
+  display.setScreenBacklight(on);
 #endif
 }
 
@@ -30008,7 +30150,9 @@ void UITask::lockscreenReveal() {
   if (!_screen.manualLocked()) return;
   if (_screen.screenOff()) {
     lockscreenShow();
+#if !defined(HAS_TDECK_GT911)
     lv_refr_now(nullptr);  // paint before lighting the panel
+#endif
     setCpuForScreen(true);
     touchScreenBacklight(true);
   } else {
@@ -30021,9 +30165,14 @@ void UITask::lockscreenReveal() {
 void UITask::unlockScreen() {
   _screen.unlock(millis());
   setCpuForScreen(true);
+#if !defined(HAS_TDECK_GT911)
   touchScreenBacklight(true);
+#endif
 #if CAP_LOCK_SCREEN
   lockscreenHide();
+#endif
+#if defined(HAS_TDECK_GT911)
+  touchScreenBacklight(true);
 #endif
   _screen.recordActivity(millis());
 }
@@ -30742,7 +30891,9 @@ void UITask::handleIncomingMessage(const UIMessageEvent& input, bool notifyAccep
     }
     atGlanceShow(glance_title, body, was_off);   // fade in only on the initial reveal of a burst
     if (was_off) {
-      lv_refr_now(nullptr);   // paint before the backlight comes on -- no stale-frame flash
+#if !defined(HAS_TDECK_GT911)
+      lv_refr_now(nullptr);   // T-Deck prepares the full frame when lighting the panel
+#endif
       if (_screen.manualLocked()) {
         // A message may light the panel, but must never unlock it.
         setCpuForScreen(true);
@@ -31834,10 +31985,6 @@ void UITask::loop() {
   bool heavy_ok = !g_lv.defer_heavy_refresh || now >= g_lv.heavy_refresh_at_ms;
   if (g_lv.defer_heavy_refresh && heavy_ok) g_lv.defer_heavy_refresh = false;
 
-  if (g_lv.dirty_contacts && getActiveTab() == CONTACTS_TAB_INDEX && heavy_ok && !s_ctd_active) {
-    g_lv.dirty_contacts = false;
-    refreshContactsList();
-  }
   // Date labels can change at midnight even when the directory is unchanged.
   // Keep their inexpensive signature check independent of mesh reconciliation.
   static uint32_t next_thread_clock_check = 0;
@@ -31845,16 +31992,7 @@ void UITask::loop() {
     next_thread_clock_check = (uint32_t)now + 60000;
     g_lv.dirty_threads = true;
   }
-  if (g_lv.dirty_threads && heavy_ok) {
-    refreshThreadLists();
-    g_lv.dirty_threads = false;
-  }
-  if (g_lv.dirty_timeline && heavy_ok) {
-    // Only repaint the detail that is currently open.
-    if (g_lv.dm.detail_open) refreshChatDetailAsync(g_lv.dm);
-    if (g_lv.ch.detail_open) refreshChatDetailAsync(g_lv.ch);
-    g_lv.dirty_timeline = false;
-  }
+  refreshPendingDisplayVisuals(heavy_ok);
   // Jump arrows dim to 50% one second after the last scroll activity (every
   // scroll tick re-brightens them via chatUpdateJumpButtons).
   if (!s_jump_dimmed && s_jump_active_ms &&
@@ -31963,33 +32101,10 @@ void UITask::loop() {
       }
     }
 #endif
-    // Unread-count badge over the Chats tab icon (bottom bar).
-    if (s_chat_unread_badge) {
-      const int u = getUnreadTotal();
-      if (u > 0) {
-        char b[8]; if (u > 99) snprintf(b, sizeof b, "99+"); else snprintf(b, sizeof b, "%d", u);
-        lv_label_set_text(s_chat_unread_badge, b);
-        lv_obj_clear_flag(s_chat_unread_badge, LV_OBJ_FLAG_HIDDEN);
-      } else {
-        lv_obj_add_flag(s_chat_unread_badge, LV_OBJ_FLAG_HIDDEN);
-      }
-    }
+    refreshDisplayBadges();
 #if defined(HAS_TANMATSU)
     msgLedRefresh(getUnreadTotal() > 0);   // envelope LED: breathe green when unread, dark when caught up
 #endif
-    // Discovered-count badge on the Contacts-tab "Discovered" button.
-    if (s_ct_disc_badge) {
-      const int dc = discoveredCount();
-      if (dc > 0) {
-        char b[8];
-        if (dc >= DISCOVERED_MAX) snprintf(b, sizeof b, "%d!", dc);   // ring full
-        else                      snprintf(b, sizeof b, "%d", dc > 99 ? 99 : dc);
-        lv_label_set_text(s_ct_disc_badge, b);
-        lv_obj_clear_flag(s_ct_disc_badge, LV_OBJ_FLAG_HIDDEN);
-      } else {
-        lv_obj_add_flag(s_ct_disc_badge, LV_OBJ_FLAG_HIDDEN);
-      }
-    }
     _next_refresh = now + UI_REFRESH_MS;
   }
 #if CAP_TRACKBALL
@@ -32392,7 +32507,7 @@ void UITask::loop() {
   tanKbBacklightTick(_screen.screenOff() || _screen.manualLocked());
 #endif
   uiCp("ui:diag");
-  refreshLiveDiag(now);
+  if (touchVisualRefreshNeeded()) refreshLiveDiag(now);
   // Keep the signal fresh with a "discover" probe: send a ZERO-HOP advert whenever
   // we have no recent DIRECT signal. Zero-hop = neighbours only, never re-broadcast,
   // so the probe injects NO repeated traffic into the mesh — it just announces us to
@@ -32484,7 +32599,7 @@ void UITask::loop() {
 
   keyboardSettings.tick((uint32_t)now);
   batterySettings.tick((uint32_t)now);
-  batterySettingsScreen.refresh();
+  if (touchVisualRefreshNeeded()) batterySettingsScreen.refresh();
   batteryHistory.tick((uint32_t)now);   // 5-min battery sample (SD on T-Deck, else SPIFFS)
 #if CAP_SD || defined(TLORA_PAGER)
   telemetryPollTick((uint32_t)now); // auto-poll due nodes -> log (no window)
@@ -32493,9 +32608,9 @@ void UITask::loop() {
   versionCheckService(now);   // firmware update check (gear badge + About line)
   uiCp("ui:sbar");
   sdUsage.poll();
-  systemInfoScreen.refresh(now);
+  if (touchVisualRefreshNeeded()) systemInfoScreen.refresh(now);
 #if defined(HAS_TDECK_GT911)
-  refreshSleepDiag(now);     // live sleep counters on the Lock settings panel
+  if (touchVisualRefreshNeeded()) refreshSleepDiag(now); // live counters only for a displayed UI
 #endif
   wifiScanService();          // draw Wi-Fi scan results when the worker finishes
   ctDeleteServiceTick();      // chunked contacts bulk-delete (advances the progress bar)
@@ -32581,7 +32696,17 @@ void UITask::loop() {
     lv_obj_invalidate(lv_scr_act());
 #endif
   uiCp("ui:lvgl");
+#if defined(HAS_TDECK_GT911)
+  s_in_lvgl_handler = true;
+#endif
   lv_timer_handler();
+#if defined(HAS_TDECK_GT911)
+  s_in_lvgl_handler = false;
+  if (s_panel_light_pending) {
+    s_panel_light_pending = false;
+    touchScreenBacklight(true);
+  }
+#endif
   heardNames.tick(millis());
   static bool heardWasClearing = false;
   if (heardWasClearing && !heardNames.clearing() && g_lv.task)
@@ -32590,7 +32715,7 @@ void UITask::loop() {
 #if defined(GUARD_SIMULATOR)
   heardNames.runPending();
 #endif
-  ui::screens::map::processPendingRender(); // tile decode/repaint on a shallow stack
+  if (touchVisualRefreshNeeded()) ui::screens::map::processPendingRender(); // defer dark tile decode/repaint
 #if defined(HAS_TDECK_PRO)
   display.serviceRefresh();   // one coalesced e-paper update after all LVGL bands
 #endif
