@@ -3,6 +3,7 @@
 #include "../theme/Fonts.h"
 #include "../theme/Theme.h"
 #include <cstring>
+#include <new>
 namespace ui {
 namespace screens {
 void SystemInfoScreen::detach() {
@@ -38,7 +39,25 @@ void SystemInfoScreen::render(bool first) {
   if ((_reading && _readingGeneration == _generation) || !_body.get() || !_live.get())
     return;
   const auto generation = _generation;
-  diagnostics::Snapshot snapshot;
+  // A touch/keyboard event already has a deep call chain on the ESP32 loop
+  // stack. Keep the snapshot and 2 KB formatting buffer in LVGL's PSRAM heap.
+  // Each invocation has its own frame, including a reentrant replacement page.
+  struct Frame {
+    diagnostics::Snapshot snapshot;
+    char text[2048];
+    ~Frame() {}
+  };
+  auto *memory = lv_mem_alloc(sizeof(Frame));
+  if (!memory) {
+    lv_label_set_text(_live.get(), "Not enough memory");
+    return;
+  }
+  auto *frame = new (memory) Frame{};
+  struct Cleanup {
+    Frame *frame;
+    ~Cleanup() { frame->~Frame(); lv_mem_free(frame); }
+  } cleanup{frame};
+  auto &snapshot = frame->snapshot;
   const bool wasReading = _reading;
   const auto previousReadingGeneration = _readingGeneration;
   _reading = true;
@@ -49,7 +68,7 @@ void SystemInfoScreen::render(bool first) {
   _readingGeneration = previousReadingGeneration;
   if (_generation != generation || !_body.get() || !_live.get())
     return;
-  char text[2048];
+  auto &text = frame->text;
   if (_memory)
     diagnostics::formatMemory(snapshot.hardware, text, sizeof text);
   else

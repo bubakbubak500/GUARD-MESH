@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "../DeviceDiagnostics.h"
 #include "../../device_caps.h"
+#include "../../models/FirmwareImageLayout.h"
 #if defined(ESP32)
 #include <Arduino.h>
 #include <Esp.h>
@@ -9,6 +10,7 @@
 #include <esp_heap_caps.h>
 #include <esp_system.h>
 #include <esp_timer.h>
+#include <esp_ota_ops.h>
 #include <nvs.h>
 #if CAP_SD
 #include <SD.h>
@@ -76,13 +78,21 @@ void readHardwareDiagnostics(diagnostics::Hardware &out, bool details) {
   out.bt = chip.features & CHIP_FEATURE_BT;
   out.flash = ESP.getFlashChipSize();
 #if !defined(HAS_TANMATSU)
-  // The two calls verify the entire image. Pay once, never each refresh.
-  // AppFS on Tanmatsu has no standard running OTA partition: do not query it.
+  // Never verify a multi-MB image inside the nested LVGL click handler. Arduino's
+  // getSketchSize() invokes esp_image_verify(), with substantial stack and CPU
+  // use. Reading the small segment headers is sufficient for this display.
   static bool known = false;
   static uint32_t used = 0, free = 0;
   if (!known) {
-    used = ESP.getSketchSize();
-    free = ESP.getFreeSketchSpace();
+    const auto *running = esp_ota_get_running_partition();
+    if (running) {
+      used = firmwareImageSize(const_cast<esp_partition_t *>(running), running->size,
+        [](void *partition, size_t offset, void *buffer, size_t bytes) {
+          return esp_partition_read(static_cast<const esp_partition_t *>(partition),
+                                    offset, buffer, bytes) == ESP_OK;
+        });
+      free = used <= running->size ? running->size - used : 0;
+    }
     known = true;
   }
   out.sketch = used;
