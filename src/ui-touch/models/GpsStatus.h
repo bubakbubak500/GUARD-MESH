@@ -8,6 +8,8 @@ struct Snapshot {
   bool enabled = false, fix = false;
   int satellites = 0, altitude = 0;
   double latitude = 0, longitude = 0;
+  // Optional board diagnostics. Strings are borrowed for this snapshot only.
+  const char *receiver = nullptr, *power = nullptr;
 };
 struct Labels {
   const char *off, *searching, *fix, *coldStart;

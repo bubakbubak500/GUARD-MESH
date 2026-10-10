@@ -55,4 +55,22 @@ void gpsStatusRegression() {
   snapshot.enabled = false;
   status.format(snapshot, 0, false, {"off %s", "", "", ""}, text, sizeof text);
   assert(!strcmp(text, "off %s"));
+  snapshot.receiver = "L76K / CASIC";
+  snapshot.power = "Software off; standby unsupported";
+  status.format(snapshot, 0, false, labels, text, sizeof text);
+  assert(!strcmp(text, "GPS: off\nL76K / CASIC: Software off; standby unsupported"));
+  status.format(snapshot, 0, true, labels, text, sizeof text);
+  assert(!strcmp(text, "GPS: off"));
+  snapshot.receiver = "u-blox M10 SPG 5.10";
+  snapshot.power = "Standby command sent";
+  status.format(snapshot, 0, false, labels, text, sizeof text);
+  assert(strstr(text, "Standby command sent"));
+  // Diagnostic strings cannot turn into format specifiers or overflow.
+  snapshot.power = "literal %s%u";
+  for (size_t capacity = 1; capacity < sizeof text - 1; ++capacity) {
+    memset(text, '#', sizeof text);
+    status.format(snapshot, 0, false, labels, text + 1, capacity);
+    assert(text[0] == '#' && text[capacity + 1] == '#');
+    assert(memchr(text + 1, 0, capacity));
+  }
 }

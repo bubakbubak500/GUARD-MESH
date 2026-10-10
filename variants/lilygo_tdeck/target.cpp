@@ -1,6 +1,8 @@
 #include <Arduino.h>
 #include "target.h"
 #include <helpers/HardwareRtcClock.h>
+#include "../../src/helpers/TDeckGpsPower.h"
+#include "../../src/ui-touch/i18n.h"
 
 TDeckBoard board;
 
@@ -28,8 +30,33 @@ ESP32RTCClock fallback_clock;
 // without the module behaves exactly as before.
 HardwareRtcClock     hw_rtc(fallback_clock);
 ClockFloorRTC        rtc_clock(hw_rtc);
-MicroNMEALocationProvider gps(Serial1, &rtc_clock);
+TDeckGpsStream gps_stream(Serial1);
+TDeckLocationProvider gps(gps_stream, &rtc_clock);
 EnvironmentSensorManager sensors(gps);
+
+void tdeckGpsPowerService() { gps.service(); }
+
+void tdeckGpsPowerSnapshot(ui::gps::Snapshot &snapshot) {
+  switch (gps.power().receiver()) {
+    case gnss::Receiver::UbloxM10:
+      snapshot.receiver = gps.power().isMiaM10Q() ? "MIA-M10Q SPG 5.10" : "u-blox M10 SPG 5.10";
+      break;
+    case gnss::Receiver::L76K: snapshot.receiver = "L76K / CASIC"; break;
+    case gnss::Receiver::Unsupported: snapshot.receiver = TR("Unverified GPS"); break;
+    default: snapshot.receiver = TR("Unknown GPS"); break;
+  }
+  switch (gps.power().power()) {
+    case gnss::Power::Detecting: snapshot.power = TR("Identifying receiver"); break;
+    case gnss::Power::Active: snapshot.power = TR("Receiver active"); break;
+    case gnss::Power::Saving: snapshot.power = TR("Preparing standby"); break;
+    case gnss::Power::StandbyRequested: snapshot.power = TR("Standby command sent"); break;
+    case gnss::Power::Waking: snapshot.power = TR("Waking receiver"); break;
+    case gnss::Power::SaveFailed: snapshot.power = TR("Standby skipped: configuration not confirmed"); break;
+    case gnss::Power::SleepFailed: snapshot.power = TR("Standby or wake failed"); break;
+    default: snapshot.power = snapshot.enabled ? TR("Receiver active; standby unsupported")
+                                              : TR("Software off; standby unsupported"); break;
+  }
+}
 
 #ifdef DISPLAY_CLASS
   DISPLAY_CLASS display;

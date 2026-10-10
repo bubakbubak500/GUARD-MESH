@@ -13,6 +13,22 @@ maintained by [@bubakbubak500](https://github.com/bubakbubak500).
   for live PC status, messages, contacts and composing queued messages.
   Pairing is in Settings. The upstream build instructions remain below.
 
+## Guardian 2026.10.10.3
+
+- T-Deck pauses display rendering and physical pixel transfers while the screen
+  is dark. Input, mesh traffic and background jobs continue; screenshots and an
+  active web mirror can still render. Wake repaints all layers before lighting.
+- GPS off now attempts UART standby on a positively identified u-blox M10
+  running ROM SPG 5.10 / protocol 34.10, after confirmed configuration retention
+  in BBR. GPS on wakes the receiver and probes it again. GPS settings reports
+  receiver identity and the command result, including unsupported hardware.
+- L76K/CASIC and unverified receiver versions retain software off without a
+  guessed sleep command. The keyboard ESP32-C3 firmware is unchanged.
+- Both boards retain GitHub Wi-Fi OTA and have local USB/OTA build outputs.
+  Electrical savings and physical sleep/wake/OTA boot need device validation.
+- [Release notes](release-notes/guardian-2026.10.10.3.md) ·
+  [Firmware downloads](https://github.com/bubakbubak500/GUARD-MESH/releases/tag/guardian-2026.10.10.3)
+
 ## Guardian 2026.10.10.2
 
 - Settings → **Update** (Czech: **Aktualizace**) enables Wi-Fi, opens network

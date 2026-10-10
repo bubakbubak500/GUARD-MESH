@@ -63,6 +63,8 @@ void Status::format(const Snapshot &snapshot, uint32_t now, bool compact, Labels
       text.add(" \xc2\xb7 %d m", snapshot.altitude);
     text.add("%s%.5f, %.5f", compact ? "  " : "\n", snapshot.latitude, snapshot.longitude);
   }
+  if (!compact && snapshot.receiver && snapshot.power)
+    text.add("\n%s: %s", snapshot.receiver, snapshot.power);
 }
 } // namespace gps
 } // namespace ui

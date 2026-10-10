@@ -308,13 +308,15 @@ struct SimRadio {
 };
 inline SimRadio radio_driver;
 struct SimWebMirror {
-  template <class... A> int active(A &&...) { return 0; }
+  bool connected = false;
+  unsigned frames = 0;
+  template <class... A> int active(A &&...) { return connected; }
   template <class... A> int begin(A &&...) { return 0; }
   template <class... A> int clients(A &&...) { return 0; }
-  template <class... A> int empty(A &&...) { return 0; }
+  template <class... A> int empty(A &&...) { return 1; }
   template <class... A> int popKey(A &&...) { return 0; }
   template <class... A> int popTermCmd(A &&...) { return 0; }
-  template <class... A> int pushFrame(A &&...) { return 0; }
+  template <class... A> int pushFrame(A &&...) { ++frames; return 0; }
   template <class... A> int pushTermData(A &&...) { return 0; }
   template <class... A> int pushTermReply(A &&...) { return 0; }
   template <class... A> int readPointer(A &&...) { return 0; }
