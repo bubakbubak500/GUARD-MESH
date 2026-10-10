@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+#include "ui-touch/models/FirmwareImageLayout.h"
 #include "ui-touch/models/SystemDiagnostics.h"
 #include "ui-touch/services/StorageUsage.h"
 #include "ui-touch/platform/StorageAccess.h"
@@ -35,6 +36,28 @@ StorageUsage::Snapshot blocking(void *context) {
 }
 } // namespace
 void diagnosticsRegression() {
+  struct Image {
+    uint8_t bytes[256]{};
+    unsigned calls = 0;
+    static bool read(void *p, size_t offset, void *out, size_t count) {
+      auto &image = *static_cast<Image *>(p);
+      ++image.calls;
+      assert(count <= 24); // Never read/hash payload in a UI diagnostic.
+      if (offset > sizeof image.bytes || count > sizeof image.bytes - offset) return false;
+      memcpy(out, image.bytes + offset, count);
+      return true;
+    }
+  } image;
+  image.bytes[0] = 0xe9; image.bytes[1] = 2; image.bytes[23] = 1;
+  image.bytes[28] = 16; image.bytes[52] = 16;
+  assert(firmwareImageSize(&image, sizeof image.bytes, Image::read) == 112 && image.calls == 3);
+  image.bytes[23] = 0;
+  assert(firmwareImageSize(&image, sizeof image.bytes, Image::read) == 80);
+  assert(!firmwareImageSize(&image, 79, Image::read));
+  image.bytes[31] = 0xff;
+  assert(!firmwareImageSize(&image, sizeof image.bytes, Image::read));
+  image.bytes[31] = 0; image.bytes[0] = 0;
+  assert(!firmwareImageSize(&image, sizeof image.bytes, Image::read));
   using namespace ui::diagnostics;
   StallHistory history;
   Stall entries[16];
