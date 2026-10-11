@@ -70,6 +70,7 @@ def main():
     sources += [ROOT/'simulator/thread_list_regression.cpp']
     sources += [ROOT/'simulator/home_screen_regression.cpp']
     sources += [ROOT/'simulator/guardian_app_regression.cpp', ROOT/'simulator/ping_reply_regression.cpp']
+    sources += [ROOT/'simulator/guardian_emergency_regression.cpp']
     sources += [ROOT/'simulator/thread_menu_regression.cpp']
     sources += [ROOT/'simulator/glyph_picker_regression.cpp']
     sources += [ROOT/'simulator/quick_reply_picker_regression.cpp']

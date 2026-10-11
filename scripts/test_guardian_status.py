@@ -9,11 +9,11 @@ OUT.mkdir(parents=True, exist_ok=True)
 zig = ROOT / '.sim-cache/toolchain/ziglang/zig.exe'
 compiler = [str(zig), 'c++'] if os.name == 'nt' and zig.exists() else [shutil.which('c++') or 'g++']
 exe = OUT / ('guardian-tests.exe' if os.name == 'nt' else 'guardian-tests')
-subprocess.run([*compiler, '-std=c++11', '-Wall', '-Wextra', '-Werror', '-O1',
+subprocess.run([*compiler, '-std=c++11', '-Wall', '-Wextra', '-Werror', '-O1', '-UNDEBUG',
                 '-I'+str(ROOT/'src'), str(ROOT/'test/test_guardian_status.cpp'), '-o', str(exe)], check=True)
 subprocess.run([str(exe)], check=True, timeout=15)
 transport = OUT / ('guardian-transport.exe' if os.name == 'nt' else 'guardian-transport')
-subprocess.run([*compiler, '-std=c++11', '-Wall', '-Wextra', '-Werror', '-O1', '-DLILYGO_TDECK', '-DBLE_PIN_CODE',
+subprocess.run([*compiler, '-std=c++11', '-Wall', '-Wextra', '-Werror', '-O1', '-UNDEBUG', '-DLILYGO_TDECK', '-DBLE_PIN_CODE',
                 '-I'+str(ROOT/'test/stubs/guardian_ble'), '-I'+str(ROOT/'src'),
                 str(ROOT/'test/test_guardian_transport.cpp'),
                 str(ROOT/'src/helpers/esp32/GuardianBLEInterface.cpp'),
@@ -24,9 +24,28 @@ rpc = OUT / ('guardian-rpc.exe' if os.name == 'nt' else 'guardian-rpc')
 json_include = ROOT/'.sim-cache/arduinojson/src'
 if not json_include.exists():
     json_include = ROOT/'.pio/libdeps/LilyGo_TDeck_companion_radio_touch/ArduinoJson/src'
-subprocess.run([*compiler, '-std=c++17', '-Wall', '-Wextra', '-Werror', '-O1',
+subprocess.run([*compiler, '-std=c++17', '-Wall', '-Wextra', '-Werror', '-O1', '-UNDEBUG',
                 '-I'+str(ROOT/'src'),
                 '-I'+str(json_include),
                 str(ROOT/'test/test_guardian_rpc.cpp'),
                 str(ROOT/'src/ui-touch/services/GuardianDraft.cpp'), '-o', str(rpc)], check=True)
 subprocess.run([str(rpc)], check=True, timeout=15)
+
+def run_v3(name, sources, args=()):
+    target = OUT / (name + ('.exe' if os.name == 'nt' else ''))
+    subprocess.run([*compiler, '-std=c++17', '-Wall', '-Wextra', '-Werror', '-O1', '-UNDEBUG',
+                    '-I'+str(ROOT/'src'), '-I'+str(json_include),
+                    *[str(ROOT/source) for source in sources], '-o', str(target)], check=True)
+    subprocess.run([str(target), *map(str, args)], check=True, timeout=15)
+
+run_v3('guardian-v3-models', ['test/test_guardian_v3.cpp'],
+       [ROOT/'docs/guard_mesh_ble_v3_vectors.json'])
+run_v3('guardian-v3-storage', ['test/test_guardian_v3_storage.cpp'])
+run_v3('guardian-v3-events', ['test/test_guardian_events.cpp',
+                           'src/ui-touch/services/GuardianRpcLink.cpp'])
+run_v3('guardian-v3-client', ['test/test_guardian_v3_client.cpp',
+                           'src/ui-touch/services/GuardianV3Client.cpp',
+                           'src/ui-touch/services/GuardianV3Storage.cpp',
+                           'src/ui-touch/services/GuardianDraft.cpp',
+                           'src/ui-touch/services/GuardianLink.cpp',
+                           'src/ui-touch/services/GuardianRpcLink.cpp'])

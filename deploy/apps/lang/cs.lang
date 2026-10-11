@@ -1465,3 +1465,143 @@ Standby skipped: configuration not confirmed	Uspání vynecháno: nastavení nep
 Standby or wake failed	Uspání nebo probuzení selhalo
 Receiver active; standby unsupported	Přijímač je aktivní; uspání nepodporováno
 Software off; standby unsupported	Softwarově vypnuto; uspání nepodporováno
+This device	Toto zařízení
+Installed: %s	Nainstalováno: %s
+OTA image: %lu.%02lu MiB	OTA obraz: %lu.%02lu MiB
+SHA-256 expected: %s	Očekávaný SHA-256: %s
+Install after confirmation.	Instalace po potvrzení.
+Downloading firmware	Stahuji firmware
+Firmware verified	Firmware ověřen
+Keep Wi-Fi connected. SHA-256 and image validation before restart.	Nech Wi-Fi připojenou. Před restartem proběhne kontrola SHA-256 a obrazu.
+SHA-256 and image verified. Restarting…	SHA-256 i obraz ověřeny. Restartuji…
+Source:	Zdroj:
+Radio %lu	Rádio %lu
+Radio unknown	Rádio neznámé
+No message text	Zpráva neobsahuje text
+Alarm repeats until marked as read.	Alarm se opakuje do označení zprávy jako přečtené.
+Cannot save read state. Alarm continues.	Nelze uložit přečtení. Alarm pokračuje.
+Active transfers	Aktivní přenosy
+Active transport	Aktivní transport
+Alert source	Zdroj upozornění
+Alerts	Upozornění
+Also stops payload transfers and calibration	Zastaví také datové přenosy a kalibraci
+Apply saved profile	Použít uložený profil
+Back to control	Zpět na ovládání
+Backend	Ovladač
+Bitrate	Datová rychlost
+Busy	Obsazeno
+Calibration	Kalibrace
+Cancel AutoTune	Zrušit AutoTune
+Cannot save Guardian state	Nelze uložit stav Guardianu
+Check the station before deciding; the command may already have run	Před rozhodnutím ověř stanici; příkaz už mohl proběhnout
+Choose an explicit radio for every command	Pro každý příkaz vyber konkrétní rádio
+Command	Příkaz
+Command result	Výsledek příkazu
+Command was not sent	Příkaz nebyl odeslán
+Configure this radio on PC	Nastav toto rádio na PC
+Configured	Nastaveno
+Confirm	Potvrdit
+Confirm command	Potvrdit příkaz
+Connect VARA	Připojit VARA
+Connect radio	Připojit rádio
+Control active	Řízení aktivní
+Control modem	Řídicí modem
+Control stopped	Řízení zastaveno
+Created	Vytvořeno
+Currently unavailable	Nyní nedostupné
+Disconnect VARA	Odpojit VARA
+Disconnect radio	Odpojit rádio
+Does not cancel a command already running on PC	Nezruší příkaz, který už běží na PC
+Enable station control on PC	Povol ovládání stanice na PC
+Enabled	Povoleno
+Enter a supported mode and frequency from 1 to 10000000000 Hz	Zadej podporovaný režim a frekvenci od 1 do 10000000000 Hz
+Estimated	Odhad
+Events are not acknowledged until safely saved	Události se potvrzují až po bezpečném uložení
+FM only, 10 Hz steps; modulation profile stays unchanged	Pouze FM, krok 10 Hz; modulační profil zůstává stejný
+Failed outbox	Neúspěšně odeslané
+Frequency	Frekvence
+Frequency (Hz)	Frekvence (Hz)
+Frequency only	Pouze frekvence
+Guardian	Guardian
+Handoff pending	Čeká na předání
+Keeps the original token and fields	Zachová původní token a hodnoty
+Last verified	Poslední ověření
+Lifecycle	Stav procesu
+Mailbox	Pošta
+Message ID	ID zprávy
+Mode	Režim
+Modem	Modem
+More profiles exist on PC	Další profily jsou dostupné na PC
+Not ready	Nepřipraveno
+Not supported by this radio	Toto rádio funkci nepodporuje
+Older alert history is incomplete	Starší historie upozornění není úplná
+Only the selected radio is controlled	Ovládá se pouze vybrané rádio
+Origin	Původ
+Peer callsign	Značka protistanice
+Pending operations	Čekající operace
+Profiles are created on PC	Profily se vytvářejí na PC
+Progress	Průběh
+Progress is not delivery confirmation	Průběh nepotvrzuje doručení
+Queue beacon	Zařadit maják
+Queued does not confirm transmission	Zařazení nepotvrzuje odvysílání
+Quick	Rychlý
+RF ID	RF ID
+Radio	Rádio
+Radio 1	Rádio 1
+Radio 2	Rádio 2
+Radio detail	Detail rádia
+Radio not configured	Rádio není nastaveno
+Read	Přečteno
+Reading does not confirm assistance	Přečtení nepotvrzuje poskytnutí pomoci
+Refresh station	Obnovit stanici
+Refresh station before control	Před ovládáním obnov stanici
+Reload alerts	Obnovit upozornění
+Resolve the previous command first	Nejdřív vyřeš předchozí příkaz
+Result unknown	Výsledek neznámý
+Retry same command	Opakovat stejný příkaz
+Retry uses the same token	Opakování použije stejný token
+Review the exact frequency and mode before applying	Před použitím zkontroluj přesnou frekvenci a režim
+Selected	Vybráno
+Sessions	Spojení
+Some events are no longer available on PC	Některé události už nejsou na PC dostupné
+Source	Zdroj
+Stale station state	Zastaralý stav stanice
+Start AutoTune	Spustit AutoTune
+Start control	Spustit řízení
+Started	Spuštěno
+State	Stav
+Station	Stanice
+Station control	Řízení stanice
+Stop control	Zastavit řízení
+Stop retrying this command	Přestat opakovat tento příkaz
+Suspended for payload	Pozastaveno pro datový přenos
+The original command may already have run	Původní příkaz už mohl proběhnout
+Total	Celkem
+Transport	Transport
+Transport lost	Transport přerušen
+Tune radio	Naladit rádio
+Unread	Nepřečteno
+Unverified	Neověřeno
+VARA command port	Příkazový port VARA
+VARA data port	Datový port VARA
+VARA mode	Režim VARA
+Waiting for a fresh PC heartbeat	Čekám na nový signál stavu PC
+Medical emergency	Zdravotní nouze
+Evacuation	Evakuace
+Alert	Upozornění
+Executing	Provádí se
+Beacon queued	Maják zařazen
+Result unknown. Check PC before another command.	Výsledek neznámý. Před dalším příkazem ověř stav PC.
+Completed	Dokončeno
+Pending	Čeká
+Unknown	Neznámé
+Download	Stažení
+Validation	Kontrola
+Restart	Restart
+Starts for each transfer	Spouští se pro každý přenos
+Last update	Poslední aktualizace
+Revision	Revize
+Readiness verified	Připravenost ověřena
+Session ID	ID spojení
+Pending offer	Čekající nabídka
+Running	Probíhá

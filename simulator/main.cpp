@@ -453,10 +453,11 @@ int appMain(int argc, char **argv) {
   setvbuf(stdout, nullptr, _IONBF, 0);
   bool pingOnly = argc > 1 && (!strcmp(argv[1], "--ping-test") || !strcmp(argv[1], "--ping-test-cs"));
   bool guardianOnly = argc > 1 && (!strcmp(argv[1], "--guardian-test") || !strcmp(argv[1], "--guardian-test-cs"));
+  bool fileScreenOnly = argc > 1 && !strcmp(argv[1],"--file-screen-test");
   bool displayPowerOnly = argc > 1 && (!strcmp(argv[1], "--display-power-test") || !strcmp(argv[1], "--display-power-test-cs"));
   bool czech = argc > 1 && (!strcmp(argv[1], "--ping-test-cs") || !strcmp(argv[1], "--smoke-cs") || !strcmp(argv[1], "--guardian-test-cs") || !strcmp(argv[1], "--display-power-test-cs"));
   bool keyboardNav = argc > 1 && strcmp(argv[1], "--smoke-nav") == 0;
-  bool smoke = pingOnly || guardianOnly || displayPowerOnly || czech || keyboardNav || (argc > 1 && strcmp(argv[1], "--smoke") == 0);
+  bool smoke = pingOnly || guardianOnly || fileScreenOnly || displayPowerOnly || czech || keyboardNav || (argc > 1 && strcmp(argv[1], "--smoke") == 0);
   WNDCLASSW cls{};
   cls.lpfnWndProc = windowProc;
   cls.hInstance = GetModuleHandle(nullptr);
@@ -517,6 +518,10 @@ int appMain(int argc, char **argv) {
   if (czech && (strcmp(TR("Settings"), "Nastavení") || strcmp(TR("Advert"), "Advert")))
     throw std::runtime_error("Czech translation or preserved Advert term failed");
   if (smoke) {
+    if (fileScreenOnly) {
+      extern void runFileScreenRegression(void (*)(unsigned));
+      runFileScreenRegression(pump); return 0;
+    }
     if (displayPowerOnly) {
       runScreenPolicyIntegration(uiTask, pump);
       return 0;
@@ -537,6 +542,12 @@ int appMain(int argc, char **argv) {
       runGuardianAppRegression(nullptr); // Also cover fast replies between frames.
       runGuardianAppRegression([](const char* name) { lv_refr_now(nullptr); saveFrame(name); });
       runGuardianPolishRegression([](const char* name) { lv_refr_now(nullptr); saveFrame(name); });
+      extern void runFirmwarePanelVisualRegression(void (*)(const char*));
+      runFirmwarePanelVisualRegression([](const char* name) { lv_refr_now(nullptr); saveFrame(name); });
+      extern void runGuardianEmergencyRegression(void (*)(const char*));
+      runGuardianEmergencyRegression([](const char* name) { lv_refr_now(nullptr); saveFrame(name); });
+      extern void runGuardianEmergencyInputRegression(UITask&,void (*)(int,int),void (*)(unsigned));
+      runGuardianEmergencyInputRegression(uiTask,click,pump);
       // Exercise the real UITask keyboard path, not just the screen's hold timer.
       extern void guardSimGuardianOpen(bool);
       guardian::configure(true,true,true); guardian::connected(); guardian::rpcConnect(); guardian::rpcSubscribe(true);

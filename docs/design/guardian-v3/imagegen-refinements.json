@@ -1,0 +1,37 @@
+[
+  {
+    "id": "04-pokrocile",
+    "kind": "edit",
+    "prompt": "Use case: precise-object-edit. Edit target: the provided GUARDIAN V3 four-screen review board. Make exactly ONE targeted correction inside screen 13 Scanner (top-left): replace the diagnostic row labeled \"Signál\" with \"Pozastaven\" and value \"Ne\"; replace the diagnostic row labeled \"SNR\" with \"Čekání\" and value \"Ne\". Use existing white labels and grey values; small icons can be pause and clock. Keep the third row \"Řízení · aktivní\" and everything else exactly unchanged. There must be NO S7, SNR or dB claims because this API does not expose scanner SNR. Preserve screen layout, all three other screens, radio selector, running status, frequency, button, all captions, Czech text, borders, colors and top status bars.",
+    "reference_paths": [
+      "C:\\Users\\ok7ps\\.codex\\generated_images\\01a12ab5-2d41-73f3-81e4-7000ce7e9002\\exec-d2ac58e8-2414-4443-a83f-6c38fe2cc2a2.png"
+    ]
+  },
+  {
+    "id": "05-upozorneni",
+    "kind": "edit",
+    "prompt": "Use case: precise-object-edit. Edit target: the provided GUARDIAN V3 four-screen alerts board. Change ONLY the character counter in bottom-right screen 20 from \"41 / 512\" to exact \"34 / 512\". The note \"Cvičení: potřeba pomoci na bodě A.\" has 34 Unicode characters. Preserve every other pixel, all layout, fonts, labels, title, notes, icon choices, colors, all three other screens, annotations and borders.",
+    "reference_paths": [
+      "C:\\Users\\ok7ps\\.codex\\generated_images\\01a12ab5-2d41-73f3-81e4-7000ce7e9002\\exec-af37ba16-fd3a-4df6-bab7-183d33a414e2.png"
+    ]
+  },
+  {
+    "id": "07-stavy-ota",
+    "kind": "generate",
+    "prompt": "Use case: ui-mockup.\nAsset type: one review board containing exactly FOUR separate proposed T-Deck firmware screens, in a neat 2 by 2 grid.\nPrimary request: high fidelity Czech GUARD-MESH Guardian UI design proposal for the EXISTING 320x240 landscape T-Deck display. Use provided screenshots ONLY as visual style references, not as edit targets. Keep exact existing dark firmware style and plausible small-screen content density. Each screen is a flat rectangular 4:3 screenshot, scaled uniformly to about 720x540 on a landscape board. No physical device, phone, perspective, shadows, desktop browser frame or branding invention.\nStyle: solid black #000 background, deep almost black navy #0a1620 cards, subtle blue #0087ff 1px borders, corner radius corresponding to 7px at native resolution. Clean white compact sans typography equivalent to Montserrat 12/14 at native resolution; grey supporting text, blue/cyan outline icons. Orange #f29d38 primary buttons with black text/icons. Cyan progress bars. Green=verified good, amber=unverified/pending, grey=unknown/offline, red=failed. Keep the SAME shared top status bar with back chevron, page title, 09:08 time, tiny signal and 77% battery as current reference. No huge headings inside the 320x240 UI, no bottom phone navigation, no gradients or glassmorphism.\nComposition: outside each screenshot on the board place a short caption giving SCREEN NUMBER, FEATURE ID and function name; these captions are DESIGN ANNOTATIONS, never part of the device UI. A small board header outside screenshots says \"GUARDIAN V3 · NÁVRH K VÝBĚRU\". Screens should fill most of board, regular gutters, readable. Each screen should be visually independent. All proposed states/sample station data are illustrative, not live.\nConstraints: Preserve all Czech text and diacritics accurately. Use only explicitly described capabilities. No invented RF/LoRa forwarding or delivery success. No giant imaginary controls or excessive tiny text. Only these four screens:\n25 | ZÁKLAD V3 | Neaktuální data. Title \"Guardian\". Keep dashboard layout visually matching first reference, but amber \"Data neaktuální\" in left panel, progress \"-\" and unknown counts \"-\", no green ready lights. Right buttons Zprávy, Síť, Stanice, orange Napsat disabled/dim as appropriate for sending while offline. Small \"Poslední stav před 18 s\". Cached content can be reviewed. No Ready or successful send indication.\n26 | F04–F09 | Ovládání nepovoleno. Title \"Ovládání\". Radio selector clearly \"Rádio 1\". Dim operational rows. Explanatory card \"Ovládání není povoleno\" and \"Povol jej na PC v nastavení Guard Mesh.\" Secondary button \"Zpět\". No device toggle to grant itself PC permission.\n27 | STÁVAJÍCÍ OTA | Dostupná aktualizace. Title \"Aktualizace\". Card \"T-Deck · Nová verze\", \"Vybrané funkce Guardian v3\", compact sample version \"guardian-2026.10.11\" and small label \"Ukázková verze\". Wi-Fi state \"Připojeno\". Orange \"Nainstalovat\" and outline \"Zpět\". Small text \"Instalace po potvrzení\". Match existing black/cyan/orange UI, not pretend this draft is already released.\n28 | STÁVAJÍCÍ OTA | Průběh instalace. Title \"Aktualizace\". Main \"Stahování firmwaru\", cyan 64% progress. Smaller steps \"Stažení → Kontrola → Restart\". Helper \"Po ověření se zařízení restartuje.\" Dark display, no RF transmission icon, no use of merged USB file. This illustrates existing OTA UX, not a new v3 control. ",
+    "reference_paths": [
+      "C:\\Users\\ok7ps\\Documents\\ChatGPT\\GUARD-MESH\\.sim-cache\\guardian-polish-cs\\guardian-app-dashboard.png",
+      "C:\\Users\\ok7ps\\Documents\\ChatGPT\\GUARD-MESH\\.sim-cache\\guardian-polish-cs\\guardian-app-messages.png",
+      "C:\\Users\\ok7ps\\Documents\\ChatGPT\\GUARD-MESH\\.sim-cache\\guardian-polish-cs\\guardian-app-compose.png",
+      "C:\\Users\\ok7ps\\Documents\\ChatGPT\\GUARD-MESH\\.sim-cache\\guardian-polish-cs\\guardian-app-network.png"
+    ]
+  },
+  {
+    "id": "07-stavy-ota",
+    "kind": "edit",
+    "prompt": "Use case: precise-object-edit. Edit target: this four-screen GUARDIAN V3 review board. Correct only screens 25 and 26; keep screens 27 and 28 and ALL captions, colors, typography, borders, dimensions and shared top bars unchanged.\nScreen 25 top-left: make \"Napsat\" button the same bright orange #f29d38 with BLACK text and pencil as the online dashboard, fully enabled. Writing a LOCAL DRAFT remains possible when PC is offline; only actually sending is disabled later in the composer. Do not remove the amber \"Data neaktuální\", grey unknown counts, grey inactive progress, grey connection indicators, 18-second freshness label.\nScreen 26 top-right: the three grey disabled operation rows on the LEFT must be labeled exactly \"Rádio\" / smaller \"Nepovoleno\", \"VARA\" / smaller \"Nepovoleno\", \"Řízení\" / smaller \"Nepovoleno\". Remove ALL previous \"Vysílání\", \"Výkon\", \"Režim\" labels. No power, PTT transmit toggle or radio mode command is provided here. Use only small radio, link and control outline icons, no enabled self-permission toggle. Preserve the Radio1 selector and the explanatory right card \"Ovládání není povoleno\" / \"Povol jej na PC v nastavení Guard Mesh.\" and Zpět button. Do not invent controls or change any other text.",
+    "reference_paths": [
+      "C:\\Users\\ok7ps\\.codex\\generated_images\\01a12ab5-2d41-73f3-81e4-7000ce7e9002\\exec-0c8b2ec3-77b9-43c2-9183-5a34d508fa34.png"
+    ]
+  }
+]

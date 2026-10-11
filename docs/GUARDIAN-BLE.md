@@ -1,9 +1,9 @@
-# Guardian BLE v2 na T-Decku
+# Guardian BLE v3 na T-Decku
 
 Implementace pro **LilyGo T-Deck / T-Deck Plus** podle
-[kontraktu Guardian 1.1.13](GUARD_MESH_BLE_V2_CS.md). PC je BLE Central,
-zařízení Peripheral. Tento firmware vyžaduje Guardian **1.1.13 nebo novější
-s podporou API v2**. Guardian 1.1.12 podporuje pouze starší firmware v1.
+[kontraktu API v3](GUARD_MESH_BLE_V3_CS.md). PC je BLE Central,
+zařízení Peripheral. Tento firmware vyžaduje Guardian s **API v3**.
+Protocol je pevně `47 4d 03 00`; přepínač ani zpětná kompatibilita v2 nejsou součástí této verze.
 
 ## Připojení
 
@@ -28,8 +28,8 @@ Párování už není součástí aplikace Guardian.
 - Modrý štít v horní liště nahrazuje BLE symbol při autentizovaném připojení PC.
   Znamená spojení; aktuálnost Guardianu ukazuje blok a aplikace.
 - **Aplikace → Guardian** používá rozložení A3: vlevo jeden aktivní přenos,
-  počty zpráv a CAT/VARA/CTRL; vpravo **Zprávy, Síť, Napsat** a pod nimi vedle
-  sebe ikony **nastavení a Home**. Home vrací na domácí obrazovku Guard Meshe.
+  počty zpráv a CAT/VARA/CTRL; vpravo **Zprávy, Síť, Stanice, Napsat** a pod nimi vedle
+  sebe ikony **nastavení, upozornění a Home**. Home vrací na domácí obrazovku Guard Meshe.
   Při souběhu se bargraf drží jednoho aktivního směru. Systémová lišta zůstává
   společná s ostatními obrazovkami zařízení.
 - Nastavení aplikace nabízí modrý a zelený motiv, uložený do NVS. Motiv mění
@@ -74,9 +74,48 @@ Párování už není součástí aplikace Guardian.
   Novou zprávu lze začít po výslovném potvrzení kontroly předchozí zprávy na PC.
   Po změně databáze či BLE identity starou operaci automaticky neopakujeme.
 
-API v2 poskytuje **stav** CAT, VARA a řídicího kanálu. Neobsahuje příkazy
-k jejich zapnutí/vypnutí ani ke spuštění Guardianu. Aplikace proto nenabízí
-nefunkční ovládání rádia, kanálu nebo PC procesu.
+## Stanice, rádia a ovládání v3
+
+Stanice ukazuje značku, lokátor, schránky, server a připravenost. Detail rádia
+obsahuje CAT, VARA, řídicí kanál, frekvenci, aktivní transport, kalibraci a přenosy.
+Neznámá připravenost a neověřený stav nejsou zaměněny za připravenou stanici.
+Aktivní přenosy rozlišují přesnou a odhadovanou velikost a nepotvrzují doručení.
+
+Každý povel má výslovně **rádio 1 nebo 2**: připojení/odpojení rádia a VARA,
+start/stop řízení, zařazení majáku, ladění, uložený profil a SC-FTN AutoTune
+quick/full včetně zrušení. Dostupnost a důvod zákazu přicházejí z capabilities PC.
+Povel potřebuje čerstvý heartbeat i snímek stanice a povolené ovládání na PC.
+Odpojení, stop, ladění, profil a zrušení kalibrace mají samostatné potvrzení.
+K5FM ladí pouze FM v krocích 10 Hz; profily se vytvářejí na PC.
+Samostatné vynucení advertu API neposkytuje. Zařazený maják nepotvrzuje odvysílání.
+
+Intent, přesné hodnoty a token se uloží před odesláním. Známý command_id lze
+po restartu ověřit přes command.get. Neznámý výsledek nikdy automaticky
+neopakuje control.execute; uživatel nejprve ověří stanici a výslovně rozhodne
+o opakování stejného tokenu nebo ukončení opakování. To neruší příkaz běžící na PC.
+Předčasný command.changed se nejprve uloží do journalu. K tokenu se přiřadí
+až podle přesného command_id z odpovědi PC; starší pending nepřepíše completed.
+Výslovné opakování stejného tokenu umožňuje dohledání i už provedené operace.
+
+## Upozornění a nouzový alarm
+
+Historie a detail zobrazují typ z alert.types, původ, rádio, plný text a přečtení.
+**MAYDAY, zdravotní nouze a evakuace (kódy 1–3)** zobrazí plný text nad ostatními
+obrazovkami, rozsvítí displej a opakují pípnutí každé tři sekundy. Alarm trvá
+a displej zůstává aktivní až do výslovného označení jako přečtené; respektuje
+nastavenou hlasitost. Ruční zámek zůstává zamčený pod nouzovým upozorněním.
+Alarm funguje i mimo aplikaci Guardian a uložená nepřečtená zpráva i bez BLE.
+
+Přečtení se nejprve trvale uloží a pak synchronizuje alert.seen na PC.
+Chyba zápisu alarm nezavře. events.ack potvrzuje bezpečně uložené události,
+nikoli přečtení, zásah či pomoc. Deduplikace používá event_id, obnova stream
+a 64bitový cursor; mezera nebo zkrácená historie vyžádá aktuální stav PC.
+Journal má dvě střídavé úplné kopie s CRC a kontrolou zápisu na interním SPIFFS,
+nejvýše 128 KiB na kopii, 20 upozornění a 64 posledních event_id. Přerušení
+zápisu zachová předchozí kopii. Neuložená událost se nepotvrdí.
+
+Tvorba/odesílání nového upozornění, scanner a samostatná diagnostická stránka
+nejsou vybrané. Návrh tvorby upozornění zůstává [v návrhových podkladech](design/guardian-v3/README.md).
 
 ## Transport
 
@@ -84,13 +123,16 @@ Všechny charakteristiky vyžadují šifrování, bond a 16bajtový klíč. Just
 je povolené pouze v ručně otevřeném párovacím okně. Telefonní režim si ponechává
 PIN/MITM. Guardian nikdy nepoužívá MeshCore UART pro RPC.
 
-Služba používá původní Status a nové Protocol v2, Progress, Request Notify
-s CCCD a Response Write. Požadavky čekají na odběr CCCD. Současně běží jeden
+Služba používá původní Status a Progress, Protocol v3, Request Notify
+s CCCD, Response Write a samostatný Event Write with response (UUID 1406).
+Požadavky čekají na odběr CCCD. Současně běží jeden
 požadavek, fragmenty mají maximálně 20 bajtů včetně čtyřbajtové hlavičky.
 Zpracování JSON probíhá až po END; velikost je omezená na 32768 bajtů.
 Pořadí fragmentů, ID a časové limity 30/60 sekund se kontrolují. Chyba rámcování
 ukončí spojení, odpojení zahodí neúplná data. RPC ani Progress neomlazují Status.
 BLE callbacky nekreslí UI a neukládají koncepty; sdílený RPC model chrání mutex.
+Event má nezávislé skládání fragmentů, timeout 30 s a frontu nejvýše dvaceti
+úplných událostí/64 KiB. Response a Event lze prokládat i se stejným transfer ID.
 
 Po ztrátě spojení T-Deck obnovuje advertising (kontrola každou sekundu).
 PC jako Central musí spojení znovu zahájit, obnovit odběr Request CCCD a posílat

@@ -103,6 +103,7 @@ using namespace ui::images;
 #include "screens/BluetoothSettingsScreen.h"
 #include "screens/GuardianScreen.h"
 #include "screens/GuardianAppScreen.h"
+#include "screens/GuardianEmergency.h"
 #include "widgets/GuardianShield.h"
 #include "screens/AccentColorPicker.h"
 #include "theme/TouchTheme.h"
@@ -3385,7 +3386,13 @@ static void lvglTouchRead(lv_indev_drv_t* indev, lv_indev_data_t* data) {
     // several polls, so once the backlight is back on a still-down finger would
     // otherwise press the UI underneath and trigger the action before you see
     // it (issue #4). Applies to both boards (V4 + T-Deck).
-    if (g_lv.task && (g_lv.task->isScreenOff() || g_lv.task->isManualLock())) {
+    bool emergencyTouch=false;
+#if defined(LILYGO_TDECK) || defined(GUARD_SIMULATOR)
+    emergencyTouch=ui::screens::guardianEmergencyVisible();
+#endif
+    // The full-screen system overlay absorbs every hit. Reading or scrolling
+    // an emergency may use touch while the underlying manual PIN lock stays.
+    if (g_lv.task && (g_lv.task->isScreenOff() || (g_lv.task->isManualLock() && !emergencyTouch))) {
     #if !defined(HAS_TDECK_PRO)
       if (!g_lv.task->isManualLock()) g_lv.task->noteUserInput();
     #endif
@@ -9881,12 +9888,16 @@ static void terminalSink(const char* line) {
 
 
 static ui::screens::GuardianScreen guardianScreen;
+#if defined(LILYGO_TDECK) || defined(GUARD_SIMULATOR)
 static ui::screens::GuardianAppScreen guardianApp;
+#endif
 static void closeGuardianPage();
 static void backGuardianPage();
 static void releaseToolContents() {
   guardianScreen.detach();
+#if defined(LILYGO_TDECK) || defined(GUARD_SIMULATOR)
   guardianApp.detach();
+#endif
   appPageEnd(closeGuardianPage);
   appPageEnd(backGuardianPage);
   terminalScreen.close();
@@ -9901,7 +9912,13 @@ static ui::screens::FullscreenToolView toolView({
 static void closeFullscreenView() { toolView.close(); }
 static lv_obj_t* openFullscreenView(const char* title) { return toolView.open(title); }
 static void closeGuardianPage() { closeFullscreenView(); }
-static void backGuardianPage() { if (!guardianApp.back()) closeGuardianPage(); }
+static void backGuardianPage() {
+#if defined(LILYGO_TDECK) || defined(GUARD_SIMULATOR)
+  if (!guardianApp.back()) closeGuardianPage();
+#else
+  closeGuardianPage();
+#endif
+}
 static void openGuardianSettings() {
   auto* body = openFullscreenView("Guardian");
   guardianScreen.create(body, [](guardian::Command command) {
@@ -9928,6 +9945,7 @@ static void openGuardianSettings() {
   guardianScreen.refresh(millis());
 }
 static void openGuardianPage() {
+#if defined(LILYGO_TDECK) || defined(GUARD_SIMULATOR)
   auto* body = toolView.open("Guardian", false);
   guardianApp.create(body, [](lv_obj_t* field) { attachSettingsTaEvents(field); }, [] { hideKb(); }, [] {
     closeGuardianPage();
@@ -9937,6 +9955,9 @@ static void openGuardianPage() {
     appPageBeginSlim(title, backGuardianPage);
   });
   guardianApp.refresh(millis());
+#else
+  openGuardianSettings();
+#endif
 }
 // ---- meshcore-cli-style chat commands (to / send / public / list / channels) ----
 // Transmit `text` to a DM contact (is_channel=false) or a channel slot. Reuses
@@ -28307,6 +28328,25 @@ void UITask::begin(DisplayDriver* display, SensorManager* sensors, NodePrefs* no
     static_cast<UITask*>(context)->_chat.select(value.index, value.channel);
   };
   history.configure(_messages, _msgcount, historyHost);
+#if defined(LILYGO_TDECK) || defined(GUARD_SIMULATOR)
+  ui::screens::guardianEmergencyConfigure({
+    [] {
+      if (!g_lv.task) return;
+      if (g_lv.task->isManualLocked()) g_lv.task->lockscreenReveal();
+      else g_lv.task->wakeScreen();
+    },
+    [] {
+      if (!g_lv.task) return;
+      const uint32_t now = millis();
+      g_lv.task->_screen.recordActivity(now);
+      if (g_lv.task->_screen.manualLocked()) g_lv.task->_screen.armLockWindow(now);
+    },
+    [] {
+#if (defined(HAS_UI_SOUND) || defined(HAS_TANMATSU)) && !defined(GUARD_SIMULATOR)
+      ui::audio::playNotification();
+#endif
+    }});
+#endif
   unsigned heardCapacity = 1024;
 #if defined(ESP32)
   if (!heap_caps_get_total_size(MALLOC_CAP_SPIRAM)) heardCapacity = 128;
@@ -32352,7 +32392,10 @@ void UITask::loop() {
   serviceLockingCountdown(now);
 #endif
   guardianScreen.refresh(now);
+#if defined(LILYGO_TDECK) || defined(GUARD_SIMULATOR)
   guardianApp.refresh(now);
+  ui::screens::guardianEmergencyTick(now);
+#endif
 #if defined(HAS_UI_SOUND) || defined(HAS_TANMATSU)
   // The first fresh heartbeat establishes a baseline; reconnecting must not
   // announce mail that arrived while this device was offline.
