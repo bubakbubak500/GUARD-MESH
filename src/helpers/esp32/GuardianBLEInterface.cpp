@@ -18,8 +18,9 @@ const ble_uuid128_t protocolUuid = BLE_UUID128_INIT(0xbc,0x8a,0xbf,0x45,0xca,0x0
 const ble_uuid128_t progressUuid = BLE_UUID128_INIT(0xbc,0x8a,0xbf,0x45,0xca,0x05,0x50,0xba,0x42,0x40,0x00,0xb0,0x03,0x14,0x64,0xf3);
 const ble_uuid128_t requestUuid = BLE_UUID128_INIT(0xbc,0x8a,0xbf,0x45,0xca,0x05,0x50,0xba,0x42,0x40,0x00,0xb0,0x04,0x14,0x64,0xf3);
 const ble_uuid128_t responseUuid = BLE_UUID128_INIT(0xbc,0x8a,0xbf,0x45,0xca,0x05,0x50,0xba,0x42,0x40,0x00,0xb0,0x05,0x14,0x64,0xf3);
+const ble_uuid128_t eventUuid = BLE_UUID128_INIT(0xbc,0x8a,0xbf,0x45,0xca,0x05,0x50,0xba,0x42,0x40,0x00,0xb0,0x06,0x14,0x64,0xf3);
 uint16_t requestHandle = 0;
-ble_gatt_chr_def characteristics[6]{};
+ble_gatt_chr_def characteristics[7]{};
 ble_gatt_svc_def services[2]{};
 GuardianBLEInterface* instance = nullptr;
 int accessCallback(uint16_t connection, uint16_t, ble_gatt_access_ctxt* context, void* arg) {
@@ -72,7 +73,9 @@ void GuardianBLEInterface::begin(const char* prefix, char* name, uint32_t pin) {
   characteristics[3].val_handle = &requestHandle;
   characteristics[4].uuid = &responseUuid.u;
   characteristics[4].flags = BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_WRITE_ENC;
-  for (int i = 0; i < 5; ++i) {
+  characteristics[5].uuid = &eventUuid.u;
+  characteristics[5].flags = BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_WRITE_ENC;
+  for (int i = 0; i < 6; ++i) {
     characteristics[i].access_cb = accessCallback;
     characteristics[i].arg = this;
     characteristics[i].min_key_size = 16;
@@ -225,20 +228,25 @@ int GuardianBLEInterface::access(uint16_t connection, ble_gatt_access_ctxt* cont
     return BLE_ATT_ERR_INSUFFICIENT_AUTHEN;
   if (context->op == BLE_GATT_ACCESS_OP_READ_CHR) {
     if (context->chr != &characteristics[1]) return BLE_ATT_ERR_UNLIKELY;
-    static const uint8_t protocol[] = {'G','M',2,0};
+    static const uint8_t protocol[] = {'G','M',3,0};
     return os_mbuf_append(context->om, protocol, sizeof protocol) == 0 ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
   }
   if (context->op != BLE_GATT_ACCESS_OP_WRITE_CHR) return BLE_ATT_ERR_UNLIKELY;
   const size_t size = OS_MBUF_PKTLEN(context->om);
-  if (context->chr == &characteristics[4] && (size < 5 || size > 20)) {
+  const bool jsonWrite = context->chr == &characteristics[4] || context->chr == &characteristics[5];
+  if (jsonWrite && (size < 5 || size > 20)) {
     guardian::rpcDisconnect(); NimBLEDevice::getServer()->disconnect(connection);
     return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;
   }
   if (size > 20) return BLE_ATT_ERR_INVALID_ATTR_VALUE_LEN;
   uint8_t bytes[20];
-  if (ble_hs_mbuf_to_flat(context->om, bytes, sizeof bytes, nullptr) != 0) return BLE_ATT_ERR_UNLIKELY;
-  if (context->chr == &characteristics[4]) {
-    if (guardian::rpcReceive(bytes, size, millis())) return 0;
+  if (ble_hs_mbuf_to_flat(context->om, bytes, sizeof bytes, nullptr) != 0) {
+    if (jsonWrite) { guardian::rpcDisconnect(); NimBLEDevice::getServer()->disconnect(connection); }
+    return BLE_ATT_ERR_UNLIKELY;
+  }
+  if (jsonWrite) {
+    if (context->chr == &characteristics[4] ? guardian::rpcReceive(bytes, size, millis()) :
+                                          guardian::eventReceive(bytes, size, millis())) return 0;
     NimBLEDevice::getServer()->disconnect(connection); return BLE_ATT_ERR_UNLIKELY;
   }
   if (context->chr == &characteristics[2])

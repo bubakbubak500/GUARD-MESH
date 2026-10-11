@@ -55,5 +55,5 @@ int main() {
   assert(restored.token==draft.token && restored.body==draft.body);
   restored.body=" \n\t"; assert(!guardian::validateDraft(restored));
   restored=draft; restored.to="OK 7"; assert(!guardian::validateDraft(restored));
-  puts("Guardian v2: CCCD gating, chunks, UTF-8, ordering, limits, timeout, draft/token PASS");
+  puts("Guardian RPC: CCCD gating, chunks, UTF-8, ordering, limits, timeout, draft/token PASS");
 }

@@ -2,7 +2,8 @@
 #pragma once
 #include <lvgl.h>
 namespace ui { namespace widgets {
-enum class GuardianIcon { Mail, Network, Pencil, Send, Bookmark, Down, Up, Person, Gear, Home, Chevron };
+enum class GuardianIcon { Mail, Network, Pencil, Send, Bookmark, Down, Up, Person, Gear, Home, Chevron,
+                          Radio, Antenna, Bell, Warning, Info, Shield };
 // Resolution-independent A3 artwork. Uses the app accent; no font glyph substitutes.
 lv_obj_t* guardianIcon(lv_obj_t* parent, GuardianIcon icon, int size, uint32_t accent,
                        lv_color_t foreground = lv_color_hex(0xeaf1ff));

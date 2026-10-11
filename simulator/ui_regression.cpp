@@ -280,8 +280,11 @@ void runUiLifetimeRegression(void (*pump)(unsigned)) {
   require(lv_obj_get_child_cnt(lv_layer_top()) == roots_before, "Quick-reply screen leaked a tree");
   runTerminalRegression(pump);
   runMapScreenRegression(pump);
+  puts("UI test: file screen"); fflush(stdout);
   runFileScreenRegression(pump);
+  puts("UI test: store screen"); fflush(stdout);
   runStoreScreenRegression(pump);
+  puts("UI test: keyboard binding"); fflush(stdout);
   runKeyboardBindingRegression();
   runChatTimelineRegression();
   runMessageMenuRegression(pump);

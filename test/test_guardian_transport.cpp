@@ -40,12 +40,28 @@ int main() {
   assert(chars[2].flags==(BLE_GATT_CHR_F_WRITE|BLE_GATT_CHR_F_WRITE_ENC));
   assert(chars[3].flags & BLE_GATT_CHR_F_NOTIFY);
   assert(chars[4].flags==(BLE_GATT_CHR_F_WRITE|BLE_GATT_CHR_F_WRITE_ENC));
+  assert(chars[5].flags==(BLE_GATT_CHR_F_WRITE|BLE_GATT_CHR_F_WRITE_ENC));
+  assert(reinterpret_cast<const ble_uuid128_t*>(chars[5].uuid)->value[12]==6);
+  assert(!chars[6].uuid); // six required v3 characteristics plus terminator
+  for (unsigned i=0;i<6;++i) assert(chars[i].min_key_size==16);
   os_mbuf buffer; ble_gatt_access_ctxt context{BLE_GATT_ACCESS_OP_READ_CHR,&buffer,&chars[1]};
   assert(ble.access(3,&context)==BLE_ATT_ERR_INSUFFICIENT_AUTHEN);
+  os_mbuf eventBuffer; eventBuffer.data={3,1,0,0,'{','}'};
+  ble_gatt_access_ctxt eventContext{BLE_GATT_ACCESS_OP_WRITE_CHR,&eventBuffer,&chars[5]};
+  assert(ble.access(3,&eventContext)==BLE_ATT_ERR_INSUFFICIENT_AUTHEN);
   fake::desc.sec_state={true,true}; ble.onAuthenticationComplete(&fake::desc);
   assert(!ble.allowRepeatPairing(3));
   assert(guardian::snapshot(fake::now).session.connected && !guardian::snapshot(fake::now).session.fresh(fake::now));
-  assert(ble.access(3,&context)==0 && buffer.data==std::vector<uint8_t>({'G','M',2,0}));
+  assert(ble.access(3,&context)==0 && buffer.data==std::vector<uint8_t>({'G','M',3,0}));
+  assert(ble.access(4,&eventContext)==BLE_ATT_ERR_INSUFFICIENT_AUTHEN);
+  assert(ble.access(3,&eventContext)==0); // Event does not depend on Request CCCD
+  std::string eventJson;
+  assert(guardian::eventTake(eventJson) && eventJson=="{}");
+  fake::desc.sec_state={false,true};
+  assert(ble.access(3,&eventContext)==BLE_ATT_ERR_INSUFFICIENT_AUTHEN);
+  fake::desc.sec_state={true,false};
+  assert(ble.access(3,&eventContext)==BLE_ATT_ERR_INSUFFICIENT_AUTHEN);
+  fake::desc.sec_state={true,true};
   assert(!guardian::rpcReady());
   ble.subscribed(4,23,true); assert(!guardian::rpcReady());
   ble.subscribed(3,23,true); assert(guardian::rpcReady());
@@ -69,8 +85,11 @@ int main() {
   ble.onAuthenticationComplete(&intruder);
   ble.onDisconnect(&NimBLEDevice::server,&intruder);
   assert(guardian::snapshot(fake::now).session.connected); // rejected second PC cannot clear first
+  eventBuffer.data={1,255,0,0,'{'};
+  assert(ble.access(3,&eventContext)==0);
   ble.onDisconnect(&NimBLEDevice::server,&fake::desc);
   assert(!guardian::snapshot(fake::now).session.connected);
+  assert(!guardian::eventTake(eventJson));
   NimBLEDevice::adv.running=false; NimBLEDevice::server.count=0;
   fake::now+=1001; ble.tickGuardian();
   assert(NimBLEDevice::adv.running && !guardian::rpcReady());
@@ -78,12 +97,18 @@ int main() {
   ble.onAuthenticationComplete(&fake::desc);
   assert(!guardian::rpcReady()); // each connection must subscribe again on the PC
   ble.subscribed(3,23,true); assert(guardian::rpcReady());
+  eventBuffer.data={3,0,0,0,'{','}'};
+  assert(ble.access(3,&eventContext)==0 && guardian::eventTake(eventJson));
   NimBLEDevice::adv.running=false; NimBLEDevice::server.count=1;
   fake::now+=1001; ble.tickGuardian();
   assert(!NimBLEDevice::adv.running); // no reconnect churn while a PC is connected
   NimBLEDevice::server.count=0;
   buffer.data={'G','M',1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
   assert(ble.access(3,&context)==0); // bonded reconnect resets sequence
+  const auto beforeMalformed=NimBLEDevice::server.disconnected.size();
+  eventBuffer.data={2,0,1,0,'}'}; // END without a START must close the link
+  assert(ble.access(3,&eventContext)!=0);
+  assert(NimBLEDevice::server.disconnected.size()==beforeMalformed+1 && !guardian::rpcReady());
   ble.disable(); assert(!guardian::snapshot(fake::now).session.connected && !NimBLEDevice::adv.running);
   assert(ble.access(3,&context)==BLE_ATT_ERR_INSUFFICIENT_AUTHEN);
   ble.onDisconnect(&NimBLEDevice::server,&fake::desc); ble.enable();
@@ -97,5 +122,5 @@ int main() {
   guardian::request(guardian::Command::Disable); ble.tickGuardian();
   assert(!fake::saved && NimBLEDevice::mitm && NimBLEDevice::adv.name=="Mesh-Test");
   ble.onWrite(&uart); assert(fake::phoneWrites==1);
-  puts("Guardian transport: registration, ATT errors, security, pairing timeout, reconnect, isolation PASS");
+  puts("Guardian v3 transport: six characteristics, Event writes, ATT errors, security, pairing timeout, reconnect, isolation PASS");
 }

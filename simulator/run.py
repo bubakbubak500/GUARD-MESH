@@ -21,7 +21,7 @@ def run_smoke(executable, mode, artifacts):
     try:
         # Includes Guardian settings/app navigation, paged RPC and recovery,
         # followed by all shared screen lifetime checks. Allow slower CI hosts.
-        result = subprocess.run([str(executable), mode], cwd=artifacts, timeout=180,
+        result = subprocess.run([str(executable), mode], cwd=artifacts, timeout=300,
                                 creationflags=subprocess.CREATE_NO_WINDOW,
                                 capture_output=True, text=True, encoding='utf-8', errors='replace')
     except subprocess.TimeoutExpired as error:

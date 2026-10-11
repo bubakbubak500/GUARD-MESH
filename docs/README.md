@@ -1,10 +1,13 @@
 # GUARD-MESH dokumentace
 
+- [Guardian 2026.10.11 — změny, USB/OTA a ověření](releases/guardian-2026.10.11.md)
+- [Guardian v3 — 17 skutečných českých obrazovek](design/guardian-v3/screens/README.md)
+- [Guardian BLE v3 — návrh funkcí k výběru a 28 ukázek obrazovek](design/guardian-v3/README.md)
 - [Guard-Mesh-Flasher — desktopová aplikace a instalátor Windows](../desktop-flasher/README.md)
 - [Původní lokální webový flasher pro Windows a Linux](LOCAL-FLASHER.md)
 - [České rozhraní](CZECH.md)
 - [T-Deck simulátor pro Windows](SIMULATOR.md)
-- [Guardian BLE v1 — připojení a ověření](GUARDIAN-BLE.md)
+- [Guardian BLE v3 — připojení, ovládání a nouzová upozornění](GUARDIAN-BLE.md)
 - [Historický rozvojový plán propojení s Guardianem](GUARDIAN-INTEGRATION.md)
 - [Plán 1 — cache názvů slyšených nodů pro Discover](PLAN-1.md)
 - [Plán oddělení UI a desktopového simulátoru](UI-REFACTOR.md)

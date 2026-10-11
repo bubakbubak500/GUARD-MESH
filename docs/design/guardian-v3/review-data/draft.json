@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "project": "GUARD-MESH",
+  "proposal": "guardian-ble-v3",
+  "status": "draft",
+  "scope": {
+    "board": "T-Deck",
+    "heltec": "later",
+    "scanner": "excluded"
+  },
+  "updated_at": "2026-10-11T14:56:27.279Z",
+  "decisions": {
+    "F01": {
+      "choice": "yes",
+      "comment": ""
+    },
+    "F02": {
+      "choice": "yes",
+      "comment": ""
+    },
+    "F03": {
+      "choice": "yes",
+      "comment": ""
+    },
+    "F04a": {
+      "choice": "yes",
+      "comment": ""
+    },
+    "F04b": {
+      "choice": "yes",
+      "comment": ""
+    },
+    "F04c": {
+      "choice": "yes",
+      "comment": ""
+    },
+    "F05": {
+      "choice": "yes",
+      "comment": "Stejne tak pod oba vynutit odeslani advertu pokud to API umoznuje"
+    },
+    "F07": {
+      "choice": "yes",
+      "comment": ""
+    },
+    "F08": {
+      "choice": "yes",
+      "comment": ""
+    },
+    "F09": {
+      "choice": "yes",
+      "comment": ""
+    },
+    "F10": {
+      "choice": "yes",
+      "comment": "Pokud je to nouzova kratka zprava chci aby Lilygo zacalo pipat display se aktiuvovat a zprava byla rovnou videt dokud se neoznaci jako prectena"
+    },
+    "F11": {
+      "choice": "later",
+      "comment": "az pozdeji co to pujde posialt zpet, jinak to nema smysl a je to matouci, ale navrh zachovej"
+    },
+    "F12": {
+      "choice": "no",
+      "comment": ""
+    },
+    "F13": {
+      "choice": "no",
+      "comment": "Budeme kom patibilni pouze s API v3, proste v2 zpetne podporovat nebudeme... easy :)"
+    }
+  },
+  "general_comment": "",
+  "design_comment": "ta 27 a 28 tak nevypada, ale navrh je to krasny muzes to dodelat :D"
+}

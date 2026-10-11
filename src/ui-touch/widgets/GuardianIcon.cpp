@@ -55,6 +55,31 @@ void draw(lv_event_t* e) {
     case GuardianIcon::Home:
       path({{2,15},{16,3},{30,15}},white); path({{7,13},{7,29},{13,29},{13,20},{20,20},{20,29},{26,29},{26,13}},white); break;
     case GuardianIcon::Chevron: path({{11,5},{22,16},{11,27}},white); break;
+    case GuardianIcon::Radio:
+      path({{9,9},{22,3}},blue); path({{22,3},{22,1}},blue);
+      rect(3,10,26,19,blue,3,2);
+      rect(7,14,8,8,white,LV_RADIUS_CIRCLE); rect(9,16,4,4,blue,LV_RADIUS_CIRCLE);
+      rect(19,14,6,8,white,2); break;
+    case GuardianIcon::Antenna:
+      path({{6,30},{16,7},{26,30}},blue,2);
+      path({{10,22},{22,22},{12,15},{20,15}},blue,2);
+      rect(13,2,6,6,blue,LV_RADIUS_CIRCLE,1);
+      path({{7,4},{4,8},{4,14}},blue); path({{25,4},{28,8},{28,14}},blue); break;
+    case GuardianIcon::Bell:
+      rect(7,8,18,18,blue,7);
+      rect(13,3,6,6,blue,LV_RADIUS_CIRCLE);
+      path({{6,20},{3,27},{29,27},{26,20}},blue,2);
+      rect(13,29,6,3,white,LV_RADIUS_CIRCLE); break;
+    case GuardianIcon::Warning:
+      triangle({16,2},{1,30},{31,30},blue);
+      path({{16,10},{16,19}},white,3); rect(14,23,4,4,white,LV_RADIUS_CIRCLE); break;
+    case GuardianIcon::Info:
+      rect(1,1,30,30,blue,LV_RADIUS_CIRCLE);
+      rect(14,7,4,4,white,LV_RADIUS_CIRCLE);
+      path({{16,15},{16,25}},white,3); break;
+    case GuardianIcon::Shield:
+      path({{16,2},{29,7},{27,22},{16,31},{5,22},{3,7},{16,2}},blue,2);
+      path({{9,15},{14,20},{23,10}},white,3); break;
   }
 }
 }
