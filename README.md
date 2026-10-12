@@ -13,6 +13,17 @@ maintained by [@bubakbubak500](https://github.com/bubakbubak500).
   for live PC status, messages, contacts and composing queued messages.
   Pairing is in Settings. The upstream build instructions remain below.
 
+## Guardian 2026.10.12
+
+- Fixes chat refresh stack exhaustion identified in a T-Deck crash from
+  `guardian-2026.10.10.3`; the affected path also existed in `2026.10.11`.
+- Positions chat bubbles directly without the large temporary sorting array.
+  Incoming/outgoing alignment, scroll position and day separators are retained.
+- Includes USB **merged.bin** and Wi-Fi **app-ota.bin** for T-Deck / T-Deck Plus
+  and Heltec V4 TFT, with checksums and debug ELF. Hardware is not tested.
+- [Release notes and validation](docs/releases/guardian-2026.10.12.md) ·
+  [Firmware downloads](https://github.com/bubakbubak500/GUARD-MESH/releases/tag/guardian-2026.10.12)
+
 ## Guardian 2026.10.10.3
 
 - T-Deck pauses display rendering and physical pixel transfers while the screen

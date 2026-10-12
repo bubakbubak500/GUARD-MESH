@@ -47,6 +47,8 @@ void createMessages(ChatPanel &panel) {
 } // namespace
 void runChatTimelineRegression() {
   const auto roots = lv_obj_get_child_cnt(lv_layer_top());
+  const bool compactBefore = touchPrefsGetCompactChat();
+  touchPrefsSetCompactChat(false);
   ChatPanel direct{}, channel{};
   createMessages(direct);
   timeline::Host host{};
@@ -114,10 +116,31 @@ void runChatTimelineRegression() {
   timeline::chatVirtJumpToOldest(&direct);
   drain();
   check(timeline::snapshot().firstVisible == 0, "Oldest jump missed first message");
-  auto *firstRow = lv_obj_get_parent(label(direct.msgs, "Message 0"));
-  auto* ackRow = lv_obj_get_parent(label(direct.msgs, "Message 1 "));
+  auto *firstBody = label(direct.msgs, "Message 0");
+  auto *ackBody = label(direct.msgs, "Message 1 ");
+  check(firstBody && ackBody, "Oldest incoming or outgoing message missing");
+  auto *firstRow = lv_obj_get_parent(firstBody);
+  auto *ackRow = lv_obj_get_parent(ackBody);
+  const auto incomingX = lv_obj_get_x(firstRow), outgoingX = lv_obj_get_x(ackRow);
+  const auto incomingY = lv_obj_get_y(firstRow), outgoingY = lv_obj_get_y(ackRow);
+  check(incomingX < outgoingX && incomingY < outgoingY,
+        "Incoming and outgoing bubbles were not aligned in message order");
+  lv_obj_t *daySeparator = nullptr;
+  for (uint32_t i = 0; i < lv_obj_get_child_cnt(direct.msgs); ++i) {
+    auto *child = lv_obj_get_child(direct.msgs, i);
+    if (lv_obj_check_type(child, &lv_label_class) &&
+        !lv_obj_has_flag(child, LV_OBJ_FLAG_HIDDEN)) {
+      daySeparator = child;
+      break;
+    }
+  }
+  check(daySeparator, "Oldest message day separator missing");
+  const auto separatorX = lv_obj_get_x(daySeparator), separatorY = lv_obj_get_y(daySeparator);
   const auto originalHeight = timeline::snapshot().totalHeight;
   const auto originalScroll = lv_obj_get_scroll_y(direct.msgs);
+  // A reused bubble can carry a stale side; ACK refresh must restore both sides.
+  lv_obj_set_x(firstRow, outgoingX);
+  lv_obj_set_x(ackRow, incomingX);
   timeline::resetMetrics();
   delivery = MessageTypes::DELIV_FAILED;
   timeline::refreshChatDetail(direct);
@@ -125,9 +148,27 @@ void runChatTimelineRegression() {
   check(lv_obj_get_parent(label(direct.msgs, "Message 1 ")) == ackRow &&
         lv_obj_get_scroll_y(direct.msgs) == originalScroll &&
         timeline::snapshot().totalHeight == originalHeight, "ACK replaced a bubble or moved the viewport");
+  check(lv_obj_get_x(firstRow) == incomingX && lv_obj_get_x(ackRow) == outgoingX,
+        "ACK refresh retained incorrect incoming or outgoing alignment");
   auto work = timeline::metrics();
   check(work.heightMeasurements == 0 && work.rowsBound == 0 && work.metadataUpdates > 0,
         "ACK rebuilt content instead of updating metadata");
+  // Row reuse makes LVGL sibling order independent of chronological order.
+  lv_obj_move_to_index(firstRow, -1);
+  lv_obj_move_to_index(ackRow, 0);
+  check(lv_obj_get_index(firstRow) > lv_obj_get_index(ackRow),
+        "Sibling reorder did not reverse the first message pair");
+  lv_obj_set_y(firstRow, outgoingY);
+  lv_obj_set_y(ackRow, incomingY);
+  lv_obj_set_pos(daySeparator, separatorX + 17, separatorY + 23);
+  timeline::chatVirtSyncBubblePositions(&direct);
+  check(lv_obj_get_y(firstRow) == incomingY && lv_obj_get_y(ackRow) == outgoingY &&
+        lv_obj_get_x(daySeparator) == separatorX && lv_obj_get_y(daySeparator) == separatorY,
+        "Bubble or day separator position depended on LVGL sibling order");
+  check(lv_obj_get_index(firstRow) > lv_obj_get_index(ackRow) &&
+        lv_obj_get_scroll_y(direct.msgs) == originalScroll &&
+        timeline::snapshot().totalHeight == originalHeight,
+        "Position sync reordered children or changed the scroll extent");
   timeline::resetMetrics();
   count = 241;
   timeline::refreshChatDetail(direct);
@@ -218,7 +259,6 @@ void runChatTimelineRegression() {
   timeline::refreshChatDetail(direct);
   drain();
   check(timeline::metrics().heightMeasurements == 0, "Reopening forgot cached heights");
-  const bool compactBefore = touchPrefsGetCompactChat();
   touchPrefsSetCompactChat(true);
   first = 0; count = 240;
   timeline::refreshChatDetail(direct);
@@ -244,6 +284,6 @@ void runChatTimelineRegression() {
   check(reads == before, "Shutdown retained pending refresh");
   lv_obj_del(direct.msgs);
   check(lv_obj_get_child_cnt(lv_layer_top()) == roots, "Timeline leaked LVGL roots");
-  puts("Chat timeline: long history, scroll, thread switch, URL lifetime, coalescing and cancellation "
+  puts("Chat timeline: alignment, sibling order, long history, scroll, thread switch, URL lifetime, coalescing and cancellation "
        "passed.");
 }

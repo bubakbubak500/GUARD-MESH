@@ -1012,15 +1012,11 @@ void chatVirtSyncBubblePositions(LvChatPanel *p) {
   if (!p || !p->msgs || s_chat_virt.panel != p || s_chat_virt.n <= 0 || !s_chat_virt.offsets)
     return;
 
-  struct BubbleEntry {
-    lv_obj_t *obj;
-    int logical_i;
-    lv_coord_t h;
-  };
-  BubbleEntry entries[128];
-  int cnt = 0;
-
-  for (uint32_t ci = 0; ci < lv_obj_get_child_cnt(p->msgs) && cnt < 128; ++ci) {
+  // Each position depends only on the logical index and viewport, not sibling
+  // order. Updating in place avoids a 1.5 KiB array in the nested LVGL scroll
+  // path, which exhausted the T-Deck's 8 KiB loopTask stack in a field dump.
+  const int32_t virt_top = chatVirtEffectiveVirtTop(p);
+  for (uint32_t ci = 0; ci < lv_obj_get_child_cnt(p->msgs); ++ci) {
     lv_obj_t *ch = lv_obj_get_child(p->msgs, ci);
     if (!ch || ch == s_chat_virt.spacer || lv_obj_has_flag(ch, LV_OBJ_FLAG_HIDDEN))
       continue;
@@ -1031,7 +1027,6 @@ void chatVirtSyncBubblePositions(LvChatPanel *p) {
       const int logical_i = static_cast<int>(-(ud + 1));
       if (logical_i >= 0 && logical_i < s_chat_virt.n && s_chat_virt.day_sep_y &&
           s_chat_virt.day_sep_y[logical_i] >= 0) {
-        const int32_t virt_top = chatVirtEffectiveVirtTop(p);
         const lv_coord_t vp = static_cast<lv_coord_t>(s_chat_virt.day_sep_y[logical_i] - virt_top);
         lv_obj_set_pos(ch, 0, vp + 2);
       }
@@ -1039,49 +1034,23 @@ void chatVirtSyncBubblePositions(LvChatPanel *p) {
     }
     if (ud >= s_chat_virt.n)
       continue;
-    entries[cnt].obj = ch;
-    entries[cnt].logical_i = static_cast<int>(ud);
-    entries[cnt].h = lv_obj_get_height(ch);
-    ++cnt;
-  }
-  if (cnt == 0) {
-    if (s_chat_virt.divider && lv_obj_is_valid(s_chat_virt.divider) && s_chat_virt.divider_y >= 0) {
-      const int32_t virt_top = chatVirtEffectiveVirtTop(p);
-      const lv_coord_t div_vp = static_cast<lv_coord_t>(s_chat_virt.divider_y - virt_top);
-      lv_obj_set_pos(s_chat_virt.divider, 0, div_vp);
-    }
-    return;
-  }
-
-  for (int i = 1; i < cnt; ++i) {
-    BubbleEntry tmp = entries[i];
-    int j = i - 1;
-    while (j >= 0 && entries[j].logical_i > tmp.logical_i) {
-      entries[j + 1] = entries[j];
-      --j;
-    }
-    entries[j + 1] = tmp;
-  }
-
-  const int32_t virt_top = chatVirtEffectiveVirtTop(p);
-  for (int i = 0; i < cnt; ++i) {
-    const lv_coord_t vp = chatVirtMsgViewportY(entries[i].logical_i, virt_top);
+    const int logical_i = static_cast<int>(ud);
+    const lv_coord_t vp = chatVirtMsgViewportY(logical_i, virt_top);
     // Re-assert the correct left/right x on every pass instead of preserving lv_obj_get_x():
     // a bubble recreated mid-scroll (e.g. right after a send) can briefly carry a wrong x, and
     // the old preserve-x logic then locked it in until the next full rebuild — that was the
     // "just-sent outgoing bubble stuck on the LEFT" bug. Compact rows stay full-width.
-    lv_coord_t x = lv_obj_get_x(entries[i].obj);
-    if (!s_chat_virt.compact_chat && host.ready() && s_chat_virt.msg_idx && entries[i].logical_i >= 0 &&
-        entries[i].logical_i < s_chat_virt.n) {
+    lv_coord_t x = lv_obj_get_x(ch);
+    if (!s_chat_virt.compact_chat && host.ready() && s_chat_virt.msg_idx) {
       MessageTypes::UIMessage mm;
-      if (host.messageAt(s_chat_virt.msg_idx[entries[i].logical_i], mm)) {
-        lv_coord_t w = lv_obj_get_width(entries[i].obj);
+      if (host.messageAt(s_chat_virt.msg_idx[logical_i], mm)) {
+        lv_coord_t w = lv_obj_get_width(ch);
         if (w > s_chat_virt.bubble_max_w)
           w = s_chat_virt.bubble_max_w;
         x = mm.outgoing ? (s_chat_virt.content_w - w - kChatSideGutter) : kChatSideGutter;
       }
     }
-    lv_obj_set_pos(entries[i].obj, x, vp);
+    lv_obj_set_pos(ch, x, vp);
   }
 
   if (s_chat_virt.divider && lv_obj_is_valid(s_chat_virt.divider) && s_chat_virt.divider_y >= 0) {
