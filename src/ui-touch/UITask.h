@@ -249,6 +249,10 @@ public:
     return thread.used && thread.channel ? thread.mesh_channel_slot : -1;
   }
   int msgCap() const { return _messages.capacity(); }
+  bool messageChangesSince(uint32_t after, ui::MessageChanges::Item *items, int capacity,
+                           int &count, uint32_t &current) const {
+    return _messages.changes().since(after, items, capacity, count, current);
+  }
   bool getThreadContactPub(int idx, uint8_t out[32]) const {
     const auto& thread = _messages.thread(idx);
     if (!out || !thread.used || thread.channel) return false;

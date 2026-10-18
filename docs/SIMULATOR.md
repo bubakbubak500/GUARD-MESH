@@ -139,6 +139,15 @@ během čtení. Skutečný ESP32 heap ani FAT kapacita se v desktopu neměří.
 Režim `--smoke-nav` navíc ověří skutečně naplněnou skupinu a posun fokusu
 klávesou přes vstupní cestu firmwaru; poté projde běžný integrační scénář.
 Samostatné modely a služby: `python scripts/test_ui_models.py`.
+Indexy zpráv mají vlastní regresi a čítače práce:
+`python scripts/test_message_performance.py`, volitelně s `--baseline-ref <commit>`
+pro porovnání stejného workloadu s původním `MessageStore`. Čítače se do firmwaru
+nekompilují. Úplný `--test` tento scénář zahrnuje.
+Sestavený simulátor přijímá `--message-performance-test` a
+`--message-performance-test-cs`: skutečný model a LVGL s téměř 5 000 zprávami,
+ACK stejné i změněné výšky, změna mimo obrazovku, kotva, souběh s příchodem,
+echo, vzhled/jméno, přetečení přehledu změn, rollover a časové oddělovače.
+Kontroluje počet drahých čtení/podpisů a výšky proti úplnému přeměření.
 Dialog odpovědi Ping lze ověřit také samostatně přepínačem `--ping-test`
 nebo `--ping-test-cs` sestaveného simulátoru. Testuje skutečný model a modal:
 binární/JSON odpověď, správný offset uptime (20, nikoli TX airtime na 16),

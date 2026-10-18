@@ -572,7 +572,7 @@ public:
   uint8_t  _echo_idx = 0;
   uint32_t _last_sent_fp = 0;
   RegionRegistry _region_reg;
-  volatile bool _echo_dirty = false;   // a repeat was counted -> UI should refresh
+  volatile bool _echo_dirty = false;   // a repeat count changed -> UI should refresh
 
   // ---- Live signal strength (top-bar icon) ----
   // Updated on EVERY received packet in logRxRaw(): the SNR (×4) + millis() at RX.
@@ -745,7 +745,12 @@ public:
   void uiTrackSentFp(uint32_t fp) {
     if (fp == 0) return;
     _last_sent_fp = fp;
-    for (int i = 0; i < UI_ECHO_SLOTS; i++) if (_echo_fp[i] == fp) { _echo_rep[i] = 0; _echo_hop_n[i] = 0; return; }
+    for (int i = 0; i < UI_ECHO_SLOTS; i++) if (_echo_fp[i] == fp) {
+      if (_echo_rep[i]) _echo_dirty = true;
+      _echo_rep[i] = 0; _echo_hop_n[i] = 0;
+      return;
+    }
+    if (_echo_rep[_echo_idx]) _echo_dirty = true;
     _echo_fp[_echo_idx] = fp; _echo_rep[_echo_idx] = 0; _echo_hop_n[_echo_idx] = 0;
     _echo_idx = (uint8_t)((_echo_idx + 1) % UI_ECHO_SLOTS);
   }
@@ -775,7 +780,7 @@ public:
       }
     return false;
   }
-  /** True once if a repeat was counted since the last call — the UI uses this
+  /** True once if a repeat count changed since the last call — the UI uses this
    *  to refresh the chat so the bubble's repeat tag updates live. */
   bool takeEchoDirty() { bool d = _echo_dirty; _echo_dirty = false; return d; }
 

@@ -13,7 +13,6 @@ static constexpr uint32_t k_ts_epoch_min = 1700000000u;
 void fmtClockHM(char *buf, size_t cap, const struct tm *t) {
   if (!buf || cap < 1)
     return;
-#if defined(ESP32)
   if (touchPrefsGetClock12h()) {
     int h = t->tm_hour % 12;
     if (h == 0)
@@ -21,7 +20,6 @@ void fmtClockHM(char *buf, size_t cap, const struct tm *t) {
     snprintf(buf, cap, "%d:%02d %s", h, t->tm_min, t->tm_hour < 12 ? "AM" : "PM");
     return;
   }
-#endif
   strftime(buf, cap, "%H:%M", t);
 }
 

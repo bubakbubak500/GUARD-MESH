@@ -13,6 +13,18 @@ maintained by [@bubakbubak500](https://github.com/bubakbubak500).
   for live PC status, messages, contacts and composing queued messages.
   Pairing is in Settings. The upstream build instructions remain below.
 
+## Guardian 2026.10.18.1
+
+- Full message rings update per-thread counts incrementally; chat previews reuse
+  validated last-message indexes including empty results.
+- Long compact chats check changed records for ACK updates, retaining row heights
+  and viewport anchors. Overflow, dates, echo and display changes use full checks.
+- Includes deterministic before/after work counters and real LVGL regressions
+  over nearly 5,000 messages. USB/OTA images for T-Deck and Heltec V4 TFT include
+  checksums and debug ELF. Hardware is not tested.
+- [Release notes and performance evidence](docs/releases/guardian-2026.10.18.1.md) ·
+  [Firmware downloads](https://github.com/bubakbubak500/GUARD-MESH/releases/tag/guardian-2026.10.18.1)
+
 ## Guardian 2026.10.18
 
 - Shorter Czech labels for narrow controls, translated favorite actions,

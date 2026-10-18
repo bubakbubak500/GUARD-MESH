@@ -15,6 +15,7 @@ void release(void *memory) { free(memory); }
 struct Directory {
   ui::ChatSession::Contact contacts[8]{};
   int contactsUsed = 0;
+  int contactReads = 0;
   ui::ChatSession::Channel channels[8]{};
   int channelsUsed = 0;
 
@@ -23,6 +24,7 @@ struct Directory {
   }
   static bool contact(void *context, int index, ui::ChatSession::Contact &out) {
     Directory &self = *static_cast<Directory *>(context);
+    ++self.contactReads;
     if (index < 0 || index >= self.contactsUsed) return false;
     out = self.contacts[index];
     return true;
@@ -317,6 +319,39 @@ void testReceivedPinningAndExplicitRebind() {
   assert(session.revision() == unkeyedRevision + 1);
 }
 
+void testCachedContactIdentity() {
+  ui::MessageStore store;
+  assert(store.allocate(8, allocate, release));
+  Directory directory;
+  for (int i = 0; i < 8; ++i) setContact(directory.contacts[i], i == 7 ? "Peer" : "Other", 10 + i);
+  directory.contactsUsed = 8;
+  ui::ChatSession session;
+  session.configure(store, directory.host());
+  const int thread = makeThread(store, "Peer");
+  assert(session.select(thread, false));
+  uint8_t identity[32];
+  memcpy(identity, directory.contacts[7].pub, sizeof identity);
+  ui::ChatSession::Contact contact{};
+  int index = -1;
+  directory.contactReads = 0;
+  assert(session.activeContact(contact, &index) && index == 7);
+  assert(directory.contactReads == 1 && memcmp(contact.pub, identity, sizeof identity) == 0);
+  const auto old = directory.contacts[0];
+  directory.contacts[0] = directory.contacts[7]; directory.contacts[7] = old;
+  assert(session.activeContact(contact, &index) && index == 0);
+  assert(memcmp(contact.pub, identity, sizeof identity) == 0);
+  assert(session.syncBindings(thread));
+  directory.contactReads = 0;
+  assert(session.activeContact(contact, &index) && index == 0 && directory.contactReads == 1);
+  // An equal six-byte prefix at the cached slot is not the pinned recipient.
+  directory.contacts[7] = directory.contacts[0];
+  directory.contacts[0].pub[31] ^= 1;
+  assert(session.activeContact(contact, &index) && index == 7);
+  assert(memcmp(contact.pub, identity, sizeof identity) == 0);
+  directory.contacts[7].pub[31] ^= 2;
+  assert(!session.activeContact(contact, &index) && index == -1);
+}
+
 void testStatusesAndBusy() {
   ui::MessageStore store;
   assert(store.allocate(8, allocate, release));
@@ -360,5 +395,6 @@ int main() {
   testSnapshotsAndCallbacks();
   testReceivedPinningAndExplicitRebind();
   testStatusesAndBusy();
+  testCachedContactIdentity();
   return 0;
 }
