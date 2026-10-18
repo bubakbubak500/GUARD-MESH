@@ -53,7 +53,6 @@ void runCzechLayoutRegression(void (*save)(const char *)) {
   lv_obj_set_pos(field, 16, 100);
   lv_obj_set_size(field, 280, 34);
   lv_textarea_set_text(field, "Příliš žluťoučký kůň");
-  ui::screens::textEditMenu::configure({});
   ui::screens::textEditMenu::show(field);
   if (save) save("compact-text-actions.png");
   ui::screens::textEditMenu::close();

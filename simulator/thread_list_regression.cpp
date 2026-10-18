@@ -127,9 +127,10 @@ void runThreadListRegression() {
       screen.refresh(first, false, true);
       ui::widgets::fmtClockHM(expected, sizeof expected, &local);
       check(textIn(lv_obj_get_child(first, 0), expected), "Today's chat time changed format");
-      threads[0].timestamp = static_cast<uint32_t>(now - 86400);
-      struct tm previous;
-      check(ui::platform::localTime(now - 86400, previous), "Previous date unavailable");
+      struct tm previous = local;
+      --previous.tm_mday;
+      previous.tm_isdst = -1;
+      threads[0].timestamp = static_cast<uint32_t>(mktime(&previous));
       strftime(expected, sizeof expected, previous.tm_year == local.tm_year ? "%d %b" : "%d/%m/%y", &previous);
       screen.refresh(first, false, true);
       check(textIn(lv_obj_get_child(first, 0), expected), "Earlier chat date changed format");
