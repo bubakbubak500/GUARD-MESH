@@ -457,6 +457,11 @@ void runContactActionsRegression(void (*pump)(unsigned)) {
   pump(40);
   require(!sheet.isOpen(), "Contact backdrop close left the sheet open");
 
+  i18nSetLang(LANG_CS);
+  verifyLabelVariant(fixture, sheet, favorite, chatAll, TR("Unfav"), 5, pump, "czech-favorite-label");
+  verifyLabelVariant(fixture, sheet, locationShared, chatAll, TR("Stop sharing loc"), 6, pump,
+                     "czech-location-label");
+
   fixture.sheet = nullptr;
   sheet.close();
   pump(40);

@@ -1,5 +1,7 @@
 # GUARD-MESH dokumentace
 
+- [Guardian 2026.10.18 — kratší české UI a optimalizace](releases/guardian-2026.10.18.md)
+
 - [Guardian 2026.10.12 — oprava zásobníku chatu, USB/OTA a ověření](releases/guardian-2026.10.12.md)
 - [Guardian 2026.10.11 — změny, USB/OTA a ověření](releases/guardian-2026.10.11.md)
 - [Guardian v3 — 17 skutečných českých obrazovek](design/guardian-v3/screens/README.md)

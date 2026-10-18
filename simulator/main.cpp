@@ -454,10 +454,11 @@ int appMain(int argc, char **argv) {
   bool pingOnly = argc > 1 && (!strcmp(argv[1], "--ping-test") || !strcmp(argv[1], "--ping-test-cs"));
   bool guardianOnly = argc > 1 && (!strcmp(argv[1], "--guardian-test") || !strcmp(argv[1], "--guardian-test-cs"));
   bool fileScreenOnly = argc > 1 && !strcmp(argv[1],"--file-screen-test");
+  bool compactOnly = argc > 1 && (!strcmp(argv[1], "--compact-label-test") || !strcmp(argv[1], "--compact-label-test-cs"));
   bool displayPowerOnly = argc > 1 && (!strcmp(argv[1], "--display-power-test") || !strcmp(argv[1], "--display-power-test-cs"));
-  bool czech = argc > 1 && (!strcmp(argv[1], "--ping-test-cs") || !strcmp(argv[1], "--smoke-cs") || !strcmp(argv[1], "--guardian-test-cs") || !strcmp(argv[1], "--display-power-test-cs"));
+  bool czech = argc > 1 && (!strcmp(argv[1], "--ping-test-cs") || !strcmp(argv[1], "--smoke-cs") || !strcmp(argv[1], "--guardian-test-cs") || !strcmp(argv[1], "--display-power-test-cs") || !strcmp(argv[1], "--compact-label-test-cs"));
   bool keyboardNav = argc > 1 && strcmp(argv[1], "--smoke-nav") == 0;
-  bool smoke = pingOnly || guardianOnly || fileScreenOnly || displayPowerOnly || czech || keyboardNav || (argc > 1 && strcmp(argv[1], "--smoke") == 0);
+  bool smoke = pingOnly || guardianOnly || fileScreenOnly || displayPowerOnly || compactOnly || czech || keyboardNav || (argc > 1 && strcmp(argv[1], "--smoke") == 0);
   WNDCLASSW cls{};
   cls.lpfnWndProc = windowProc;
   cls.hInstance = GetModuleHandle(nullptr);
@@ -518,6 +519,9 @@ int appMain(int argc, char **argv) {
   if (czech && (strcmp(TR("Settings"), "Nastavení") || strcmp(TR("Advert"), "Advert")))
     throw std::runtime_error("Czech translation or preserved Advert term failed");
   if (smoke) {
+    extern void runCzechLayoutRegression(void (*)(const char *));
+    runCzechLayoutRegression([](const char *name) { lv_refr_now(nullptr); saveFrame(name); });
+    if (compactOnly) return 0;
     if (fileScreenOnly) {
       extern void runFileScreenRegression(void (*)(unsigned));
       runFileScreenRegression(pump); return 0;

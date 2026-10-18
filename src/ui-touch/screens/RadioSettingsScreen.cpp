@@ -25,7 +25,7 @@ void RadioSettingsScreen::build(lv_obj_t* body, lv_coord_t width) {
     lv_obj_set_size(ta, w, SC(30));
     lv_obj_set_pos(ta, x, y);
     lv_textarea_set_one_line(ta, true);
-    taSetPlaceholder(ta, TR(ph));
+    taSetPlaceholder(ta, ph);
     lv_textarea_set_max_length(ta, max_len);
     _host.attachField(ta);
     lv_obj_add_event_cb(ta, +[](lv_event_t* event){ static_cast<RadioSettingsScreen*>(lv_event_get_user_data(event))->saveRadioParamsCb(event); }, LV_EVENT_DEFOCUSED, this);  // auto-save the group on blur (silent if mid-edit)

@@ -13,6 +13,18 @@ maintained by [@bubakbubak500](https://github.com/bubakbubak500).
   for live PC status, messages, contacts and composing queued messages.
   Pairing is in Settings. The upstream build instructions remain below.
 
+## Guardian 2026.10.18
+
+- Shorter Czech labels for narrow controls, translated favorite actions,
+  display orientation and text editing. Compact labels have character budgets
+  and real LVGL font-width regression checks including icons.
+- Contact icons avoid unchanged text allocations; chat rows share one current
+  date conversion per refresh. Mention selection reuses shared UTF-8 helpers.
+- Includes USB **merged.bin** and Wi-Fi **app-ota.bin** for T-Deck / T-Deck Plus
+  and Heltec V4 TFT, with checksums and debug ELF. Hardware is not tested.
+- [Release notes](docs/releases/guardian-2026.10.18.md) ·
+  [Firmware downloads](https://github.com/bubakbubak500/GUARD-MESH/releases/tag/guardian-2026.10.18)
+
 ## Guardian 2026.10.12
 
 - Fixes chat refresh stack exhaustion identified in a T-Deck crash from

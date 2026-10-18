@@ -173,7 +173,7 @@ void DisplaySettingsScreen::build(lv_obj_t *body, lv_coord_t width) {
   }
   if (caps.rotation) {
     label(TR("Orientation (tap to rotate, reboots)"));
-    _rotation.set(button(body, state.rotation ? "Screen: Landscape" : "Screen: Portrait", width - 4));
+    _rotation.set(button(body, state.rotation ? TR("Screen: Landscape") : TR("Screen: Portrait"), width - 4));
   }
 }
 void DisplaySettingsScreen::flagNotice(DisplaySettings::Flag flag, bool on) {

@@ -109,23 +109,22 @@ void ThreadListScreen::rowEvent(lv_event_t *event) {
 // Rebuild the thread list inside a tab.
 // Compact last-message time for a chat-list row: HH:MM today, "DD Mon" earlier
 // this year, "DD/MM/YY" older. Empty when there's no timestamp (ts == 0).
-static void formatChatRowTime(char *buf, size_t cap, uint32_t ts) {
+static void formatChatRowTime(char *buf, size_t cap, uint32_t ts, const struct tm *today) {
   if (!buf || cap < 1)
     return;
   buf[0] = '\0';
   // Blank for "no real timestamp": 0 (empty/imported channel with no messages),
   // or a pre-2020 value left by an unsynced/garbage RTC — showing a bogus
   // 1969/1970/1902 date is worse than showing nothing (Ricky Leong).
-  if (ts < 1577836800UL)
+  if (ts < 1577836800UL || !today)
     return; // 2020-01-01 UTC
   time_t t = (time_t)ts;
-  time_t now = time(nullptr);
-  struct tm tmv, tmn;
-  if (!platform::localTime(t, tmv) || !platform::localTime(now, tmn))
+  struct tm tmv;
+  if (!platform::localTime(t, tmv))
     return;
-  if (tmv.tm_year == tmn.tm_year && tmv.tm_yday == tmn.tm_yday)
+  if (tmv.tm_year == today->tm_year && tmv.tm_yday == today->tm_yday)
     fmtClockHM(buf, cap, &tmv);
-  else if (tmv.tm_year == tmn.tm_year)
+  else if (tmv.tm_year == today->tm_year)
     strftime(buf, cap, "%d %b", &tmv);
   else
     strftime(buf, cap, "%d/%m/%y", &tmv);
@@ -159,6 +158,8 @@ void ThreadListScreen::refresh(lv_obj_t *list, bool channel, bool combined) {
   uint32_t rowSignatures[MessageTypes::MAX_UI_THREADS] = {};
   bool validRows[MessageTypes::MAX_UI_THREADS] = {};
   bool rowChannels[MessageTypes::MAX_UI_THREADS] = {};
+  struct tm today;
+  const struct tm *currentDate = count > 0 && platform::localTime(time(nullptr), today) ? &today : nullptr;
   mix((uint32_t)count);
   mix(compact_rows ? 0xC0FFEEu : 1u);
   for (int i = 0; i < count; ++i) {
@@ -176,7 +177,7 @@ void ThreadListScreen::refresh(lv_obj_t *list, bool channel, bool combined) {
     mixRow(unread);
     mixRow(ts);
     char renderedTime[16];
-    formatChatRowTime(renderedTime, sizeof renderedTime, ts);
+    formatChatRowTime(renderedTime, sizeof renderedTime, ts, currentDate);
     for (const char *text = renderedTime; *text; ++text)
       mixRow((uint8_t)*text);
     if (!compact_rows) {
@@ -404,7 +405,7 @@ void ThreadListScreen::refresh(lv_obj_t *list, bool channel, bool combined) {
       // Last-message time, just left of the gear; the unread badge + @ sit to its left.
       const lv_coord_t time_x = (lv_coord_t)(-(10 + gear_w));
       char tbuf[16];
-      formatChatRowTime(tbuf, sizeof(tbuf), ts);
+      formatChatRowTime(tbuf, sizeof(tbuf), ts, currentDate);
       lv_coord_t time_w = 0;
       if (tbuf[0]) {
         lv_point_t tsz;
@@ -602,7 +603,7 @@ void ThreadListScreen::refresh(lv_obj_t *list, bool channel, bool combined) {
       // Time, top-right (left of the gear).
       const lv_coord_t time_x = (lv_coord_t)(-(10 + gear_w));
       char tbuf[16];
-      formatChatRowTime(tbuf, sizeof(tbuf), ts);
+      formatChatRowTime(tbuf, sizeof(tbuf), ts, currentDate);
       lv_coord_t time_w = 0;
       if (tbuf[0]) {
         lv_point_t tsz;
