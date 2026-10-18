@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 #include "ChatPanel.h"
+#include "../models/MessageChanges.h"
 namespace ui {
 namespace screens {
 namespace timeline {
@@ -34,6 +35,7 @@ struct Host {
   void (*rebuildNavigation)();
   void (*focusHint)(lv_obj_t *);
   void (*trace)(const char *);
+  bool (*changesSince)(uint32_t, MessageChanges::Item *, int, int &, uint32_t &);
 };
 struct Snapshot {
   ChatPanel *panel;
@@ -45,7 +47,8 @@ struct FocusRequest {
   int index;
   uint32_t at;
 };
-struct Metrics { uint32_t rowsCreated, rowsBound, heightMeasurements, metadataUpdates, windowUpdates; };
+struct Metrics { uint32_t rowsCreated, rowsBound, heightMeasurements, metadataUpdates, windowUpdates,
+                          signatureChecks, layoutRebuilds; };
 Metrics metrics();
 void resetMetrics();
 // One active timeline on the device. Owns all layout/index buffers, render
@@ -57,6 +60,8 @@ Snapshot snapshot();
 FocusRequest requestedFocus();
 void requestFocus(int logicalIndex);
 void invalidateRows();
+// Repeat counts live in the mesh, outside MessageStore's change journal.
+void invalidateContent();
 int32_t messageCenter(int logicalIndex);
 void opened(uint16_t unread);
 void closed(ChatPanel *);

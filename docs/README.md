@@ -1,5 +1,7 @@
 # GUARD-MESH dokumentace
 
+- [Guardian 2026.10.18.1 — výkon zpráv a dlouhých chatů](releases/guardian-2026.10.18.1.md)
+
 - [Guardian 2026.10.18 — kratší české UI a optimalizace](releases/guardian-2026.10.18.md)
 
 - [Guardian 2026.10.12 — oprava zásobníku chatu, USB/OTA a ověření](releases/guardian-2026.10.12.md)

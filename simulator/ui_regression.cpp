@@ -151,6 +151,7 @@ void runFileScreenRegression(void (*pump)(unsigned));
 void runStoreScreenRegression(void (*pump)(unsigned));
 void runKeyboardBindingRegression();
 void runChatTimelineRegression();
+void runMessagePerformanceRegression();
 void runMessageMenuRegression(void (*pump)(unsigned));
 void runMessageInfoRegression(void (*pump)(unsigned));
 void runFocusTargetsRegression();
@@ -287,6 +288,7 @@ void runUiLifetimeRegression(void (*pump)(unsigned)) {
   puts("UI test: keyboard binding"); fflush(stdout);
   runKeyboardBindingRegression();
   runChatTimelineRegression();
+  runMessagePerformanceRegression();
   runMessageMenuRegression(pump);
   runMessageInfoRegression(pump);
   runFocusTargetsRegression();

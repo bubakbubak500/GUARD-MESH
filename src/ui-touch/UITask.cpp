@@ -27702,11 +27702,10 @@ void UITask::syncThreadMeshSlots(const char* thread_name, bool channel) {
 
 bool UITask::lookupActiveContact(ContactInfo& out) const {
   ui::ChatSession::Contact target;
-  if (!_chat.activeContact(target)) return false;
-  const ContactInfo* contact = the_mesh.lookupContactByPubKey(target.pub, sizeof(target.pub));
-  if (!contact) return false;
-  out = *contact;
-  return true;
+  int index = -1;
+  if (!_chat.activeContact(target, &index) || index < 0 ||
+      !the_mesh.getContactByIdx(static_cast<uint32_t>(index), out)) return false;
+  return memcmp(out.id.pub_key, target.pub, sizeof(target.pub)) == 0;
 }
 
 int UITask::appendMessage(const char* thread, const char* sender, const char* text,
@@ -28275,6 +28274,9 @@ static ui::screens::timeline::Host chatTimelineHost() {
 #else
       (void)message;
 #endif
+    },
+    [](uint32_t after, ui::MessageChanges::Item* items, int capacity, int& count, uint32_t& current){
+      return g_lv.task && g_lv.task->messageChangesSince(after,items,capacity,count,current);
     }
   };
 }
@@ -32013,9 +32015,9 @@ void UITask::loop() {
   }
 #endif
 
-  // A repeater echo of one of our sent floods was just counted — repaint the
-  // open chat so the sent bubble's repeat tag ticks up live.
+  // A repeat count changed (echo, reset or eviction) — repaint its live tag.
   if (the_mesh.takeEchoDirty()) {
+    ui::screens::timeline::invalidateContent();
     g_lv.dirty_timeline = true;
 #if !defined(HAS_TANMATSU)
     uiApplication.post(ui::UiApplication::WebMessagesChanged);   // repeat-heard tag ticked up -> refresh the web chat too

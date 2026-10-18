@@ -1,6 +1,12 @@
 #include "MessageStore.h"
 #include <cstring>
 namespace ui {
+#ifdef GUARD_MESSAGE_STORE_METRICS
+MessageStoreWork messageStoreWork;
+#define STORE_WORK(field) (++messageStoreWork.field)
+#else
+#define STORE_WORK(field) ((void)0)
+#endif
 MessageStore::~MessageStore() {
   if (_release) {
     _release(_ui_msgs);
@@ -45,20 +51,29 @@ bool MessageStore::allocate(int capacity, Allocator alloc, void (*release)(void 
 void MessageStore::rebuildThreadHistoryFlags() const {
   if (!_ui_threads || !_ui_msgs)
     return;
-  for (int i = 0; i < MAX_UI_THREADS; ++i)
+  STORE_WORK(historyRebuilds);
+  for (int i = 0; i < MAX_UI_THREADS; ++i) {
     _thread_msgs[i] = 0;
+    _thread_last[i] = LastMessage{};
+  }
   for (int i = 0; i < _ui_msg_count; ++i) {
+    STORE_WORK(historyRecords);
     const int idx = (_ui_msg_head - 1 - i + _ui_msg_cap) % _ui_msg_cap;
     const UIMessage &m = _ui_msgs[idx];
     if (!m.thread[0])
       continue; // blanked by a clear / cap trim
     for (int t = 0; t < MAX_UI_THREADS; ++t) {
+      STORE_WORK(historyComparisons);
       if (!_ui_threads[t].used)
         continue;
       if (m.channel == _ui_threads[t].channel &&
           strncmp(m.thread, _ui_threads[t].name, MAX_THREAD_NAME) == 0) {
         if (_thread_msgs[t] < 0xFFFF)
           ++_thread_msgs[t];
+        if (_thread_last[t].slot < 0 && m.text[0]) {
+          _thread_last[t].slot = idx;
+          _thread_last[t].sequence = m.seq;
+        }
         break;
       }
     }
@@ -225,6 +240,8 @@ bool MessageStore::deleteMessageBySlot(int msg_idx, DirtyRecord dirty) {
   m.thread[0] = '\0';
   m.text[0] = '\0';
   m.sender[0] = '\0';
+  _thread_hist_dirty = true;
+  _changes.record(msg_idx, m.seq);
   if (dirty)
     dirty(m.seq); // the owning segment needs a compaction pass
   _thread_hist_dirty = true;
@@ -245,6 +262,8 @@ int MessageStore::clearThreadHistory(int thread_idx, DirtyRecord dirty) {
       m.thread[0] = '\0';
       m.text[0] = '\0';
       m.sender[0] = '\0';
+      _thread_hist_dirty = true;
+      _changes.record(idx, m.seq);
       if (dirty)
         dirty(m.seq);
       ++cleared;
@@ -279,9 +298,11 @@ int MessageStore::enforceHistoryCap(int thread_idx, uint16_t cap, DirtyRecord di
     m.thread[0] = '\0';
     m.text[0] = '\0';
     m.sender[0] = '\0';
+    --_thread_msgs[thread_idx];
+    if (_thread_last[thread_idx].slot == idx) _thread_last[thread_idx].slot = -2;
+    _changes.record(idx, m.seq);
     if (dirty)
       dirty(m.seq);
-    --_thread_msgs[thread_idx];
     ++trimmed;
   }
   if (trimmed) {
@@ -378,7 +399,20 @@ bool MessageStore::append(int thread, UIMessage message, bool unread, bool menti
   if (_ui_msg_count == _ui_msg_cap) {
     if (evicted)
       evicted(_ui_msgs[_ui_msg_head].seq);
-    _thread_hist_dirty = true;
+    // The callback still sees the old ring and may warm the derived index.
+    // Remove only the overwritten record instead of rebuilding all threads.
+    if (!_thread_hist_dirty && _ui_msgs[_ui_msg_head].thread[0]) {
+      const auto &old = _ui_msgs[_ui_msg_head];
+      const int owner = findThreadByName(old.thread, old.channel);
+      if (owner >= 0) {
+        if (_thread_msgs[owner] && _thread_msgs[owner] != 0xFFFF)
+          --_thread_msgs[owner];
+        else
+          _thread_hist_dirty = true; // unknown/saturated count: retain safe rebuild
+        if (_thread_last[owner].slot == _ui_msg_head)
+          _thread_last[owner].slot = !_thread_hist_dirty && !_thread_msgs[owner] ? -1 : -2;
+      }
+    }
   }
   message.seq = _ui_seq_next++;
   message.channel = _ui_threads[thread].channel;
@@ -388,13 +422,19 @@ bool MessageStore::append(int thread, UIMessage message, bool unread, bool menti
   message.text[MAX_MSG_TEXT] = '\0';
   if (message.in_path_n > MAX_UI_PATH)
     message.in_path_n = MAX_UI_PATH;
-  _ui_msgs[_ui_msg_head] = message;
+  const int slot = _ui_msg_head;
+  _ui_msgs[slot] = message;
   if (!_thread_hist_dirty && _thread_msgs[thread] < 0xFFFF)
     ++_thread_msgs[thread];
   if (_ui_msg_count < _ui_msg_cap)
     ++_ui_msg_count;
   _ui_msg_head = (_ui_msg_head + 1) % _ui_msg_cap;
+  if (!_thread_hist_dirty && message.text[0]) {
+    _thread_last[thread].slot = slot;
+    _thread_last[thread].sequence = message.seq;
+  }
   _ui_threads[thread].last_ts = message.ts;
+  _changes.record(slot, message.seq);
   if (unread && _ui_threads[thread].unread < 0xFFFF)
     ++_ui_threads[thread].unread;
   if (mention)
@@ -411,6 +451,7 @@ bool MessageStore::acknowledge(uint32_t ack, DirtyRecord dirty) {
     if (!m.thread[0] || !m.outgoing || m.channel || m.ack_hash != ack || m.deliv_state == DELIV_DELIVERED)
       continue;
     m.deliv_state = DELIV_DELIVERED;
+    _changes.record((_ui_msg_head - 1 - i + _ui_msg_cap) % _ui_msg_cap, m.seq);
     if (dirty)
       dirty(m.seq);
     changed = true;
@@ -449,15 +490,30 @@ bool MessageStore::lastThreadMessage(int index, UIMessage &out) const {
   const auto &value = thread(index);
   if (!ready() || !value.used)
     return false;
-  // Arrival order, not wall-clock order: clocks may move backwards after reboot.
-  for (int i = 0; i < _ui_msg_count; ++i) {
-    const auto &message = _ui_msgs[(_ui_msg_head - 1 - i + _ui_msg_cap) % _ui_msg_cap];
-    if (message.text[0] && message.channel == value.channel &&
+  if (_thread_hist_dirty) rebuildThreadHistoryFlags();
+  auto &last = _thread_last[index];
+  if (last.slot == -1) return false;
+  if (last.slot >= 0 && containsSlot(last.slot)) {
+    const auto &message = _ui_msgs[last.slot];
+    if (message.seq == last.sequence && message.text[0] && message.channel == value.channel &&
         !strncmp(message.thread, value.name, MAX_THREAD_NAME)) {
       out = message;
       return true;
     }
   }
+  // Arrival order, not wall-clock order: clocks may move backwards after reboot.
+  for (int i = 0; i < _ui_msg_count; ++i) {
+    STORE_WORK(latestRecords);
+    const auto &message = _ui_msgs[(_ui_msg_head - 1 - i + _ui_msg_cap) % _ui_msg_cap];
+    if (message.text[0] && message.channel == value.channel &&
+        !strncmp(message.thread, value.name, MAX_THREAD_NAME)) {
+      out = message;
+      last.slot = (_ui_msg_head - 1 - i + _ui_msg_cap) % _ui_msg_cap;
+      last.sequence = message.seq;
+      return true;
+    }
+  }
+  last = LastMessage{};
   return false;
 }
 int MessageStore::newestUnread(int slots[], int threads[], int capacity) const {
@@ -507,6 +563,8 @@ bool MessageStore::removeThread(int index, DirtyRecord dirty, int *purged) {
     if (message.channel != value.channel || strncmp(message.thread, value.name, MAX_THREAD_NAME))
       continue;
     message.thread[0] = message.sender[0] = message.text[0] = 0;
+    _thread_hist_dirty = true;
+    _changes.record(i, message.seq);
     if (dirty)
       dirty(message.seq);
     if (purged)
@@ -515,6 +573,7 @@ bool MessageStore::removeThread(int index, DirtyRecord dirty, int *purged) {
   _ui_threads[index] = UIThread{};
   _ui_threads[index].mesh_contact_idx = _ui_threads[index].mesh_channel_slot = -1;
   _thread_hist_dirty = true;
+  _changes.reset();
   return true;
 }
 bool MessageStore::discardEmptyDirectThreads(int keep) {
@@ -581,11 +640,14 @@ bool MessageStore::renameThread(int index, const char *name, DirtyRecord dirty) 
     if (message.channel != value.channel || strncmp(message.thread, value.name, MAX_THREAD_NAME))
       continue;
     memcpy(message.thread, replacement, sizeof replacement);
+    _thread_hist_dirty = true;
+    _changes.reset();
     if (dirty)
       dirty(message.seq);
   }
   memcpy(value.name, replacement, sizeof replacement);
   _thread_hist_dirty = true;
+  _changes.reset();
   return true;
 }
 bool MessageStore::setMessageTimestamp(int slot, uint32_t sequence, uint32_t timestamp, DirtyRecord dirty) {
@@ -594,6 +656,7 @@ bool MessageStore::setMessageTimestamp(int slot, uint32_t sequence, uint32_t tim
   if (_ui_msgs[slot].ts == timestamp)
     return true;
   _ui_msgs[slot].ts = timestamp;
+  _changes.reset(); // day separators can change even if the row height does not
   if (dirty)
     dirty(sequence);
   return true;
@@ -603,6 +666,7 @@ void MessageStore::resetMessages() {
     memset(_ui_msgs, 0, sizeof(UIMessage) * _ui_msg_cap);
   _ui_msg_count = _ui_msg_head = 0;
   _thread_hist_dirty = true;
+  _changes.reset();
 }
 bool MessageStore::restoreThread(int index, const UIThread &value) {
   if (!ready() || index < 0 || index >= MAX_UI_THREADS)
@@ -610,6 +674,7 @@ bool MessageStore::restoreThread(int index, const UIThread &value) {
   _ui_threads[index] = value;
   _ui_threads[index].name[MAX_THREAD_NAME] = 0;
   _thread_hist_dirty = true;
+  _changes.reset();
   return true;
 }
 bool MessageStore::restoreMessage(int slot, const UIMessage &value) {
@@ -630,6 +695,7 @@ bool MessageStore::restoreRingState(int count, int head, uint32_t nextSequence) 
   _ui_msg_head = head;
   _ui_seq_next = nextSequence;
   _thread_hist_dirty = true;
+  _changes.reset();
   return true;
 }
 bool MessageStore::finishChronologicalRestore(int total, uint32_t nextSequence) {
@@ -657,6 +723,8 @@ void MessageStore::resequenceMessages() {
   for (int i = 0; i < _ui_msg_count; ++i)
     _ui_msgs[(_ui_msg_head - _ui_msg_count + i + _ui_msg_cap) % _ui_msg_cap].seq = uint32_t(i + 1);
   _ui_seq_next = uint32_t(_ui_msg_count) + 1;
+  _thread_hist_dirty = true;
+  _changes.reset();
 }
 
 bool MessageStore::containsSlot(int slot) const {

@@ -1,8 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 #include "MessageTypes.h"
+#include "MessageChanges.h"
 #include <stddef.h>
 namespace ui {
+#ifdef GUARD_MESSAGE_STORE_METRICS
+struct MessageStoreWork {
+  uint64_t historyRebuilds = 0, historyRecords = 0, historyComparisons = 0, latestRecords = 0;
+};
+extern MessageStoreWork messageStoreWork;
+#endif
 // UI-thread-owned message ring and thread index. No LVGL, filesystem, clock or
 // radio dependency. Persistence supplies a callback for changed record sequences.
 class MessageStore : public MessageTypes {
@@ -50,6 +57,7 @@ public:
   int threadAtOrdinal(int ordinal) const;
   int historyAt(const char *name, int back) const;
   bool lastThreadMessage(int index, UIMessage &out) const;
+  const MessageChanges &changes() const { return _changes; }
   // Arrival order, newest first; several rows may belong to the same thread.
   int newestUnread(int slots[], int threads[], int capacity) const;
   bool isUnreadMessage(int slot) const;
@@ -79,6 +87,11 @@ private:
   int _ui_msg_count = 0, _ui_msg_head = 0, _ui_msg_cap = MAX_UI_MESSAGES;
   mutable uint16_t _thread_msgs[MAX_UI_THREADS] = {};
   mutable bool _thread_hist_dirty = true;
+  // -1 means known empty, -2 needs a scan after its last slot was overwritten.
+  // Cache identities, never copies: ACK/timestamp reads see the live record.
+  struct LastMessage { int slot = -1; uint32_t sequence = 0; };
+  mutable LastMessage _thread_last[MAX_UI_THREADS];
+  MessageChanges _changes;
   UIMessage *_ui_msgs = nullptr;
   UIThread *_ui_threads = nullptr;
   void (*_release)(void *) = nullptr;

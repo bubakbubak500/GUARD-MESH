@@ -80,10 +80,19 @@ void ChatSession::copyName(char *out, const char *name) {
   out[MAX_THREAD_NAME] = '\0';
 }
 
-int ChatSession::resolveFull(const uint8_t *pub, Contact *out) const {
+int ChatSession::resolveFull(const uint8_t *pub, Contact *out, int hint) const {
   if (!nonzero(pub, 32) || !_host.contactCount || !_host.contact) return -1;
   const int count = _host.contactCount(_host.context);
+  if (hint >= 0 && hint < count) {
+    Contact candidate{};
+    if (_host.contact(_host.context, hint, candidate) && memcmp(candidate.pub, pub, 32) == 0) {
+      candidate.name[MAX_THREAD_NAME] = '\0';
+      if (out) *out = candidate;
+      return hint;
+    }
+  }
   for (int i = 0; i < count; ++i) {
+    if (i == hint) continue;
     Contact candidate{};
     if (!_host.contact(_host.context, i, candidate) || !nonzero(candidate.pub, 32)) continue;
     candidate.name[MAX_THREAD_NAME] = '\0';
@@ -146,15 +155,20 @@ int ChatSession::resolveChannel(const char *name) const {
   return match;
 }
 
-bool ChatSession::resolveThreadContact(int idx, Contact &out) const {
+bool ChatSession::resolveThreadContact(int idx, Contact &out, int *outIndex) const {
+  if (outIndex) *outIndex = -1;
   if (!_store || idx < 0 || idx >= MAX_UI_THREADS) return false;
   const UIThread &thread = _store->thread(idx);
   if (!thread.used || thread.channel) return false;
+  int index;
   if (nonzero(thread.mesh_contact_pub, 32))
-    return resolveFull(thread.mesh_contact_pub, &out) >= 0;
-  if (nonzero(thread.mesh_contact_key6, 6))
-    return resolveKey6(thread.mesh_contact_key6, &out) >= 0;
-  return resolveName(thread.name, &out) >= 0;
+    index = resolveFull(thread.mesh_contact_pub, &out, thread.mesh_contact_idx);
+  else if (nonzero(thread.mesh_contact_key6, 6))
+    index = resolveKey6(thread.mesh_contact_key6, &out);
+  else
+    index = resolveName(thread.name, &out);
+  if (outIndex) *outIndex = index;
+  return index >= 0;
 }
 
 bool ChatSession::syncBindings(int idx) {
@@ -212,7 +226,8 @@ bool ChatSession::adoptActiveKey(int idx, const uint8_t *pub) {
   return true;
 }
 
-bool ChatSession::activeContact(Contact &out) const {
+bool ChatSession::activeContact(Contact &out, int *outIndex) const {
+  if (outIndex) *outIndex = -1;
   if (!_store || _active_index < 0 || _active_index >= MAX_UI_THREADS || _active_channel) return false;
   const UIThread &thread = _store->thread(_active_index);
   if (!thread.used || thread.channel) return false;
@@ -221,9 +236,11 @@ bool ChatSession::activeContact(Contact &out) const {
         memcmp(thread.mesh_contact_pub, _active_pub, 32) != 0) return false;
     if (!nonzero(thread.mesh_contact_pub, 32) && nonzero(thread.mesh_contact_key6, 6) &&
         memcmp(thread.mesh_contact_key6, _active_pub, 6) != 0) return false;
-    return resolveFull(_active_pub, &out) >= 0;
+    const int index = resolveFull(_active_pub, &out, thread.mesh_contact_idx);
+    if (outIndex) *outIndex = index;
+    return index >= 0;
   }
-  return resolveThreadContact(_active_index, out);
+  return resolveThreadContact(_active_index, out, outIndex);
 }
 
 bool ChatSession::bindReceivedContact(int idx, const uint8_t *pub) {

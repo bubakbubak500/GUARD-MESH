@@ -57,7 +57,7 @@ public:
   bool activeChannel() const;
   uint32_t revision() const;
   bool syncBindings(int idx);
-  bool activeContact(Contact &out) const;
+  bool activeContact(Contact &out, int *outIndex = nullptr) const;
   bool bindReceivedContact(int idx, const uint8_t *pub);
 
   // A nested send is rejected. Completion never reads live selection to decide
@@ -82,11 +82,11 @@ private:
   static bool nonzero(const uint8_t *bytes, size_t length);
   static bool equalName(const char *a, const char *b);
   static void copyName(char *out, const char *name);
-  int resolveFull(const uint8_t *pub, Contact *out = nullptr) const;
+  int resolveFull(const uint8_t *pub, Contact *out = nullptr, int hint = -1) const;
   int resolveKey6(const uint8_t *key6, Contact *out = nullptr) const;
   int resolveName(const char *name, Contact *out = nullptr) const;
   int resolveChannel(const char *name) const;
-  bool resolveThreadContact(int idx, Contact &out) const;
+  bool resolveThreadContact(int idx, Contact &out, int *outIndex = nullptr) const;
   bool adoptActiveKey(int idx, const uint8_t *pub);
   bool makeTarget(Target &out);
 };

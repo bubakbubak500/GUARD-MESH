@@ -24,6 +24,11 @@ using std::min;
 static Host host{};
 static Metrics work{};
 static uint32_t rowStyleEpoch = 1;
+static uint32_t contentEpoch = 1, checkedContentEpoch = 0, checkedStyleEpoch = 0, checkedRevision = 0;
+static uint32_t checkedClockLayout = 0;
+static const lv_font_t *checkedFont = nullptr;
+static char checkedNodeName[MessageTypes::MAX_THREAD_NAME + 1] = {};
+static MessageChanges::Item changedRecords[MessageChanges::Capacity];
 static LvChatPanel *s_chat_virt_render_async_panel = nullptr;
 static bool s_chat_virt_render_async_busy = false;
 static uint8_t s_chat_detail_async_mask = 0;
@@ -175,7 +180,12 @@ static uint32_t hashBytes(uint32_t hash, const void* data, size_t size) {
   while (size--) hash = (hash ^ *bytes++) * 16777619u;
   return hash;
 }
+static uint32_t clockLayoutKey() {
+  return uint32_t(touchPrefsGetTimezone()) | (uint32_t(touchPrefsGetTimeOffsetHours() + 23) << 8) |
+      (uint32_t(touchPrefsGetClock12h()) << 16);
+}
 static uint32_t contentSignature(const MessageTypes::UIMessage& m) {
+  ++work.signatureChecks;
   uint32_t hash = hashBytes(2166136261u, m.text, strnlen(m.text, sizeof m.text));
   hash = hashBytes(hash, m.sender, strnlen(m.sender, sizeof m.sender));
   hash = hashBytes(hash, &m.ts, sizeof m.ts);
@@ -186,11 +196,15 @@ static uint32_t contentSignature(const MessageTypes::UIMessage& m) {
   const auto* font = chatMessageFont();
   hash = hashBytes(hash, &font, sizeof font);
   hash = hashBytes(hash, &rowStyleEpoch, sizeof rowStyleEpoch);
+  const uint32_t clockLayout = clockLayoutKey();
+  hash = hashBytes(hash, &clockLayout, sizeof clockLayout);
   char meta[48];
   chatBuildBubbleMeta(m, s_chat_virt.panel && s_chat_virt.panel->channel_mode, meta, sizeof meta, nullptr);
   const bool hasMeta = meta[0];
   hash = hashBytes(hash, &hasMeta, sizeof hasMeta);
   if (s_chat_virt.compact_chat) {
+    const char *node = host.nodeName();
+    if (node) hash = hashBytes(hash, node, strlen(node));
     hash = hashBytes(hash, s_chat_virt.compact_thread_name, strlen(s_chat_virt.compact_thread_name));
     hash = hashBytes(hash, &m.deliv_state, sizeof m.deliv_state);
     hash = hashBytes(hash, &m.path_len, sizeof m.path_len);
@@ -1122,12 +1136,13 @@ static bool chatVirtTryAppendLayout(LvChatPanel *p, int n, int divider_i) {
   return true;
 }
 
-static bool chatVirtRebuildLayout(LvChatPanel *p, int n, int divider_i) {
+static bool chatVirtRebuildLayout(LvChatPanel *p, int n, int divider_i, bool allowAppend = true) {
   if (!p || !host.ready() || n <= 0 || !s_chat_msg_idx)
     return false;
-  if (chatVirtTryAppendLayout(p, n, divider_i))
+  if (allowAppend && chatVirtTryAppendLayout(p, n, divider_i))
     return true;
   if (!ensureOffsetCapacity(n)) return false;
+  ++work.layoutRebuilds;
   for (int i = 0; i < n; ++i)
     s_chat_virt.day_sep_y[i] = -1;
 
@@ -2225,6 +2240,33 @@ void chatVirtJumpToLatest(LvChatPanel *p) {
   host.updateJumpButtons(p);
 }
 
+// Keep message/display scratch out of the later rendering call chain.
+#if defined(__GNUC__) || defined(__clang__)
+__attribute__((noinline))
+#endif
+static bool changedCompactHeight(LvChatPanel &p, const char *activeName, int changedCount) {
+  for (int i = 0; i < changedCount; ++i) {
+    const auto &change = changedRecords[i];
+    if (change.slot < 0 || change.slot >= s_chat_msg_idx_cap) return true;
+    MessageTypes::UIMessage message;
+    if (!host.messageAt(change.slot, message)) return true;
+    if (message.seq != change.sequence || message.channel != p.channel_mode || strcmp(message.thread, activeName)) continue;
+    auto &entry = heightCache[change.slot];
+    if (entry.sequence != message.seq || entry.height <= 0) continue; // new appended row
+    const uint32_t signature = contentSignature(message);
+    if (entry.signature == signature) continue;
+    ChatBubbleDisplay display{};
+    chatParseMessageDisplay(message, p.channel_mode, s_chat_virt.thread_is_room, display);
+    ++work.heightMeasurements;
+    const auto height = chatMeasureCompactRowHeight(message, &p, 0, display);
+    const bool changed = height != entry.height;
+    entry.signature = signature;
+    entry.height = height;
+    if (changed) return true;
+  }
+  return false;
+}
+
 void refreshChatDetail(LvChatPanel &p) {
   if (!host.ready() || !p.msgs)
     return;
@@ -2287,6 +2329,26 @@ void refreshChatDetail(LvChatPanel &p) {
   }
 
   const bool compact_chat = touchPrefsGetCompactChat();
+  const uint32_t checkingContentEpoch = contentEpoch, checkingStyleEpoch = rowStyleEpoch;
+  const uint32_t checkingClockLayout = clockLayoutKey();
+  const auto *checkingFont = chatMessageFont();
+  char checkingNodeName[sizeof checkedNodeName] = {}, activeName[MessageTypes::MAX_THREAD_NAME + 1] = {};
+  const char *nodeName = host.nodeName ? host.nodeName() : nullptr;
+  snprintf(checkingNodeName, sizeof checkingNodeName, "%s", nodeName ? nodeName : "");
+  host.activeThreadName(activeName, sizeof activeName);
+  const bool contextChanged = checkedStyleEpoch != checkingStyleEpoch || checkedFont != checkingFont ||
+      checkedClockLayout != checkingClockLayout ||
+      strcmp(checkedNodeName, checkingNodeName) ||
+      s_chat_virt.content_w != lv_disp_get_hor_res(nullptr) - 12 ||
+      s_chat_virt.thread_is_room != (!p.channel_mode && host.activeThreadIsRoom()) ||
+      (compact_chat && strcmp(s_chat_virt.compact_thread_name, activeName));
+  int changedCount = 0;
+  uint32_t checkingRevision = 0;
+  const bool knownChanges = host.changesSince &&
+      host.changesSince(checkedRevision, changedRecords, MessageChanges::Capacity, changedCount, checkingRevision);
+  bool forceFullLayout = contextChanged || checkedContentEpoch != checkingContentEpoch ||
+      (host.changesSince && !knownChanges) ||
+      (compact_chat && !heightCache && (!knownChanges || changedCount > 0));
   // Content-generation guard: at ring capacity a new message evicts the oldest,
   // so n stays CONSTANT while every logical index shifts one slot — and a thread
   // switch on an already-open panel can land on an equal count too. Comparing the
@@ -2296,12 +2358,20 @@ void refreshChatDetail(LvChatPanel &p) {
   // the next message's text at the previous message's position.
   const bool ring_changed = (s_chat_virt.n > 0) && (s_chat_msg_idx[0] != s_chat_virt.first_ring ||
                                                     s_chat_msg_idx[n - 1] != s_chat_virt.last_ring);
+  const bool prefixRetained = s_chat_virt.n > 0 && n >= s_chat_virt.n &&
+      s_chat_msg_idx[0] == s_chat_virt.first_ring && s_chat_msg_idx[s_chat_virt.n - 1] == s_chat_virt.last_ring;
   bool changedHeight = false;
+  // Only copied/hashed records are expensive here. The ordinary index scan is
+  // retained; unchanged compact history and unrelated ACKs need no signatures.
+  if (compact_chat && knownChanges && !forceFullLayout && s_chat_virt.panel == &p && heightCache &&
+      (!ring_changed || prefixRetained)) {
+    forceFullLayout = changedCompactHeight(p, activeName, changedCount);
+  }
   if (s_chat_virt.panel == &p && heightCache && s_chat_virt.offsets && !ring_changed && s_chat_virt.n == n) {
     // Compact delivery text can wrap; only changed cache entries are measured.
     // Bubble metadata has a fixed header, so inspect just the materialised rows.
     const int begin = compact_chat ? 0 : max(0, s_chat_virt.last_i0);
-    const int end = compact_chat ? n - 1 : min(n - 1, s_chat_virt.last_i1);
+    const int end = compact_chat ? ((forceFullLayout || !knownChanges) ? n - 1 : -1) : min(n - 1, s_chat_virt.last_i1);
     for (int i = begin; i <= end; ++i) {
       MessageTypes::UIMessage message;
       if (host.messageAt(s_chat_msg_idx[i], message)) {
@@ -2313,7 +2383,7 @@ void refreshChatDetail(LvChatPanel &p) {
     }
   }
   const bool need_layout = (s_chat_virt.panel != &p) || (s_chat_virt.n != n) || !s_chat_virt.offsets ||
-                           ring_changed || changedHeight || s_chat_virt.compact_chat != compact_chat;
+                           ring_changed || changedHeight || s_chat_virt.compact_chat != compact_chat || forceFullLayout;
   const bool divider_rebuild = !need_layout && divider_i >= 0 && s_chat_virt.divider_y < 0;
   const bool changing_panel = s_chat_virt.panel != &p;
   if (opening || need_layout || divider_rebuild)
@@ -2329,7 +2399,7 @@ void refreshChatDetail(LvChatPanel &p) {
       chatVirtResetInputForMsgs(&p);
     s_chat_virt.last_i0 = -1;
     s_chat_virt.last_i1 = -1;
-    if (!chatVirtRebuildLayout(&p, n, divider_i)) {
+    if (!chatVirtRebuildLayout(&p, n, divider_i, !forceFullLayout)) {
       chatVirtResetToPlaceholder(p, "Low memory");
       return;
     }
@@ -2406,6 +2476,12 @@ void refreshChatDetail(LvChatPanel &p) {
 
   s_chat_just_opened = false;
   s_chat_jump_msg_idx = -1;
+  checkedRevision = checkingRevision;
+  checkedStyleEpoch = checkingStyleEpoch;
+  checkedContentEpoch = checkingContentEpoch;
+  checkedClockLayout = checkingClockLayout;
+  checkedFont = checkingFont;
+  memcpy(checkedNodeName, checkingNodeName, sizeof checkedNodeName);
   host.updateJumpButtons(&p);
 }
 
@@ -2492,6 +2568,7 @@ Snapshot snapshot() {
 FocusRequest requestedFocus() { return focusRequest; }
 void requestFocus(int logicalIndex) { focusRequest = {logicalIndex, ui::platform::milliseconds()}; }
 void invalidateRows() { ++rowStyleEpoch; s_chat_virt.last_i0 = s_chat_virt.last_i1 = -1; }
+void invalidateContent() { ++contentEpoch; }
 Metrics metrics() { return work; }
 void resetMetrics() { work = {}; }
 int32_t messageCenter(int index) {
@@ -2532,6 +2609,8 @@ void configure(const Host &value) {
   if (host.ready)
     shutdown();
   host = value;
+  checkedRevision = checkedStyleEpoch = checkedContentEpoch = 0;
+  checkedFont = nullptr;
 }
 
 } // namespace timeline
