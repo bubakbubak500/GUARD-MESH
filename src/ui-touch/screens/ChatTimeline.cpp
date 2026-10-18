@@ -2241,6 +2241,9 @@ void chatVirtJumpToLatest(LvChatPanel *p) {
 }
 
 // Keep message/display scratch out of the later rendering call chain.
+#if defined(__GNUC__) || defined(__clang__)
+__attribute__((noinline))
+#endif
 static bool changedCompactHeight(LvChatPanel &p, const char *activeName, int changedCount) {
   for (int i = 0; i < changedCount; ++i) {
     const auto &change = changedRecords[i];
