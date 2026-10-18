@@ -89,6 +89,7 @@ def main():
     sources += [ROOT/'simulator/backup_operations_regression.cpp']
     sources += [ROOT/'simulator/admin_session_regression.cpp']
     sources += [ROOT/'simulator/crash_diagnostics.cpp']
+    sources += [ROOT/'simulator/czech_layout_regression.cpp']
     errors=[];objects=[]
     with ThreadPoolExecutor(max_workers=4) as pool:
         for i,(obj,diag) in enumerate(pool.map(compile_source,sources)):

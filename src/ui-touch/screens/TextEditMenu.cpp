@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "TextEditMenu.h"
+#include "../i18n.h"
 #include "../platform/UiPlatform.h"
 #include "../theme/Fonts.h"
 #include "../theme/Theme.h"
@@ -181,8 +182,12 @@ bool show(lv_obj_t *field) {
     lv_obj_set_style_bg_color(c, lv_color_hex(colors().COLOR_ACCENT), LV_PART_MAIN | LV_STATE_PRESSED);
     lv_obj_add_event_cb(c, actionClicked, LV_EVENT_CLICKED, reinterpret_cast<void *>((intptr_t)i));
     lv_obj_t *l = lv_label_create(c);
-    lv_label_set_text(l, kLabels[i]);
+    lv_label_set_text(l, TR(kLabels[i]));
     lv_obj_set_style_text_font(l, &font14(), LV_PART_MAIN);
+    uiFitLabelWidth(l, cw - 4);
+    lv_label_set_long_mode(l, LV_LABEL_LONG_DOT);
+    lv_obj_set_width(l, cw - 4);
+    lv_obj_set_style_text_align(l, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
     lv_obj_set_style_text_color(l, lv_color_hex(colors().COLOR_TEXT), LV_PART_MAIN);
     lv_obj_center(l);
   }

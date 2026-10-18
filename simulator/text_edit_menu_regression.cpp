@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "PasteHexKey.h"
+#include "i18n.h"
 #include "screens/TextEditMenu.h"
 #include "widgets/TextSelection.h"
 #include <cstdio>
@@ -75,6 +76,17 @@ void runTextEditMenuRegression() {
   text(first, "Ař🙂 Z", 3);
   selection::select(first, 1, 3);
   menu::show(first);
+  lv_obj_update_layout(root());
+  const char *keys[] = {"Cut", "Copy", "Paste", "All", "Sym"};
+  for (int i = 0; i < 5; ++i) {
+    auto *caption = lv_obj_get_child(action(i), 0);
+    check(!strcmp(lv_label_get_text(caption), TR(keys[i])), "Edit action untranslated or truncated");
+    lv_point_t size;
+    lv_txt_get_size(&size, TR(keys[i]), lv_obj_get_style_text_font(caption, LV_PART_MAIN),
+                    0, 0, LV_COORD_MAX, LV_TEXT_FLAG_NONE);
+    check(size.x <= lv_obj_get_width(caption) && size.y <= lv_obj_get_height(action(i)),
+          "Edit action exceeds its fixed button");
+  }
   click(action(1));
   check(copies == 1 && !cut && !strcmp(clipboard, "ř🙂") && !menu::isOpen(), "Edit menu UTF-8 copy failed");
   selection::select(first, 1, 3);

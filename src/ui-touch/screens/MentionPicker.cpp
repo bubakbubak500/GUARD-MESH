@@ -5,6 +5,7 @@
 #include "../theme/Theme.h"
 #include "../widgets/ObjectRef.h"
 #include "../widgets/Styles.h"
+#include "../widgets/TextSelection.h"
 #include <cstring>
 #include <strings.h>
 namespace ui {
@@ -83,20 +84,6 @@ void confirm() {
   else
     close();
 }
-static uint32_t cpToByte(const char *text, uint32_t cursor) {
-  uint32_t i = 0;
-  while (text[i] && cursor--)
-    _lv_txt_encoded_next(text, &i);
-  return i;
-}
-static uint32_t byteToCp(const char *text, uint32_t byte) {
-  uint32_t i = 0, count = 0;
-  while (text[i] && i < byte) {
-    _lv_txt_encoded_next(text, &i);
-    ++count;
-  }
-  return count;
-}
 static bool mentionWhitespace(unsigned char c) { return c == ' ' || c == '\n' || c == '\t' || c == '\r'; }
 static bool mentionPunctuation(unsigned char c) {
   switch (c) {
@@ -135,7 +122,7 @@ static bool mentionTokenAtCaret(lv_obj_t *ta, MentionToken &token) {
   if (!text)
     return false;
   const size_t len = strlen(text);
-  size_t caret = cpToByte(text, lv_textarea_get_cursor_pos(ta));
+  size_t caret = textSelection::cpToByte(text, lv_textarea_get_cursor_pos(ta));
   if (caret > len)
     caret = len;
 
@@ -191,7 +178,7 @@ static void cellClicked(lv_event_t *event) {
     text[pos++] = ' ';
   const size_t caret = pos;
   memcpy(text + pos, original + token.end, suffix + 1);
-  const uint32_t cursor = byteToCp(text, caret);
+  const uint32_t cursor = textSelection::byteToCp(text, caret);
   ObjectRef destination;
   destination.set(field);
   const auto apply = host.apply;

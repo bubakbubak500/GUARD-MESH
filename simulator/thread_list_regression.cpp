@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "models/MessageTypes.h"
 #include "screens/ThreadListScreen.h"
+#include "platform/UiPlatform.h"
+#include "widgets/ChatText.h"
 #include <cstdio>
 #include <cstring>
+#include <initializer_list>
 #include <stdexcept>
 namespace {
 struct Thread {
@@ -112,6 +115,35 @@ void runThreadListRegression() {
   }
   {
     ui::screens::ThreadListScreen screen(host());
+    // One current-date snapshot must retain all three timestamp formats in
+    // both row layouts (including the per-row signature's formatted text).
+    const time_t now = time(nullptr);
+    struct tm local;
+    check(ui::platform::localTime(now, local), "Current date unavailable");
+    char expected[16];
+    for (bool dense : {true, false}) {
+      compact = dense;
+      threads[0].timestamp = static_cast<uint32_t>(now);
+      screen.refresh(first, false, true);
+      ui::widgets::fmtClockHM(expected, sizeof expected, &local);
+      check(textIn(lv_obj_get_child(first, 0), expected), "Today's chat time changed format");
+      struct tm previous = local;
+      --previous.tm_mday;
+      previous.tm_isdst = -1;
+      threads[0].timestamp = static_cast<uint32_t>(mktime(&previous));
+      strftime(expected, sizeof expected, previous.tm_year == local.tm_year ? "%d %b" : "%d/%m/%y", &previous);
+      screen.refresh(first, false, true);
+      check(textIn(lv_obj_get_child(first, 0), expected), "Earlier chat date changed format");
+      struct tm old = local;
+      old.tm_year -= 2;
+      old.tm_isdst = -1;
+      threads[0].timestamp = static_cast<uint32_t>(mktime(&old));
+      strftime(expected, sizeof expected, "%d/%m/%y", &old);
+      screen.refresh(first, false, true);
+      check(textIn(lv_obj_get_child(first, 0), expected), "Old chat date changed format");
+    }
+    threads[0].timestamp = 1789948800;
+    compact = true;
     screen.refresh(first, false, true);
     check(lv_obj_get_child_cnt(first) == 20 && textIn(first, "99+") && textIn(first, "@"),
           "Compact list lost rows/badges");

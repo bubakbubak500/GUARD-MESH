@@ -8,6 +8,7 @@
 #include "../widgets/Styles.h"
 
 #include <cstring>
+#include <cstdio>
 
 namespace ui {
 namespace screens {
@@ -364,8 +365,10 @@ void ContactActionSheet::build(const Snapshot &snapshot) {
   addButton(TR(LV_SYMBOL_WIFI "  Range test"), Action::RangeTest, 0);
   if (snapshot.hasSightline)
     addButton(TR(LV_SYMBOL_GPS "  Sightline"), Action::Sightline, 0);
-  addButton(snapshot.favorite ? TOUCH_SYM_STAR "  Unfav" : TOUCH_SYM_STAR "  Favorite",
-            Action::Favorite, 0);
+  char favoriteLabel[64];
+  std::snprintf(favoriteLabel, sizeof favoriteLabel, TOUCH_SYM_STAR "  %s",
+                snapshot.favorite ? TR("Unfav") : TR("Favorite"));
+  addButton(favoriteLabel, Action::Favorite, 0);
   if (!snapshot.fromMap && snapshot.canShareLocation)
     addButton(snapshot.locationShared ? TR(LV_SYMBOL_GPS "  Stop sharing loc")
                                       : TR(LV_SYMBOL_GPS "  Share my loc"),

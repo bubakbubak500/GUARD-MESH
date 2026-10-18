@@ -192,9 +192,10 @@ void ContactsScreen::updateCell(Cell& c, bool lookupLatest) {
     if (checked) lv_obj_clear_flag(c.check, LV_OBJ_FLAG_HIDDEN);
     else lv_obj_add_flag(c.check, LV_OBJ_FLAG_HIDDEN);
   }
-  lv_label_set_text(c.icon, e.is_blocked ? TOUCH_SYM_PERSON
+  const char *icon = e.is_blocked ? TOUCH_SYM_PERSON
                        : (e.is_repeater ? TOUCH_SYM_ANTENNA
-                       : (e.is_room ? LV_SYMBOL_LOOP : TOUCH_SYM_PERSON)));
+                       : (e.is_room ? LV_SYMBOL_LOOP : TOUCH_SYM_PERSON));
+  if (std::strcmp(lv_label_get_text(c.icon), icon)) lv_label_set_text(c.icon, icon);
   lv_obj_set_style_text_color(c.icon, lightSurfaceTextColor(e.is_blocked ? 0xD7574E : colors().COLOR_SUB), LV_PART_MAIN);
   lv_obj_align(c.icon, LV_ALIGN_LEFT_MID, icon_x, 0);
   char name[40];

@@ -21,7 +21,7 @@ void ProfileSettingsScreen::build(lv_obj_t* body, lv_coord_t width) {
     lv_obj_set_size(ta, w, SC(30));
     lv_obj_set_pos(ta, x, y);
     lv_textarea_set_one_line(ta, true);
-    taSetPlaceholder(ta, TR(ph));
+    taSetPlaceholder(ta, ph);
     lv_textarea_set_max_length(ta, max_len);
     _host.attachField(ta);
     return ta;
@@ -54,9 +54,6 @@ void ProfileSettingsScreen::build(lv_obj_t* body, lv_coord_t width) {
   // No "Save name" / "Save position" buttons — both auto-save on blur.
 
   {
-    auto mk_label = [&](const char* text) {
-      y += settingsRowLabel(body, y, 0, text, colors().COLOR_SUB, nullptr, 0) + 2;
-    };
     auto mk_switch = [&](const char* text, lv_obj_t** out) {
       int h = settingsRowLabel(body, y, 6, text, colors().COLOR_SUB, nullptr, 56);
       lv_obj_t* sw = lv_switch_create(body);
